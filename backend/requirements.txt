@@ -4,3 +4,7 @@ requests==2.31.0
 pydantic==2.5.0
 python-dateutil==2.8.2
 python-dotenv==1.0.0
+
+# Development server (for frontend integration)
+flask==3.0.0
+flask-cors==4.0.0

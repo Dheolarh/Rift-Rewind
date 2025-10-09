@@ -89,7 +89,9 @@ def test_complete_pipeline():
     print_header("STEP 2: Calculating Analytics")
     
     # Download raw data
-    raw_data = download_from_s3(f"sessions/{session_id}/raw_data.json")
+    import json
+    raw_data_str = download_from_s3(f"sessions/{session_id}/raw_data.json")
+    raw_data = json.loads(raw_data_str) if raw_data_str else {}
     
     # Calculate analytics
     analytics_engine = RiftRewindAnalytics(raw_data)
