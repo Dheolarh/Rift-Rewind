@@ -14,8 +14,12 @@ Timeout: 1 minute
 import os
 import sys
 import json
+import logging
 from typing import Dict, Any, List
 from datetime import datetime
+
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
 
 # Add parent directory to path for local imports
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
@@ -43,7 +47,7 @@ class InsightsGenerator:
             Analytics data dict
         """
         s3_key = f"sessions/{session_id}/analytics.json"
-        print(f"Downloading analytics from S3: {s3_key}")
+        logger.info(f"Downloading analytics from S3: {s3_key}")
         
         analytics = download_from_s3(s3_key)
         if not analytics:
@@ -131,9 +135,8 @@ Respond ONLY with valid JSON - no other text."""
         Returns:
             Parsed insights dict
         """
-        print(f"Calling Bedrock for insights generation...")
+        logger.info("Calling Bedrock for insights generation...")
         
-        # Prepare request body
         request_body = {
             "anthropic_version": "bedrock-2023-05-31",
             "max_tokens": 1000,
@@ -152,11 +155,9 @@ Respond ONLY with valid JSON - no other text."""
             body=json.dumps(request_body)
         )
         
-        # Parse response
         response_body = json.loads(response['body'].read())
         insights_text = response_body['content'][0]['text']
         
-        # Parse JSON from response
         try:
             # Extract JSON if wrapped in markdown code blocks
             if '```json' in insights_text:
@@ -165,13 +166,11 @@ Respond ONLY with valid JSON - no other text."""
                 insights_text = insights_text.split('```')[1].split('```')[0].strip()
             
             insights_data = json.loads(insights_text)
-            print(f"✓ Insights generated successfully")
+            logger.info("Insights generated successfully")
             return insights_data
         
         except json.JSONDecodeError as e:
-            print(f"Error parsing JSON from Bedrock: {e}")
-            print(f"Raw response: {insights_text}")
-            # Return fallback structure
+            logger.error(f"Error parsing JSON from Bedrock: {e}")
             return {
                 "strengths": ["Data analysis in progress"],
                 "weaknesses": ["More matches needed for accurate analysis"],
@@ -197,7 +196,7 @@ Respond ONLY with valid JSON - no other text."""
             'status': 'complete'
         }
         
-        print(f"Storing insights to S3: {s3_key}")
+        logger.info(f"Storing insights to S3: {s3_key}")
         upload_to_s3(s3_key, data)
     
     def generate(self, session_id: str) -> Dict[str, Any]:
@@ -210,30 +209,16 @@ Respond ONLY with valid JSON - no other text."""
         Returns:
             Result dict with insights
         """
-        print(f"\n{'='*60}")
-        print(f"GENERATING INSIGHTS")
-        print(f"Session ID: {session_id}")
-        print(f"{'='*60}\n")
+        logger.info(f"Generating insights for session: {session_id}")
         
-        # Step 1: Download analytics
         analytics = self.download_analytics(session_id)
-        
-        # Step 2: Create prompt
         prompt = self.create_insights_prompt(analytics)
-        
-        # Step 3: Generate insights
         insights = self.call_bedrock(prompt)
-        
-        # Step 4: Store results
         self.store_insights(session_id, insights)
         
-        print(f"\n{'='*60}")
-        print(f"INSIGHTS GENERATION COMPLETE!")
-        print(f"Strengths: {len(insights.get('strengths', []))}")
-        print(f"Weaknesses: {len(insights.get('weaknesses', []))}")
-        print(f"Tips: {len(insights.get('coaching_tips', []))}")
-        print(f"Title: {insights.get('personality_title', 'N/A')}")
-        print(f"{'='*60}\n")
+        logger.info(f"Insights generation complete - Strengths: {len(insights.get('strengths', []))}, "
+                   f"Weaknesses: {len(insights.get('weaknesses', []))}, "
+                   f"Tips: {len(insights.get('coaching_tips', []))}")
         
         return {
             'sessionId': session_id,

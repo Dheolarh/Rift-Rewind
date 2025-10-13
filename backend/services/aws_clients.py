@@ -5,7 +5,7 @@ AWS client initialization utilities
 import boto3
 import json
 from typing import Optional, Union, Dict, Any
-from .constants import AWS_REGION, S3_BUCKET_NAME
+from .constants import AWS_DEFAULT_REGION, S3_BUCKET_NAME
 
 
 # Singleton clients
@@ -23,7 +23,7 @@ def get_s3_client():
     """
     global _s3_client
     if _s3_client is None:
-        _s3_client = boto3.client('s3', region_name=AWS_REGION)
+        _s3_client = boto3.client('s3', region_name=AWS_DEFAULT_REGION)
     return _s3_client
 
 
@@ -38,7 +38,7 @@ def get_bedrock_client():
     if _bedrock_client is None:
         _bedrock_client = boto3.client(
             service_name='bedrock-runtime',
-            region_name=AWS_REGION
+            region_name=AWS_DEFAULT_REGION
         )
     return _bedrock_client
 
@@ -54,7 +54,7 @@ def get_sagemaker_client():
     if _sagemaker_client is None:
         _sagemaker_client = boto3.client(
             service_name='sagemaker-runtime',
-            region_name=AWS_REGION
+            region_name=AWS_DEFAULT_REGION
         )
     return _sagemaker_client
 

@@ -102,7 +102,8 @@ RIOT_API_RATE_LIMIT_PER_2_MINUTES = 100  # Development key limit
 # AWS Configuration (loaded from environment variables)
 import os
 
-AWS_REGION = os.getenv("AWS_REGION", "us-east-1")
+# Note: AWS_REGION is reserved in Lambda, use AWS_DEFAULT_REGION or detect from context
+AWS_DEFAULT_REGION = os.getenv("AWS_DEFAULT_REGION", "us-east-1")
 S3_BUCKET_NAME = os.getenv("S3_BUCKET_NAME", "rift-rewind-sessions")
 BEDROCK_MODEL_ID = os.getenv("BEDROCK_MODEL_ID", "anthropic.claude-3-sonnet-20240229-v1:0")
 SAGEMAKER_ENDPOINT_NAME = os.getenv("SAGEMAKER_ENDPOINT_NAME", "rift-rewind-insights")  # Optional

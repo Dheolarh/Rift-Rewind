@@ -4,6 +4,7 @@ Riot API Client with rate limiting and error handling
 
 import os
 import time
+import logging
 import requests
 from typing import Dict, Any, Optional, List
 from datetime import datetime, timedelta
@@ -14,6 +15,9 @@ from .constants import (
     PLATFORM_TO_REGIONAL,
     RIOT_API_RATE_LIMIT_PER_SECOND,
 )
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 
 class RiotAPIClient:
@@ -79,32 +83,31 @@ class RiotAPIClient:
                 if response.status_code == 200:
                     return response.json()
                 elif response.status_code == 404:
-                    print(f"Resource not found (404): {url}")
+                    logger.warning(f"Resource not found (404): {url}")
                     return None
                 elif response.status_code == 429:
-                    # Rate limited - wait and retry
                     retry_after = int(response.headers.get('Retry-After', 2))
-                    print(f"Rate limited. Waiting {retry_after} seconds...")
+                    logger.info(f"Rate limited. Waiting {retry_after} seconds...")
                     time.sleep(retry_after)
                     continue
                 elif response.status_code == 403:
-                    print(f"Forbidden (403) - check API key: {url}")
+                    logger.error(f"Forbidden (403) - check API key: {url}")
                     return None
                 else:
-                    print(f"Error {response.status_code}: {url}")
+                    logger.error(f"Error {response.status_code}: {url}")
                     if attempt < max_retries - 1:
                         time.sleep(1)
                         continue
                     return None
                     
             except requests.exceptions.Timeout:
-                print(f"Timeout on attempt {attempt + 1}/{max_retries}")
+                logger.warning(f"Timeout on attempt {attempt + 1}/{max_retries}")
                 if attempt < max_retries - 1:
                     time.sleep(1)
                     continue
                 return None
             except Exception as e:
-                print(f"Request error: {e}")
+                logger.error(f"Request error: {e}")
                 return None
         
         return None
@@ -131,7 +134,7 @@ class RiotAPIClient:
         )
         url = base_url + endpoint
         
-        print(f"Fetching account: {game_name}#{tag_line} on {regional}")
+        logger.info(f"Fetching account: {game_name}#{tag_line} on {regional}")
         return self._make_request(url)
     
     # ==================== SUMMONER-V4 API ====================
@@ -154,7 +157,7 @@ class RiotAPIClient:
         endpoint = RIOT_API_ENDPOINTS['summoner_by_name'].format(summonerName=encoded_name)
         url = base_url + endpoint
         
-        print(f"Fetching summoner: {summoner_name} on {platform}")
+        logger.info(f"Fetching summoner: {summoner_name} on {platform}")
         return self._make_request(url)
     
     def get_summoner_by_puuid(self, puuid: str, platform: str) -> Optional[Dict[str, Any]]:
@@ -191,7 +194,7 @@ class RiotAPIClient:
         endpoint = RIOT_API_ENDPOINTS['league_by_summoner'].format(encryptedSummonerId=summoner_id)
         url = base_url + endpoint
         
-        print(f"Fetching ranked info for summoner: {summoner_id}")
+        logger.info(f"Fetching ranked info for summoner: {summoner_id}")
         return self._make_request(url)
     
     def get_league_entries_by_puuid(self, puuid: str, platform: str) -> Optional[List[Dict[str, Any]]]:
@@ -210,7 +213,7 @@ class RiotAPIClient:
         endpoint = RIOT_API_ENDPOINTS['league_by_puuid'].format(encryptedPUUID=puuid)
         url = base_url + endpoint
         
-        print(f"Fetching ranked info by PUUID: {puuid[:16]}...")
+        logger.info(f"Fetching ranked info by PUUID: {puuid[:16]}...")
         return self._make_request(url)
     
     # ==================== MATCH-V5 API ====================
@@ -242,7 +245,7 @@ class RiotAPIClient:
         """
         regional = PLATFORM_TO_REGIONAL.get(platform)
         if not regional:
-            print(f"Unknown platform: {platform}")
+            logger.error(f"Unknown platform: {platform}")
             return None
         
         base_url = RIOT_API_REGIONAL_BASE.format(regional=regional)
@@ -259,7 +262,7 @@ class RiotAPIClient:
         
         url = base_url + endpoint + "?" + "&".join(params)
         
-        print(f"Fetching {count} match IDs for PUUID: {puuid[:8]}...")
+        logger.info(f"Fetching {count} match IDs for PUUID: {puuid[:8]}...")
         return self._make_request(url)
     
     def get_match_details(self, match_id: str, platform: str) -> Optional[Dict[str, Any]]:
@@ -275,7 +278,7 @@ class RiotAPIClient:
         """
         regional = PLATFORM_TO_REGIONAL.get(platform)
         if not regional:
-            print(f"Unknown platform: {platform}")
+            logger.error(f"Unknown platform: {platform}")
             return None
         
         base_url = RIOT_API_REGIONAL_BASE.format(regional=regional)
@@ -326,24 +329,22 @@ class RiotAPIClient:
         matches = []
         total = len(match_ids)
         
-        print(f"Fetching {total} matches sequentially in batches of {batch_size}...")
+        logger.info(f"Fetching {total} matches sequentially in batches of {batch_size}...")
         
         for i in range(0, total, batch_size):
             batch = match_ids[i:i + batch_size]
-            print(f"Processing batch {i//batch_size + 1}/{(total + batch_size - 1)//batch_size}")
             
             for match_id in batch:
                 match_data = self.get_match_details(match_id, platform)
                 if match_data:
                     matches.append(match_data)
                 else:
-                    print(f"Failed to fetch match: {match_id}")
+                    logger.warning(f"Failed to fetch match: {match_id}")
             
-            # Small delay between batches
             if i + batch_size < total:
                 time.sleep(0.5)
         
-        print(f"Successfully fetched {len(matches)}/{total} matches")
+        logger.info(f"Successfully fetched {len(matches)}/{total} matches")
         return matches
     
     def _get_matches_parallel(
@@ -370,17 +371,14 @@ class RiotAPIClient:
         total = len(match_ids)
         completed = 0
         
-        print(f"Fetching {total} matches in parallel (max {max_workers} workers)...")
-        print(f"Estimated time: {int(total / max_workers * 1.5)}s (vs {int(total * 1.5)}s sequential)")
+        logger.info(f"Fetching {total} matches in parallel (max {max_workers} workers)...")
         
         with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-            # Submit all tasks
             future_to_id = {
                 executor.submit(self.get_match_details, match_id, platform): match_id
                 for match_id in match_ids
             }
             
-            # Collect results as they complete
             for future in concurrent.futures.as_completed(future_to_id):
                 match_id = future_to_id[future]
                 completed += 1
@@ -390,13 +388,12 @@ class RiotAPIClient:
                     if match_data:
                         matches.append(match_data)
                     else:
-                        print(f"Failed to fetch match: {match_id}")
+                        logger.warning(f"Failed to fetch match: {match_id}")
                 except Exception as e:
-                    print(f"Error fetching match {match_id}: {e}")
+                    logger.error(f"Error fetching match {match_id}: {e}")
                 
-                # Progress indicator every 10 matches
                 if completed % 10 == 0 or completed == total:
-                    print(f"Progress: {completed}/{total} matches ({int(completed/total*100)}%)")
+                    logger.info(f"Progress: {completed}/{total} matches ({int(completed/total*100)}%)")
         
-        print(f"✓ Successfully fetched {len(matches)}/{total} matches in parallel")
+        logger.info(f"Successfully fetched {len(matches)}/{total} matches in parallel")
         return matches

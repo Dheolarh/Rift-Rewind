@@ -14,7 +14,11 @@ Timeout: 30 seconds
 import os
 import sys
 import json
+import logging
 from typing import Dict, Any, Optional
+
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
 
 # Add parent directory to path for local imports
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
@@ -535,7 +539,7 @@ class HumorGenerator:
         response_body = json.loads(response['body'].read())
         humor_text = response_body['content'][0]['text']
         
-        print(f"✓ Generated humor: {humor_text[:100]}...")
+        logger.info(f"✓ Generated humor: {humor_text[:100]}...")
         return humor_text
     
     def store_humor(self, session_id: str, slide_number: int, humor_text: str):
@@ -572,7 +576,6 @@ class HumorGenerator:
         """
         print(f"\n{'='*60}")
         print(f"GENERATING HUMOR FOR SLIDE {slide_number}")
-        print(f"Session ID: {session_id}")
         print(f"{'='*60}\n")
         
         # Step 1: Download analytics
@@ -651,7 +654,7 @@ class HumorGenerator:
                 print(f"  ✗ Slide {slide_num} failed: {e}")
                 results[f"slide{slide_num}"] = None
         
-        print(f"✓ Priority generation complete ({len([r for r in results.values() if r])}/5 slides)")
+        logger.info(f"✓ Priority generation complete ({len([r for r in results.values() if r])}/5 slides)")
         return results
     
     def generate_background_slides(self, session_id: str) -> Dict[str, Any]:
@@ -692,7 +695,7 @@ class HumorGenerator:
                 print(f"  ✗ Slide {slide_num} failed: {e}")
                 results[f"slide{slide_num}"] = None
         
-        print(f"✓ Background generation complete ({len([r for r in results.values() if r])}/10 slides)")
+        logger.info(f"✓ Background generation complete ({len([r for r in results.values() if r])}/10 slides)")
         return results
     
     def regenerate_all_slides(self, session_id: str) -> Dict[str, Any]:
@@ -733,7 +736,7 @@ class HumorGenerator:
                 print(f"  ✗ Slide {slide_num} failed: {e}")
                 results[f"slide{slide_num}"] = None
         
-        print(f"✓ Full regeneration complete ({len([r for r in results.values() if r])}/15 slides)")
+        logger.info(f"✓ Full regeneration complete ({len([r for r in results.values() if r])}/15 slides)")
         
         # Notify that regeneration is complete
         print(f"\n{'='*60}")

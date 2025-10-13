@@ -521,7 +521,6 @@ class RiftRewindAnalytics:
             }
         }
         
-        print(f"✓ Checkpoint {checkpoint_num} analytics complete ({len(self.matches)} matches)")
         return analytics
     
     def get_slides_for_initial_humor(self) -> List[int]:
@@ -599,7 +598,7 @@ class RiftRewindAnalytics:
             }
         }
         
-        print("✓ Analytics calculation complete!")
+        logger.info("✓ Analytics calculation complete!")
         return analytics
 
 

@@ -15,8 +15,12 @@ import os
 import sys
 import json
 import uuid
+import logging
 from datetime import datetime
 from typing import Dict, Any, Optional, List
+
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
 
 # Add parent directory to path for local imports
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
@@ -85,9 +89,8 @@ class LeagueDataFetcher:
         Returns:
             Account data including PUUID
         """
-        print(f"[1/5] Fetching account data for {game_name}#{tag_line} in {region}...")
+        logger.info(f"[1/5] Fetching account data for {game_name}#{tag_line} in {region}...")
         
-        # Convert platform to regional routing
         regional = PLATFORM_TO_REGIONAL.get(region, region)
         
         account_data = self.riot_client.get_account_by_riot_id(
@@ -106,7 +109,7 @@ class LeagueDataFetcher:
             'region': region
         }
         
-        print(f"✓ Account found - PUUID: {account_data.get('puuid')[:10]}...")
+        logger.info(f"✓ Account found - PUUID: {account_data.get('puuid')[:10]}...")
         return account_data
     
     def fetch_summoner_data(self, puuid: str, region: str) -> Dict[str, Any]:
@@ -120,7 +123,7 @@ class LeagueDataFetcher:
         Returns:
             Summoner data including level, profile icon
         """
-        print(f"[2/5] Fetching summoner data...")
+        logger.info(f"[2/5] Fetching summoner data...")
         
         summoner_data = self.riot_client.get_summoner_by_puuid(
             puuid=puuid,
@@ -137,7 +140,7 @@ class LeagueDataFetcher:
             'revisionDate': summoner_data.get('revisionDate')
         }
         
-        print(f"✓ Summoner Level: {summoner_data.get('summonerLevel')}")
+        logger.info(f"✓ Summoner Level: {summoner_data.get('summonerLevel')}")
         return summoner_data
     
     def fetch_ranked_info(self, puuid: str, region: str) -> Dict[str, Any]:
@@ -151,7 +154,7 @@ class LeagueDataFetcher:
         Returns:
             Ranked queue information
         """
-        print(f"[3/5] Fetching ranked information...")
+        logger.info(f"[3/5] Fetching ranked information...")
         
         league_entries = self.riot_client.get_league_entries_by_puuid(
             puuid=puuid,
@@ -177,9 +180,9 @@ class LeagueDataFetcher:
             tier = ranked_solo.get('tier', 'UNRANKED')
             rank = ranked_solo.get('rank', '')
             lp = ranked_solo.get('leaguePoints', 0)
-            print(f"✓ Rank: {tier} {rank} ({lp} LP)")
+            logger.info(f"✓ Rank: {tier} {rank} ({lp} LP)")
         else:
-            print("✓ Rank: UNRANKED")
+            logger.info("✓ Rank: UNRANKED")
         
         return league_entries
     
@@ -201,7 +204,7 @@ class LeagueDataFetcher:
             one_year_ago = datetime.utcnow() - timedelta(days=365)
             start_time = int(one_year_ago.timestamp())
         
-        print(f"[4/5] Fetching FULL YEAR match history (starting from {datetime.fromtimestamp(start_time).date()})...")
+        logger.info(f"[4/5] Fetching FULL YEAR match history (starting from {datetime.fromtimestamp(start_time).date()})...")
         
         # Riot API returns max 100 matches per call, so we need to paginate
         all_match_ids = []
@@ -209,7 +212,6 @@ class LeagueDataFetcher:
         batch_size = 100
         
         while True:
-            print(f"   Fetching matches {start_index} to {start_index + batch_size}...")
             
             match_ids = self.riot_client.get_match_ids(
                 puuid=puuid,
@@ -235,10 +237,10 @@ class LeagueDataFetcher:
                 print(f"   Reached safety limit of 1000 matches")
                 break
         
-        print(f"✓ Found {len(all_match_ids)} matches from the past year")
+        logger.info(f"✓ Found {len(all_match_ids)} matches from the past year")
         
         self.data['matchIds'] = all_match_ids
-        print(f"✓ Total matches for the year: {len(all_match_ids)}")
+        logger.info(f"✓ Total matches for the year: {len(all_match_ids)}")
         
         return all_match_ids
     
@@ -258,7 +260,7 @@ class LeagueDataFetcher:
         
         # Apply intelligent sampling
         if use_sampling and total_matches > 0:
-            print(f"[5/6] Applying intelligent sampling...")
+            logger.info(f"[5/6] Applying intelligent sampling...")
             
             sampling_result = self.sampler.sample_matches(match_ids)
             sampled_ids = sampling_result['sampled_match_ids']
@@ -274,14 +276,14 @@ class LeagueDataFetcher:
                 'monthly_breakdown': sampling_result['monthly_breakdown']
             }
             
-            print(f"✓ Sampling Strategy: {sampling_result['metadata']['sampling_tier']}")
-            print(f"✓ Analyzing {len(sampled_ids)}/{total_matches} matches ({sampling_result['sample_percentage']:.1f}%)")
-            print(f"✓ Statistical Confidence: {sampling_result['metadata']['statistical_confidence']}")
-            print(f"✓ Speed Improvement: {sampling_result['metadata']['efficiency_gain']}")
+            logger.info(f"✓ Sampling Strategy: {sampling_result['metadata']['sampling_tier']}")
+            logger.info(f"✓ Analyzing {len(sampled_ids)}/{total_matches} matches ({sampling_result['sample_percentage']:.1f}%)")
+            logger.info(f"✓ Statistical Confidence: {sampling_result['metadata']['statistical_confidence']}")
+            logger.info(f"✓ Speed Improvement: {sampling_result['metadata']['efficiency_gain']}")
             
             match_ids_to_fetch = sampled_ids
         else:
-            print(f"[5/6] Sampling disabled - fetching all matches...")
+            logger.info(f"[5/6] Sampling disabled - fetching all matches...")
             match_ids_to_fetch = match_ids
             self.sampling_metadata = {
                 'total_matches': total_matches,
@@ -294,7 +296,7 @@ class LeagueDataFetcher:
             }
         
         # Fetch match details (with parallel processing)
-        print(f"[6/6] Fetching {len(match_ids_to_fetch)} match details in parallel...")
+        logger.info(f"[6/6] Fetching {len(match_ids_to_fetch)} match details in parallel...")
         
         matches = self.riot_client.get_matches_batch(
             match_ids=match_ids_to_fetch,
@@ -307,7 +309,7 @@ class LeagueDataFetcher:
         self.data['allMatchIds'] = match_ids  # Store all IDs for reference
         self.data['sampledMatchIds'] = match_ids_to_fetch  # Store sampled IDs
         
-        print(f"✓ Retrieved {len(matches)}/{len(match_ids_to_fetch)} match details")
+        logger.info(f"✓ Retrieved {len(matches)}/{len(match_ids_to_fetch)} match details")
         
         return matches
     
@@ -336,7 +338,7 @@ class LeagueDataFetcher:
         print(f"\nStoring data to S3: {s3_key}")
         upload_to_s3(s3_key, self.data)
         
-        print(f"✓ Data stored successfully!")
+        logger.info(f"✓ Data stored successfully!")
         return s3_key
     
     # ========================================================================
@@ -397,7 +399,7 @@ class LeagueDataFetcher:
         all_match_ids = self.fetch_match_history(puuid, region)
         total_matches = len(all_match_ids)
         
-        print(f"✓ Found {total_matches} matches")
+        logger.info(f"✓ Found {total_matches} matches")
         
         # Create session ID
         self.session_id = self.session_manager.create_session_id(game_name, tag_line, region)
@@ -413,8 +415,6 @@ class LeagueDataFetcher:
             checkpoint_num += 1
             batch_ids = all_match_ids[i:i + self.checkpoint_batch_size]
             
-            print(f"\n--- Checkpoint {checkpoint_num} ---")
-            print(f"Fetching matches {i+1} to {min(i+self.checkpoint_batch_size, total_matches)}...")
             
             # Fetch this batch of match details
             batch_matches = self.riot_client.get_matches_batch(
@@ -428,8 +428,7 @@ class LeagueDataFetcher:
             analyzed_ids.extend(batch_ids)
             remaining_ids = all_match_ids[len(analyzed_ids):]
             
-            print(f"✓ Fetched {len(batch_matches)} matches")
-            print(f"Progress: {len(analyzed_ids)}/{total_matches} ({len(analyzed_ids)/total_matches*100:.1f}%)")
+            logger.info(f"✓ Fetched {len(batch_matches)} matches")
             
             # Calculate analytics for current checkpoint
             checkpoint_data = {
@@ -480,7 +479,6 @@ class LeagueDataFetcher:
                 status='partial' if remaining_ids else 'complete'
             )
             
-            print(f"✓ Checkpoint {checkpoint_num} saved to S3")
             
             # Call checkpoint callback if provided
             if checkpoint_callback:
@@ -497,8 +495,6 @@ class LeagueDataFetcher:
         
         print(f"\n{'='*60}")
         print(f"PROGRESSIVE FETCH COMPLETE!")
-        print(f"Session ID: {self.session_id}")
-        print(f"Checkpoints: {checkpoint_num}")
         print(f"{'='*60}\n")
         
         return {
@@ -550,7 +546,6 @@ class LeagueDataFetcher:
         total_matches = match_data['totalMatches']
         checkpoint_num = match_data['lastCheckpoint']
         
-        print(f"Remaining matches: {len(remaining_ids)}/{total_matches}")
         
         # Continue fetching remaining matches
         all_analyzed_ids = match_data['analyzedMatchIds'].copy()
@@ -563,8 +558,6 @@ class LeagueDataFetcher:
             checkpoint_num += 1
             batch_ids = remaining_ids[i:i + self.checkpoint_batch_size]
             
-            print(f"\n--- Checkpoint {checkpoint_num} (Resume) ---")
-            print(f"Fetching matches {len(all_analyzed_ids)+1} to {len(all_analyzed_ids)+len(batch_ids)}...")
             
             batch_matches = self.riot_client.get_matches_batch(
                 match_ids=batch_ids,
@@ -576,8 +569,7 @@ class LeagueDataFetcher:
             all_analyzed_ids.extend(batch_ids)
             still_remaining = remaining_ids[len(all_analyzed_ids) - len(match_data['analyzedMatchIds']):]
             
-            print(f"✓ Fetched {len(batch_matches)} matches")
-            print(f"Progress: {len(all_analyzed_ids)}/{total_matches} ({len(all_analyzed_ids)/total_matches*100:.1f}%)")
+            logger.info(f"✓ Fetched {len(batch_matches)} matches")
             
             # Update checkpoint
             match_data['analyzedMatchIds'] = all_analyzed_ids
@@ -599,7 +591,6 @@ class LeagueDataFetcher:
         # Mark complete if finished
         if not still_remaining:
             self.session_manager.mark_complete(self.session_id)
-            print(f"\n✓ Resume complete! All matches analyzed.")
         
         return {
             'sessionId': self.session_id,
@@ -659,7 +650,6 @@ class LeagueDataFetcher:
         
         print(f"\n{'='*60}")
         print(f"DATA FETCH COMPLETE!")
-        print(f"Session ID: {self.session_id}")
         print(f"S3 Key: {s3_key}")
         print(f"{'='*60}\n")
         
