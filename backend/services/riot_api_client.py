@@ -290,23 +290,43 @@ class RiotAPIClient:
         self,
         match_ids: List[str],
         platform: str,
-        batch_size: int = 10
+        batch_size: int = 10,
+        parallel: bool = True
     ) -> List[Dict[str, Any]]:
         """
-        Fetch multiple match details with batching.
+        Fetch multiple match details with optional parallel processing.
         
         Args:
             match_ids: List of match IDs to fetch
             platform: Platform code
             batch_size: Number of concurrent requests (for rate limiting)
+            parallel: Use parallel processing (recommended for 20+ matches)
             
         Returns:
             List of match details
         """
+        total = len(match_ids)
+        
+        if parallel and total > 10:
+            # Use parallel processing for better performance
+            return self._get_matches_parallel(match_ids, platform, max_workers=batch_size)
+        else:
+            # Use sequential processing for small batches
+            return self._get_matches_sequential(match_ids, platform, batch_size)
+    
+    def _get_matches_sequential(
+        self,
+        match_ids: List[str],
+        platform: str,
+        batch_size: int
+    ) -> List[Dict[str, Any]]:
+        """
+        Sequential match fetching (original implementation).
+        """
         matches = []
         total = len(match_ids)
         
-        print(f"Fetching {total} matches in batches of {batch_size}...")
+        print(f"Fetching {total} matches sequentially in batches of {batch_size}...")
         
         for i in range(0, total, batch_size):
             batch = match_ids[i:i + batch_size]
@@ -324,4 +344,59 @@ class RiotAPIClient:
                 time.sleep(0.5)
         
         print(f"Successfully fetched {len(matches)}/{total} matches")
+        return matches
+    
+    def _get_matches_parallel(
+        self,
+        match_ids: List[str],
+        platform: str,
+        max_workers: int = 10
+    ) -> List[Dict[str, Any]]:
+        """
+        Parallel match fetching using ThreadPoolExecutor.
+        Respects rate limits while maximizing throughput.
+        
+        Args:
+            match_ids: List of match IDs to fetch
+            platform: Platform code
+            max_workers: Maximum concurrent threads (default 10 to respect 20 req/sec limit)
+            
+        Returns:
+            List of match details
+        """
+        import concurrent.futures
+        
+        matches = []
+        total = len(match_ids)
+        completed = 0
+        
+        print(f"Fetching {total} matches in parallel (max {max_workers} workers)...")
+        print(f"Estimated time: {int(total / max_workers * 1.5)}s (vs {int(total * 1.5)}s sequential)")
+        
+        with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+            # Submit all tasks
+            future_to_id = {
+                executor.submit(self.get_match_details, match_id, platform): match_id
+                for match_id in match_ids
+            }
+            
+            # Collect results as they complete
+            for future in concurrent.futures.as_completed(future_to_id):
+                match_id = future_to_id[future]
+                completed += 1
+                
+                try:
+                    match_data = future.result()
+                    if match_data:
+                        matches.append(match_data)
+                    else:
+                        print(f"Failed to fetch match: {match_id}")
+                except Exception as e:
+                    print(f"Error fetching match {match_id}: {e}")
+                
+                # Progress indicator every 10 matches
+                if completed % 10 == 0 or completed == total:
+                    print(f"Progress: {completed}/{total} matches ({int(completed/total*100)}%)")
+        
+        print(f"✓ Successfully fetched {len(matches)}/{total} matches in parallel")
         return matches

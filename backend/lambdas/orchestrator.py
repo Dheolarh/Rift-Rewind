@@ -1,270 +1,149 @@
-"""
-Lambda Function: orchestrator.py
-Purpose: Coordinate all Lambda functions in the Rift Rewind pipeline
-
-Environment Variables Required:
-- AWS_REGION
-
-Memory: 128 MB
-Timeout: 10 seconds
-"""
+"""Progressive Orchestrator for Rift Rewind"""
 
 import os
+import sys
 import json
-import boto3
-from typing import Dict, Any
+import time
+from typing import Dict, Any, Optional
+
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+
+from services.session_manager import SessionManager
+from services.analytics import RiftRewindAnalytics
 
 
-class RiftRewindOrchestrator:
-    """
-    Orchestrates the complete Rift Rewind data processing pipeline.
-    """
+class ProgressiveOrchestrator:
     
     def __init__(self):
-        self.lambda_client = boto3.client('lambda', region_name=os.environ.get('AWS_REGION', 'us-east-1'))
-        self.session_id = None
-    
-    def invoke_league_data(self, game_name: str, tag_line: str, region: str) -> Dict[str, Any]:
-        """
-        Invoke league_data Lambda to fetch player data.
-        
-        Args:
-            game_name: Riot ID game name
-            tag_line: Riot ID tag line
-            region: Region code
-        
-        Returns:
-            Response from league_data Lambda
-        """
-        print(f"[1/4] Invoking league_data Lambda...")
-        
-        payload = {
-            'gameName': game_name,
-            'tagLine': tag_line,
-            'region': region
-        }
-        
-        response = self.lambda_client.invoke(
-            FunctionName='rift-rewind-league-data',  # Lambda function name
-            InvocationType='RequestResponse',  # Synchronous
-            Payload=json.dumps(payload)
-        )
-        
-        result = json.loads(response['Payload'].read())
-        
-        if result.get('statusCode') != 200:
-            raise Exception(f"league_data failed: {result.get('body')}")
-        
-        body = json.loads(result['body'])
-        self.session_id = body.get('sessionId')
-        
-        print(f"✓ league_data complete - Session ID: {self.session_id}")
-        return body
-    
-    def invoke_analytics(self) -> Dict[str, Any]:
-        """
-        Invoke analytics Lambda to calculate statistics.
-        
-        Returns:
-            Response from analytics Lambda
-        """
-        print(f"[2/4] Invoking analytics Lambda...")
-        
-        payload = {
-            'sessionId': self.session_id
-        }
-        
-        response = self.lambda_client.invoke(
-            FunctionName='rift-rewind-analytics',
-            InvocationType='RequestResponse',
-            Payload=json.dumps(payload)
-        )
-        
-        result = json.loads(response['Payload'].read())
-        
-        if result.get('statusCode') != 200:
-            raise Exception(f"analytics failed: {result.get('body')}")
-        
-        print(f"✓ analytics complete")
-        return json.loads(result['body'])
-    
-    def invoke_humor_parallel(self) -> Dict[str, Any]:
-        """
-        Invoke humor_context Lambda for all 15 slides in parallel.
-        
-        Returns:
-            Summary of humor generation
-        """
-        print(f"[3/4] Invoking humor_context Lambda (15 slides in parallel)...")
-        
-        # Slides that need humor (excluding slide 1)
-        slides_with_humor = list(range(2, 16))  # Slides 2-15
-        
-        # Invoke all slides asynchronously
-        for slide_num in slides_with_humor:
-            payload = {
-                'sessionId': self.session_id,
-                'slideNumber': slide_num
-            }
-            
-            self.lambda_client.invoke(
-                FunctionName='rift-rewind-humor-context',
-                InvocationType='Event',  # Asynchronous
-                Payload=json.dumps(payload)
-            )
-        
-        print(f"✓ humor_context invoked for {len(slides_with_humor)} slides (async)")
-        return {
-            'slidesProcessing': len(slides_with_humor),
-            'status': 'processing'
-        }
-    
-    def invoke_insights(self) -> Dict[str, Any]:
-        """
-        Invoke insights Lambda to generate coaching insights.
-        
-        Returns:
-            Response from insights Lambda
-        """
-        print(f"[4/4] Invoking insights Lambda...")
-        
-        payload = {
-            'sessionId': self.session_id
-        }
-        
-        response = self.lambda_client.invoke(
-            FunctionName='rift-rewind-insights',
-            InvocationType='RequestResponse',
-            Payload=json.dumps(payload)
-        )
-        
-        result = json.loads(response['Payload'].read())
-        
-        if result.get('statusCode') != 200:
-            raise Exception(f"insights failed: {result.get('body')}")
-        
-        print(f"✓ insights complete")
-        return json.loads(result['body'])
+        self.session_manager = SessionManager()
+        self.loading_screen_max_seconds = 240
+        self.priority_humor_trigger = 210
+        self.start_time = None
     
     def orchestrate(self, game_name: str, tag_line: str, region: str) -> Dict[str, Any]:
-        """
-        Orchestrate the complete pipeline.
         
-        Args:
-            game_name: Riot ID game name
-            tag_line: Riot ID tag line
-            region: Region code
+        self.start_time = time.time()
         
-        Returns:
-            Orchestration result with session ID
-        """
-        print(f"\n{'='*60}")
-        print(f"RIFT REWIND ORCHESTRATION START")
-        print(f"Player: {game_name}#{tag_line}")
-        print(f"Region: {region}")
-        print(f"{'='*60}\n")
+        existing_session = self.session_manager.load_checkpoint(game_name, tag_line, region)
         
-        try:
-            # Step 1: Fetch league data
-            league_result = self.invoke_league_data(game_name, tag_line, region)
-            
-            # Step 2: Calculate analytics
-            analytics_result = self.invoke_analytics()
-            
-            # Step 3: Generate humor (parallel)
-            humor_result = self.invoke_humor_parallel()
-            
-            # Step 4: Generate insights
-            insights_result = self.invoke_insights()
-            
-            print(f"\n{'='*60}")
-            print(f"ORCHESTRATION COMPLETE!")
-            print(f"Session ID: {self.session_id}")
-            print(f"Status: All Lambdas invoked successfully")
-            print(f"{'='*60}\n")
-            
+        if existing_session and existing_session['status'] == 'partial':
+            return self._resume_session(existing_session, region)
+        elif existing_session and existing_session['status'] == 'complete':
             return {
-                'sessionId': self.session_id,
-                'status': 'processing',  # Humor is still async
-                'stages': {
-                    'leagueData': 'complete',
-                    'analytics': 'complete',
-                    'humor': 'processing',  # Async
-                    'insights': 'complete'
-                },
-                'matchCount': league_result.get('matchCount', 0)
+                'sessionId': existing_session['sessionId'],
+                'status': 'complete',
+                'cached': True,
+                'message': 'Welcome back! Your Rewind is ready.'
             }
+        else:
+            return self._new_session(game_name, tag_line, region)
+    
+    def _new_session(self, game_name: str, tag_line: str, region: str) -> Dict[str, Any]:
+        from lambdas.league_data import LeagueDataFetcher
+        from lambdas.humor_context import HumorGenerator
         
-        except Exception as e:
-            print(f"Orchestration failed: {e}")
-            raise
+        fetcher = LeagueDataFetcher()
+        checkpoint_callback = self._create_checkpoint_callback()
+        
+        fetch_result = fetcher.fetch_progressive(
+            game_name=game_name,
+            tag_line=tag_line,
+            region=region,
+            checkpoint_callback=checkpoint_callback
+        )
+        
+        session_id = fetch_result['sessionId']
+        elapsed = time.time() - self.start_time
+        
+        humor_generator = HumorGenerator()
+        
+        if elapsed < self.priority_humor_trigger:
+            humor_generator.generate_priority_slides(session_id)
+        
+        humor_generator.generate_background_slides(session_id)
+        self.session_manager.mark_complete(session_id)
+        
+        total_time = time.time() - self.start_time
+        
+        return {
+            'sessionId': session_id,
+            'status': 'complete',
+            'cached': False,
+            'totalMatches': fetch_result.get('totalMatches'),
+            'checkpoints': fetch_result.get('checkpoints'),
+            'processingTime': round(total_time, 1),
+            'message': 'Your Rewind is ready!'
+        }
+    
+    def _resume_session(self, existing_session: Dict[str, Any], region: str) -> Dict[str, Any]:
+        from lambdas.league_data import LeagueDataFetcher
+        from lambdas.humor_context import HumorGenerator
+        
+        session_id = existing_session['sessionId']
+        
+        fetcher = LeagueDataFetcher()
+        checkpoint_callback = self._create_checkpoint_callback()
+        
+        resume_result = fetcher._resume_from_checkpoint(
+            existing_session=existing_session,
+            region=region,
+            checkpoint_callback=checkpoint_callback
+        )
+        
+        humor_generator = HumorGenerator()
+        existing_humor = existing_session.get('aiHumor', {})
+        missing_slides = [i for i in range(1, 16) if not existing_humor.get(f"slide{i}")]
+        
+        if missing_slides:
+            for slide_num in missing_slides:
+                try:
+                    result = humor_generator.generate(session_id, slide_num)
+                    if result.get('humor'):
+                        self.session_manager.update_humor(session_id, slide_num, result['humor'])
+                except Exception as e:
+                    pass
+        
+        self.session_manager.mark_complete(session_id)
+        total_time = time.time() - self.start_time
+        
+        return {
+            'sessionId': session_id,
+            'status': 'complete',
+            'resumed': True,
+            'totalMatches': resume_result.get('totalMatches'),
+            'processingTime': round(total_time, 1),
+            'message': 'Welcome back! Your Rewind is ready!'
+        }
+    
+    def _create_checkpoint_callback(self):
+        def checkpoint_callback(checkpoint_num: int, analytics: Optional[Dict[str, Any]]):
+            elapsed = time.time() - self.start_time
+            if elapsed >= self.priority_humor_trigger and not hasattr(self, '_priority_humor_triggered'):
+                self._priority_humor_triggered = True
+        return checkpoint_callback
 
 
 def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
-    """
-    AWS Lambda handler function.
-    
-    Expected event format:
-    {
-        "gameName": "Hide on bush",
-        "tagLine": "KR1",
-        "region": "kr"
-    }
-    
-    Returns:
-    {
-        "sessionId": "uuid",
-        "status": "processing",
-        "stages": { ... }
-    }
-    """
     try:
-        # Extract parameters
         game_name = event.get('gameName')
         tag_line = event.get('tagLine')
         region = event.get('region')
         
-        # Validate required parameters
         if not all([game_name, tag_line, region]):
             return {
                 'statusCode': 400,
-                'body': json.dumps({
-                    'error': 'Missing required parameters: gameName, tagLine, region'
-                })
+                'body': json.dumps({'error': 'Missing required parameters'})
             }
         
-        # Orchestrate pipeline
-        orchestrator = RiftRewindOrchestrator()
+        orchestrator = ProgressiveOrchestrator()
         result = orchestrator.orchestrate(game_name, tag_line, region)
         
         return {
             'statusCode': 200,
             'body': json.dumps(result)
         }
-    
     except Exception as e:
-        print(f"Orchestration error: {e}")
         return {
             'statusCode': 500,
-            'body': json.dumps({
-                'error': f'Internal server error: {str(e)}'
-            })
+            'body': json.dumps({'error': f'Internal server error: {str(e)}'})
         }
-
-
-# For local testing (mock Lambda invocations)
-if __name__ == "__main__":
-    print("Note: Local testing requires actual Lambda functions deployed")
-    print("For local testing, run individual Lambda functions separately\n")
-    
-    test_event = {
-        'gameName': 'Hide on bush',
-        'tagLine': 'KR1',
-        'region': 'kr'
-    }
-    
-    # This will fail locally unless Lambdas are deployed
-    # result = lambda_handler(test_event, None)
-    # print(f"\nResult: {json.dumps(json.loads(result['body']), indent=2)}")
-    
-    print("Orchestrator code is ready for AWS deployment!")

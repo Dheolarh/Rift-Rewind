@@ -1,9 +1,6 @@
 """
 Analytics Module: analytics.py
-Purpose: Calculate statistics for all 15 Rift Rewind slides
-
-This is NOT a Lambda function - it's a service module used by other Lambdas.
-Can be imported by league_data.py or run as a separate analytics Lambda.
+Purpose: Calculate statistics for all slides
 """
 
 from typing import Dict, Any, List, Optional
@@ -482,6 +479,97 @@ class RiftRewindAnalytics:
         }
     
     # Master function: Calculate all analytics
+    def calculate_checkpoint_analytics(self, checkpoint_num: int, total_matches: int) -> Dict[str, Any]:
+        """
+        Calculate analytics for a specific checkpoint (100-match batch).
+        Used for progressive data loading.
+        
+        Args:
+            checkpoint_num: Current checkpoint number (1, 2, 3...)
+            total_matches: Total number of matches in the dataset
+        
+        Returns:
+            Analytics dict with available data
+        """
+        print(f"Calculating analytics for checkpoint {checkpoint_num} ({len(self.matches)} matches)...")
+        
+        # Calculate available analytics based on current matches
+        analytics = {
+            'checkpointNum': checkpoint_num,
+            'matchesAnalyzed': len(self.matches),
+            'totalMatches': total_matches,
+            'isPartial': len(self.matches) < total_matches,
+            
+            # These can be calculated with any amount of data
+            'slide2_timeSpent': self.calculate_time_spent(),
+            'slide3_favoriteChampions': self.get_favorite_champions(),
+            'slide4_bestMatch': self.find_best_match(),
+            'slide5_kda': self.calculate_kda(),
+            'slide6_rankedJourney': self.get_ranked_journey(),
+            'slide7_visionScore': self.calculate_vision_score(),
+            'slide8_championPool': self.analyze_champion_pool(),
+            'slide9_duoPartner': self.find_duo_partner(),
+            'slide10_11_analysis': self.detect_strengths_weaknesses(),
+            'slide12_progress': self.calculate_progress(),
+            'slide13_achievements': self.detect_achievements(),
+            'slide14_percentile': self.calculate_percentile(),
+            
+            'metadata': {
+                'calculatedAt': datetime.utcnow().isoformat(),
+                'checkpoint': checkpoint_num,
+                'partialData': len(self.matches) < total_matches
+            }
+        }
+        
+        print(f"✓ Checkpoint {checkpoint_num} analytics complete ({len(self.matches)} matches)")
+        return analytics
+    
+    def get_slides_for_initial_humor(self) -> List[int]:
+        """
+        Get list of slide numbers that should have humor generated first.
+        These are the slides that will be shown during the initial loading screen.
+        
+        Returns:
+            List of slide numbers [1, 2, 3, 4, 5]
+        """
+        return [1, 2, 3, 4, 5]
+    
+    def get_slides_for_background_humor(self) -> List[int]:
+        """
+        Get list of slide numbers for background humor generation.
+        These are generated while the user is viewing the initial slides.
+        
+        Returns:
+            List of slide numbers [6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+        """
+        return [6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+    
+    def merge_analytics(self, existing: Dict[str, Any], new: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Merge new analytics with existing checkpoint analytics.
+        Used when continuing analysis from a checkpoint.
+        
+        Args:
+            existing: Existing analytics from checkpoint
+            new: Newly calculated analytics
+        
+        Returns:
+            Merged analytics dict
+        """
+        # New analytics always overwrite existing (they have more data)
+        merged = existing.copy()
+        merged.update(new)
+        
+        # Update metadata
+        merged['metadata'] = {
+            'calculatedAt': datetime.utcnow().isoformat(),
+            'totalMatches': new.get('totalMatches', existing.get('totalMatches', 0)),
+            'updatedFrom': existing.get('metadata', {}).get('checkpoint', 0),
+            'currentCheckpoint': new.get('checkpointNum', 0)
+        }
+        
+        return merged
+    
     def calculate_all(self) -> Dict[str, Any]:
         """
         Calculate all analytics for all 15 slides.

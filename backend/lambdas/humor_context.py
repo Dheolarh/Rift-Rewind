@@ -608,14 +608,176 @@ class HumorGenerator:
         }
 
 
+    # ========================================================================
+    # PROGRESSIVE HUMOR GENERATION METHODS
+    # ========================================================================
+    
+    def generate_priority_slides(self, session_id: str) -> Dict[str, Any]:
+        """
+        Generate humor for priority slides (1-5) rapidly.
+        Used at 3:30 mark before loading screen ends.
+        
+        Args:
+            session_id: Session ID
+        
+        Returns:
+            Dict with generated humor for slides 1-5
+        """
+        from services.session_manager import SessionManager
+        
+        print(f"🚀 PRIORITY GENERATION: Slides 1-5 for session {session_id}")
+        
+        priority_slides = [1, 2, 3, 4, 5]
+        results = {}
+        session_manager = SessionManager()
+        
+        for slide_num in priority_slides:
+            print(f"  Generating slide {slide_num}...")
+            
+            try:
+                result = self.generate(session_id, slide_num)
+                humor_text = result.get('humor', '')
+                
+                # Save to session checkpoint
+                if humor_text:
+                    session_manager.update_humor(session_id, slide_num, humor_text)
+                    results[f"slide{slide_num}"] = humor_text
+                    print(f"  ✓ Slide {slide_num} complete")
+                else:
+                    results[f"slide{slide_num}"] = None
+                    print(f"  ⊘ Slide {slide_num} - no humor needed")
+                    
+            except Exception as e:
+                print(f"  ✗ Slide {slide_num} failed: {e}")
+                results[f"slide{slide_num}"] = None
+        
+        print(f"✓ Priority generation complete ({len([r for r in results.values() if r])}/5 slides)")
+        return results
+    
+    def generate_background_slides(self, session_id: str) -> Dict[str, Any]:
+        """
+        Generate humor for background slides (6-15) during slide viewing.
+        Used while user is viewing the first few slides.
+        
+        Args:
+            session_id: Session ID
+        
+        Returns:
+            Dict with generated humor for slides 6-15
+        """
+        from services.session_manager import SessionManager
+        
+        print(f"🔄 BACKGROUND GENERATION: Slides 6-15 for session {session_id}")
+        
+        background_slides = [6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+        results = {}
+        session_manager = SessionManager()
+        
+        for slide_num in background_slides:
+            print(f"  Generating slide {slide_num}...")
+            
+            try:
+                result = self.generate(session_id, slide_num)
+                humor_text = result.get('humor', '')
+                
+                # Save to session checkpoint
+                if humor_text:
+                    session_manager.update_humor(session_id, slide_num, humor_text)
+                    results[f"slide{slide_num}"] = humor_text
+                    print(f"  ✓ Slide {slide_num} complete")
+                else:
+                    results[f"slide{slide_num}"] = None
+                    
+            except Exception as e:
+                print(f"  ✗ Slide {slide_num} failed: {e}")
+                results[f"slide{slide_num}"] = None
+        
+        print(f"✓ Background generation complete ({len([r for r in results.values() if r])}/10 slides)")
+        return results
+    
+    def regenerate_all_slides(self, session_id: str) -> Dict[str, Any]:
+        """
+        Regenerate ALL slide humor with complete analysis data.
+        Used when analysis completes while user is viewing slides.
+        
+        Args:
+            session_id: Session ID
+        
+        Returns:
+            Dict with regenerated humor for all slides
+        """
+        from services.session_manager import SessionManager
+        
+        print(f"🔁 FULL REGENERATION: All slides with complete data for session {session_id}")
+        
+        all_slides = range(1, 16)  # Slides 1-15
+        results = {}
+        session_manager = SessionManager()
+        
+        for slide_num in all_slides:
+            print(f"  Regenerating slide {slide_num}...")
+            
+            try:
+                result = self.generate(session_id, slide_num)
+                humor_text = result.get('humor', '')
+                
+                # Save to session checkpoint
+                if humor_text:
+                    session_manager.update_humor(session_id, slide_num, humor_text)
+                    results[f"slide{slide_num}"] = humor_text
+                    print(f"  ✓ Slide {slide_num} regenerated")
+                else:
+                    results[f"slide{slide_num}"] = None
+                    
+            except Exception as e:
+                print(f"  ✗ Slide {slide_num} failed: {e}")
+                results[f"slide{slide_num}"] = None
+        
+        print(f"✓ Full regeneration complete ({len([r for r in results.values() if r])}/15 slides)")
+        
+        # Notify that regeneration is complete
+        print(f"\n{'='*60}")
+        print(f"🔥 REGENERATION COMPLETE!")
+        print(f"Frontend should show popup:")
+        print(f"'We finally caught up to you! Let's see how much")
+        print(f" chaos you ACTUALLY caused 🔥'")
+        print(f"{'='*60}\n")
+        
+        return results
+    
+    # ========================================================================
+    # END PROGRESSIVE HUMOR GENERATION METHODS
+    # ========================================================================
+
+
 def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     """
-    AWS Lambda handler function.
+    AWS Lambda handler function - PROGRESSIVE GENERATION SUPPORT
     
-    Expected event format:
+    Supports multiple generation modes:
+    
+    1. Single slide (original):
     {
-        "sessionId": "abc123xyz",
+        "sessionId": "uuid",
         "slideNumber": 3
+    }
+    
+    2. Priority slides (1-5):
+    {
+        "sessionId": "uuid",
+        "mode": "priority"
+    }
+    
+    3. Background slides (6-15):
+    {
+        "sessionId": "uuid",
+        "mode": "background"
+    }
+    
+    4. Full regeneration:
+    {
+        "sessionId": "uuid",
+        "mode": "regenerate"
     }
     
     Returns:
@@ -629,33 +791,82 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     try:
         # Extract parameters
         session_id = event.get('sessionId')
+        mode = event.get('mode', 'single')
         slide_number = event.get('slideNumber')
         
-        # Validate required parameters
-        if not session_id or not slide_number:
+        # Validate session ID
+        if not session_id:
             return {
                 'statusCode': 400,
                 'body': json.dumps({
-                    'error': 'Missing required parameters: sessionId, slideNumber'
+                    'error': 'Missing required parameter: sessionId'
                 })
             }
         
-        if not (1 <= slide_number <= 15):
-            return {
-                'statusCode': 400,
-                'body': json.dumps({
-                    'error': 'slideNumber must be between 1 and 15'
-                })
-            }
-        
-        # Generate humor
         generator = HumorGenerator()
-        result = generator.generate(session_id, slide_number)
         
-        return {
-            'statusCode': 200,
-            'body': json.dumps(result)
-        }
+        # Route to appropriate generation method
+        if mode == 'priority':
+            # Generate slides 1-5 rapidly (before loading screen ends)
+            results = generator.generate_priority_slides(session_id)
+            return {
+                'statusCode': 200,
+                'body': json.dumps({
+                    'mode': 'priority',
+                    'slides': results,
+                    'message': 'Priority slides (1-5) generated'
+                })
+            }
+        
+        elif mode == 'background':
+            # Generate slides 6-15 in background (during slide viewing)
+            results = generator.generate_background_slides(session_id)
+            return {
+                'statusCode': 200,
+                'body': json.dumps({
+                    'mode': 'background',
+                    'slides': results,
+                    'message': 'Background slides (6-15) generated'
+                })
+            }
+        
+        elif mode == 'regenerate':
+            # Regenerate all slides with complete analysis
+            results = generator.regenerate_all_slides(session_id)
+            return {
+                'statusCode': 200,
+                'body': json.dumps({
+                    'mode': 'regenerate',
+                    'slides': results,
+                    'message': 'All slides regenerated with complete data'
+                })
+            }
+        
+        else:  # mode == 'single' (original behavior)
+            # Validate slide number for single mode
+            if not slide_number:
+                return {
+                    'statusCode': 400,
+                    'body': json.dumps({
+                        'error': 'Missing slideNumber for single mode'
+                    })
+                }
+            
+            if not (1 <= slide_number <= 15):
+                return {
+                    'statusCode': 400,
+                    'body': json.dumps({
+                        'error': 'slideNumber must be between 1 and 15'
+                    })
+                }
+            
+            # Generate humor for single slide
+            result = generator.generate(session_id, slide_number)
+            
+            return {
+                'statusCode': 200,
+                'body': json.dumps(result)
+            }
     
     except Exception as e:
         print(f"Error generating humor: {e}")

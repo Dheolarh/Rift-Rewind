@@ -1,6 +1,6 @@
 """
 Lambda Function: insights.py
-Purpose: Generate actionable coaching insights using AWS Bedrock Claude 3 Sonnet
+Purpose: Generate insights using AWS Bedrock Claude 3 Sonnet
 
 Environment Variables Required:
 - S3_BUCKET_NAME
