@@ -5,14 +5,12 @@ Purpose: Generate insights using AWS Bedrock Claude 3 Sonnet
 Environment Variables Required:
 - S3_BUCKET_NAME
 - BEDROCK_MODEL_ID
-- AWS_REGION
 
 Memory: 256 MB
 Timeout: 1 minute
 """
 
 import os
-import sys
 import json
 import logging
 from typing import Dict, Any, List
@@ -20,9 +18,6 @@ from datetime import datetime
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
-
-# Add parent directory to path for local imports
-sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 from services.aws_clients import get_bedrock_client, download_from_s3, upload_to_s3
 

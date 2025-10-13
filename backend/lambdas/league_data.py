@@ -5,14 +5,12 @@ Purpose: Fetch all player data from Riot APIs and store in S3
 Environment Variables Required:
 - RIOT_API_KEY
 - S3_BUCKET_NAME
-- AWS_REGION
 
 Memory: 512 MB
 Timeout: 5 minutes
 """
 
 import os
-import sys
 import json
 import uuid
 import logging
@@ -21,9 +19,6 @@ from typing import Dict, Any, Optional, List
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
-
-# Add parent directory to path for local imports
-sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 from services.riot_api_client import RiotAPIClient
 from services.aws_clients import upload_to_s3

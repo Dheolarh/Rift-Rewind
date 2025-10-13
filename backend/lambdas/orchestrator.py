@@ -1,7 +1,6 @@
 """Progressive Orchestrator for Rift Rewind"""
 
 import os
-import sys
 import json
 import time
 import logging
@@ -9,8 +8,6 @@ from typing import Dict, Any, Optional
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
-
-sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 from services.session_manager import SessionManager
 from services.analytics import RiftRewindAnalytics
