@@ -90,7 +90,7 @@ export function TimeSpentSlide({
           transition={{ delay: 0.4, duration: 1, type: "spring", bounce: 0.4 }}
           className="mb-4 sm:mb-6 md:mb-8"
         >
-          <div className="text-[80px] sm:text-[120px] md:text-[160px] lg:text-[200px] leading-none bg-gradient-to-br from-[#FFD700] via-[#C8AA6E] to-[#0AC8B9] bg-clip-text text-transparent tabular-nums" style={{ fontFamily: 'Georgia, serif' }}>
+          <div className="text-[80px] sm:text-[120px] md:text-[160px] lg:text-[200px] leading-none bg-gradient-to-br from-[#FFD700] via-[#C8AA6E] to-[#0AC8B9] bg-clip-text text-transparent tabular-nums" style={{ fontFamily: 'Georgia, serif', paddingBottom: '5px' }}>
             <Counter value={hoursPlayed} />
           </div>
         </motion.div>

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { WelcomeSlide } from "./components/slides/WelcomeSlide";
+import { LoadingSlide } from "./components/slides/LoadingSlide";
 import { TimeSpentSlide } from "./components/slides/TimeSpentSlide";
 import { FavoriteChampionsSlide } from "./components/slides/FavoriteChampionsSlide";
 import { BestMatchSlide } from "./components/slides/BestMatchSlide";
@@ -16,6 +17,8 @@ import { AchievementsSlide } from "./components/slides/AchievementsSlide";
 import { SocialComparisonSlide } from "./components/slides/SocialComparisonSlide";
 import { FinalRecapSlide } from "./components/slides/FinalRecapSlide";
 import { SlideNavigation } from "./components/SlideNavigation";
+import { ErrorModal } from "./components/ErrorModal";
+import api, { APIError } from "./services/api";
 
 // Mock data with AI humor for each slide
 const mockData = {
@@ -29,6 +32,8 @@ const mockData = {
       { name: "Yasuo", mastery: 487250, games: 342, winRate: 58 },
       { name: "Lee Sin", mastery: 356890, games: 287, winRate: 54 },
       { name: "Thresh", mastery: 298450, games: 234, winRate: 61 },
+      { name: "Ahri", mastery: 245000, games: 198, winRate: 56 },
+      { name: "Zed", mastery: 198500, games: 176, winRate: 52 },
     ],
     aiHumor: "Looks like someone has a type... High skill ceiling champions and pain! 😅"
   },
@@ -227,15 +232,23 @@ export default function App() {
   const [summonerTag, setSummonerTag] = useState("");
   const [region, setRegion] = useState("");
   const [hasStarted, setHasStarted] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [isMusicPlaying, setIsMusicPlaying] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
+  
+  // Backend integration state
+  const [sessionId, setSessionId] = useState<string>("");
+  const [sessionData, setSessionData] = useState<any>(null);
+  const [loadingError, setLoadingError] = useState<string>("");
+  const [isAnalysisComplete, setIsAnalysisComplete] = useState(false);
+  const [showErrorModal, setShowErrorModal] = useState(false);
 
-  // Auto-advance slides after 10 seconds (but not on welcome or final slide, and when not paused)
+  // Auto-advance slides after 10 seconds (but not on welcome, loading or final slide, and when not paused)
   useEffect(() => {
-    if (!hasStarted || currentSlide === 0 || currentSlide === 14 || isPaused) return;
+    if (!hasStarted || currentSlide === 0 || currentSlide === 1 || currentSlide === 15 || isPaused) return;
     
     const timer = setTimeout(() => {
-      if (currentSlide < 14) {
+      if (currentSlide < 15) {
         setCurrentSlide(prev => prev + 1);
       }
     }, 10000);
@@ -246,22 +259,77 @@ export default function App() {
   // Keyboard navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (!hasStarted) return;
+      if (!hasStarted || isLoading) return;
       
-      if (e.key === "ArrowRight" && currentSlide < 14) {
+      if (e.key === "ArrowRight" && currentSlide < 15) {
         setCurrentSlide(prev => prev + 1);
-      } else if (e.key === "ArrowLeft" && currentSlide > 0) {
+      } else if (e.key === "ArrowLeft" && currentSlide > 1) {
         setCurrentSlide(prev => prev - 1);
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [hasStarted, currentSlide]);
+  }, [hasStarted, currentSlide, isLoading]);
 
-  const handleStart = () => {
+  const handleStart = async () => {
     setHasStarted(true);
-    setCurrentSlide(1);
+    setIsLoading(true);
+    setCurrentSlide(1); // Show loading slide
+    setLoadingError("");
+    setIsAnalysisComplete(false);
+    
+    try {
+      // Call backend API to start rewind
+      const response = await api.startRewind({
+        gameName: summonerName,
+        tagLine: summonerTag,
+        region: region
+      });
+      
+      setSessionId(response.sessionId);
+      
+      // Wait for analysis to complete
+      const session = await api.waitForComplete(
+        response.sessionId,
+        (status) => {
+          console.log('Processing status:', status);
+        }
+      );
+      
+      setSessionData(session.analytics);
+      setIsAnalysisComplete(true);
+      
+    } catch (error) {
+      console.error('Error starting rewind:', error);
+      if (error instanceof APIError) {
+        setLoadingError(error.message);
+      } else {
+        setLoadingError('Failed to connect to server. Please try again.');
+      }
+      setIsAnalysisComplete(true); // Show button even on error
+      setShowErrorModal(true); // Show error modal
+    }
+  };
+
+  const handleLoadingComplete = () => {
+    if (sessionData) {
+      setIsLoading(false);
+      setCurrentSlide(2); // Move to Time Spent slide
+    } else if (loadingError) {
+      // Error modal will be shown, just go back
+      handleRestart();
+    }
+  };
+
+  const handleCloseError = () => {
+    setShowErrorModal(false);
+    handleRestart();
+  };
+
+  const handleRetryAfterError = () => {
+    setShowErrorModal(false);
+    handleStart();
   };
 
   const handleRestart = () => {
@@ -270,6 +338,7 @@ export default function App() {
     setSummonerTag("");
     setRegion("");
     setHasStarted(false);
+    setIsLoading(false);
     setIsPaused(false);
   };
 
@@ -324,8 +393,8 @@ export default function App() {
       { initial: { opacity: 0 }, animate: { opacity: 1 }, exit: { opacity: 0 } },
       // Slide 1 - Time (scale up)
       { initial: { opacity: 0, scale: 0.8 }, animate: { opacity: 1, scale: 1 }, exit: { opacity: 0, scale: 1.1 } },
-      // Slide 2 - Champions (rotate)
-      { initial: { opacity: 0, rotateY: 90 }, animate: { opacity: 1, rotateY: 0 }, exit: { opacity: 0, rotateY: -90 } },
+      // Slide 2 - Champions (fade with scale)
+      { initial: { opacity: 0, scale: 0.95 }, animate: { opacity: 1, scale: 1 }, exit: { opacity: 0, scale: 1.05 } },
       // Slide 3 - Best Match (slide from right)
       { initial: { opacity: 0, x: 100 }, animate: { opacity: 1, x: 0 }, exit: { opacity: 0, x: -100 } },
       // Slide 4 - KDA (slide from bottom)
@@ -381,53 +450,59 @@ export default function App() {
             />
           )}
           {currentSlide === 1 && (
+            <LoadingSlide 
+              playerName={summonerName || "Summoner"} 
+              onComplete={isAnalysisComplete ? handleLoadingComplete : undefined}
+            />
+          )}
+          {currentSlide === 2 && sessionData && (
             <TimeSpentSlide
-              hoursPlayed={mockData.timeSpent.hoursPlayed}
-              gamesPlayed={mockData.timeSpent.gamesPlayed}
+              hoursPlayed={sessionData.slide2_timeSpent?.totalHours || 0}
+              gamesPlayed={sessionData.slide2_timeSpent?.totalGames || 0}
               summonerName={displayName}
-              aiHumor={mockData.timeSpent.aiHumor}
+              aiHumor={sessionData.slide2_timeSpent?.humor || "Time flies when you're having fun on the Rift!"}
             />
           )}
-          {currentSlide === 2 && (
+          {currentSlide === 3 && sessionData && (
             <FavoriteChampionsSlide 
-              champions={mockData.favoriteChampions.champions} 
-              aiHumor={mockData.favoriteChampions.aiHumor}
+              champions={sessionData.slide3_favoriteChampions || []} 
+              aiHumor={sessionData.slide3_favoriteChampions_humor || "Looks like someone has a type!"}
             />
-          )}
-          {currentSlide === 3 && (
-            <BestMatchSlide {...mockData.bestMatch} />
           )}
           {currentSlide === 4 && (
-            <KDAOverviewSlide {...mockData.kdaOverview} />
+            <BestMatchSlide {...mockData.bestMatch} />
           )}
           {currentSlide === 5 && (
-            <RankedJourneySlide {...mockData.rankedJourney} />
+            <KDAOverviewSlide {...mockData.kdaOverview} />
           )}
           {currentSlide === 6 && (
-            <VisionSlide {...mockData.vision} />
+            <RankedJourneySlide {...mockData.rankedJourney} />
           )}
           {currentSlide === 7 && (
-            <ChampionPoolSlide {...mockData.championPool} />
+            <VisionSlide {...mockData.vision} />
           )}
           {currentSlide === 8 && (
-            <DuoPartnerSlide {...mockData.duoPartner} />
+            <ChampionPoolSlide {...mockData.championPool} />
           )}
           {currentSlide === 9 && (
-            <StrengthsSlide strengths={mockData.strengths} />
+            <DuoPartnerSlide {...mockData.duoPartner} />
           )}
           {currentSlide === 10 && (
-            <WeaknessesSlide weaknesses={mockData.weaknesses} />
+            <StrengthsSlide strengths={mockData.strengths} />
           )}
           {currentSlide === 11 && (
-            <ProgressSlide {...mockData.progress} />
+            <WeaknessesSlide weaknesses={mockData.weaknesses} />
           )}
           {currentSlide === 12 && (
-            <AchievementsSlide achievements={mockData.achievements} />
+            <ProgressSlide {...mockData.progress} />
           )}
           {currentSlide === 13 && (
-            <SocialComparisonSlide {...mockData.socialComparison} />
+            <AchievementsSlide achievements={mockData.achievements} />
           )}
           {currentSlide === 14 && (
+            <SocialComparisonSlide {...mockData.socialComparison} />
+          )}
+          {currentSlide === 15 && (
             <FinalRecapSlide
               summonerName={displayName}
               playerTitle="The Windborne Legend"
@@ -444,10 +519,18 @@ export default function App() {
         </motion.div>
       </AnimatePresence>
 
-      {hasStarted && (
+      {/* Error Modal */}
+      <ErrorModal
+        isOpen={showErrorModal}
+        error={loadingError}
+        onClose={handleCloseError}
+        onRetry={handleRetryAfterError}
+      />
+
+      {hasStarted && !isLoading && (
         <SlideNavigation
           currentSlide={currentSlide}
-          totalSlides={15}
+          totalSlides={16}
           onPrevious={previousSlide}
           onNext={nextSlide}
           isPaused={isPaused}

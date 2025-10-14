@@ -101,13 +101,31 @@ class RiotAPIClient:
                     return None
                     
             except requests.exceptions.Timeout:
-                logger.warning(f"Timeout on attempt {attempt + 1}/{max_retries}")
+                logger.warning(f"⏱️  Timeout on attempt {attempt + 1}/{max_retries} - retrying...")
+                if attempt < max_retries - 1:
+                    time.sleep(2 ** attempt)  # Exponential backoff
+                    continue
+                logger.error(f"❌ Request timed out after {max_retries} attempts")
+                return None
+            except requests.exceptions.SSLError as e:
+                logger.warning(f"🔒 SSL Error on attempt {attempt + 1}/{max_retries} - connection issue")
+                if attempt < max_retries - 1:
+                    time.sleep(2 ** attempt)  # Exponential backoff
+                    continue
+                logger.error(f"❌ SSL Error persists after {max_retries} attempts (skipping)")
+                return None
+            except requests.exceptions.ConnectionError as e:
+                logger.warning(f"🔌 Connection Error on attempt {attempt + 1}/{max_retries} - network issue")
+                if attempt < max_retries - 1:
+                    time.sleep(2 ** attempt)  # Exponential backoff
+                    continue
+                logger.error(f"❌ Connection failed after {max_retries} attempts (skipping)")
+                return None
+            except Exception as e:
+                logger.error(f"⚠️  Unexpected error: {e}")
                 if attempt < max_retries - 1:
                     time.sleep(1)
                     continue
-                return None
-            except Exception as e:
-                logger.error(f"Request error: {e}")
                 return None
         
         return None
@@ -345,6 +363,11 @@ class RiotAPIClient:
                 time.sleep(0.5)
         
         logger.info(f"Successfully fetched {len(matches)}/{total} matches")
+        
+        if len(matches) < total:
+            failed_count = total - len(matches)
+            logger.warning(f"⚠️  {failed_count} matches failed to fetch (network/SSL errors - continuing anyway)")
+        
         return matches
     
     def _get_matches_parallel(

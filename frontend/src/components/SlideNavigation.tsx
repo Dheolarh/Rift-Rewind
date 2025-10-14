@@ -18,13 +18,20 @@ export function SlideNavigation({
   isPaused = false,
   onTogglePause,
 }: SlideNavigationProps) {
-  const canGoPrevious = currentSlide > 0;
-  const canGoNext = currentSlide < totalSlides - 1;
+  // Disable previous on Welcome (0) and Loading (1) slides
+  // Disable previous on the slide after Loading (slide 2)
+  const canGoPrevious = currentSlide > 2;
+  
+  // Disable next on Loading (1) and Welcome (0) slides
+  const canGoNext = currentSlide > 1 && currentSlide < totalSlides - 1;
+
+  // Hide pause/play button on Loading slide (slide 1)
+  const showPausePlay = currentSlide !== 1;
 
   return (
     <>
       {/* Pause/Play Button - Top Right */}
-      {onTogglePause && (
+      {onTogglePause && showPausePlay && (
         <motion.button
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -44,7 +51,7 @@ export function SlideNavigation({
       {canGoPrevious && (
         <div
           onClick={onPrevious}
-          className="fixed left-0 top-0 bottom-0 w-1/4 z-40 cursor-w-resize hover:bg-white/5 transition-colors"
+          className="fixed left-0 top-0 bottom-0 w-1/4 z-40 cursor-w-resize transition-opacity"
           aria-label="Previous slide"
         />
       )}
@@ -53,7 +60,7 @@ export function SlideNavigation({
       {canGoNext && (
         <div
           onClick={onNext}
-          className="fixed right-0 top-0 bottom-0 w-1/4 z-40 cursor-e-resize hover:bg-white/5 transition-colors"
+          className="fixed right-0 top-0 bottom-0 w-1/4 z-40 cursor-e-resize transition-opacity"
           aria-label="Next slide"
         />
       )}

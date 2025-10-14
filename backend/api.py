@@ -6,8 +6,13 @@ Provides simple HTTP-like interface for React/TypeScript frontend
 
 import os
 import json
+import logging
 from typing import Dict, Any, Optional
 from dotenv import load_dotenv
+
+# Configure logging
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 # Load environment variables
 load_dotenv()
@@ -30,7 +35,9 @@ class RiftRewindAPI:
     def __init__(self):
         """Initialize API with test mode configuration"""
         self.test_mode = os.getenv('TEST_MODE', 'false').lower() == 'true'
-        self.max_matches = 10 if self.test_mode else int(os.getenv('MAX_MATCHES_TO_FETCH', '100'))
+        # Fetch all matches, but cap analysis at 300
+        self.max_matches_fetch = int(os.getenv('MAX_MATCHES_TO_FETCH', '1000'))
+        self.max_matches_analyze = 300  # Always analyze max 300 matches
         self.humor_slides = [2, 3, 6] if self.test_mode else list(range(2, 16))  # Slides 2-15
     
     def create_response(self, status_code: int, body: Any, headers: Optional[Dict] = None) -> Dict[str, Any]:
@@ -54,9 +61,7 @@ class RiftRewindAPI:
         
         if headers:
             default_headers.update(headers)
-        
-        # Return the body as a Python object (dict/list/str). The HTTP server
-        # layer (Flask) will JSON-serialize the response when returning to the frontend.
+     
         return {
             'statusCode': status_code,
             'headers': default_headers,
@@ -110,13 +115,36 @@ class RiftRewindAPI:
             fetcher.fetch_summoner_data(puuid, region)
             fetcher.fetch_ranked_info(puuid, region)
             
-            # Fetch matches (limited by test mode)
+            # Fetch matches
             from services.riot_api_client import RiotAPIClient
+            from services.match_analyzer import IntelligentSampler
+            
             riot = RiotAPIClient()
-            match_ids = riot.get_match_ids(puuid, region, count=self.max_matches)
+            match_ids = riot.get_match_ids(puuid, region, count=self.max_matches_fetch)
             fetcher.data['matchIds'] = match_ids
             
-            matches = fetcher.fetch_match_details_batch(match_ids, region)
+            # Apply intelligent sampling if > 300 matches
+            total_matches = len(match_ids)
+            if total_matches > self.max_matches_analyze:
+                sampler = IntelligentSampler()
+                sampling_result = sampler.sample_matches(match_ids)
+                matches_to_fetch = sampling_result['sampled_match_ids'][:self.max_matches_analyze]
+                fetcher.data['samplingMetadata'] = {
+                    'totalMatches': total_matches,
+                    'analyzedMatches': len(matches_to_fetch),
+                    'samplePercentage': sampling_result['sample_percentage'],
+                    'strategy': 'intelligent_monthly_sampling'
+                }
+            else:
+                matches_to_fetch = match_ids
+                fetcher.data['samplingMetadata'] = {
+                    'totalMatches': total_matches,
+                    'analyzedMatches': total_matches,
+                    'samplePercentage': 1.0,
+                    'strategy': 'full_analysis'
+                }
+            
+            matches = fetcher.fetch_match_details_batch(matches_to_fetch, region)
             
             # Store to S3
             s3_key = fetcher.store_to_s3()

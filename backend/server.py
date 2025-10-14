@@ -7,7 +7,15 @@ Run this server to test frontend locally before deploying to AWS
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import os
+import logging
 from dotenv import load_dotenv
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 # Load environment
 load_dotenv()
@@ -74,7 +82,7 @@ def health_check():
     return jsonify({
         'status': 'healthy',
         'testMode': api.test_mode,
-        'maxMatches': api.max_matches
+        'maxMatches': api.max_matches_analyze
     }), 200
 
 
@@ -98,7 +106,8 @@ API Endpoints:
 
 Configuration:
   Test Mode: {api.test_mode}
-  Max Matches: {api.max_matches}
+  Max Matches to Fetch: {api.max_matches_fetch}
+  Max Matches to Analyze: {api.max_matches_analyze}
   Humor Slides: {api.humor_slides if api.test_mode else 'All (2-15)'}
 
 Frontend CORS: {', '.join(allowed_origins)}

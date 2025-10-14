@@ -1,0 +1,208 @@
+/* Ripple Loader Styles with League of Legends Colors */
+.ripple-container {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
+  overflow: hidden;
+}
+
+.hole {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.hole i {
+  display: block;
+  position: absolute;
+  width: 60px;
+  height: 60px;
+  border-radius: 140px;
+  opacity: 0;
+  animation-name: scale;
+  animation-duration: 3s;
+  animation-iteration-count: infinite;
+  animation-timing-function: linear;
+}
+
+/* Alternate between gold and cyan colors */
+.hole i:nth-child(odd) {
+  animation-name: scale-gold;
+}
+
+.hole i:nth-child(even) {
+  animation-name: scale-cyan;
+}
+
+.hole i:nth-child(1) {
+  animation-delay: 0.3s;
+}
+
+.hole i:nth-child(2) {
+  animation-delay: 0.6s;
+}
+
+.hole i:nth-child(3) {
+  animation-delay: 0.9s;
+}
+
+.hole i:nth-child(4) {
+  animation-delay: 1.2s;
+}
+
+.hole i:nth-child(5) {
+  animation-delay: 1.5s;
+}
+
+.hole i:nth-child(6) {
+  animation-delay: 1.8s;
+}
+
+.hole i:nth-child(7) {
+  animation-delay: 2.1s;
+}
+
+.hole i:nth-child(8) {
+  animation-delay: 2.4s;
+}
+
+.hole i:nth-child(9) {
+  animation-delay: 2.7s;
+}
+
+.hole i:nth-child(10) {
+  animation-delay: 3s;
+}
+
+/* Gold ripple animation */
+@keyframes scale-gold {
+  0% {
+    transform: scale(0.5);
+    opacity: 0;
+    box-shadow: 0px 0px 30px rgba(200, 170, 110, 0.8);
+  }
+  50% {
+    transform: scale(8) translate(0px, -5px);
+    opacity: 0.6;
+    box-shadow: 0px 8px 60px rgba(200, 170, 110, 0.8), 0px 0px 80px rgba(200, 170, 110, 0.5);
+  }
+  100% {
+    transform: scale(15) translate(0px, 5px);
+    opacity: 0;
+    box-shadow: 0px 10px 20px rgba(200, 170, 110, 0);
+  }
+}
+
+/* Cyan ripple animation */
+@keyframes scale-cyan {
+  0% {
+    transform: scale(0.5);
+    opacity: 0;
+    box-shadow: 0px 0px 30px rgba(10, 200, 185, 0.8);
+  }
+  50% {
+    transform: scale(8) translate(0px, -5px);
+    opacity: 0.6;
+    box-shadow: 0px 8px 60px rgba(10, 200, 185, 0.8), 0px 0px 80px rgba(10, 200, 185, 0.5);
+  }
+  100% {
+    transform: scale(15) translate(0px, 5px);
+    opacity: 0;
+    box-shadow: 0px 10px 20px rgba(10, 200, 185, 0);
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 1024px) {
+  .hole i {
+    width: 50px;
+    height: 50px;
+  }
+
+  @keyframes scale-gold {
+    0% {
+      transform: scale(0.5);
+      opacity: 0;
+      box-shadow: 0px 0px 30px rgba(200, 170, 110, 0.8);
+    }
+    50% {
+      transform: scale(6) translate(0px, -5px);
+      opacity: 0.6;
+      box-shadow: 0px 8px 60px rgba(200, 170, 110, 0.8), 0px 0px 80px rgba(200, 170, 110, 0.5);
+    }
+    100% {
+      transform: scale(12) translate(0px, 5px);
+      opacity: 0;
+      box-shadow: 0px 10px 20px rgba(200, 170, 110, 0);
+    }
+  }
+
+  @keyframes scale-cyan {
+    0% {
+      transform: scale(0.5);
+      opacity: 0;
+      box-shadow: 0px 0px 30px rgba(10, 200, 185, 0.8);
+    }
+    50% {
+      transform: scale(6) translate(0px, -5px);
+      opacity: 0.6;
+      box-shadow: 0px 8px 60px rgba(10, 200, 185, 0.8), 0px 0px 80px rgba(10, 200, 185, 0.5);
+    }
+    100% {
+      transform: scale(12) translate(0px, 5px);
+      opacity: 0;
+      box-shadow: 0px 10px 20px rgba(10, 200, 185, 0);
+    }
+  }
+}
+
+@media (max-width: 640px) {
+  .hole i {
+    width: 40px;
+    height: 40px;
+  }
+
+  @keyframes scale-gold {
+    0% {
+      transform: scale(0.5);
+      opacity: 0;
+      box-shadow: 0px 0px 30px rgba(200, 170, 110, 0.8);
+    }
+    50% {
+      transform: scale(5) translate(0px, -5px);
+      opacity: 0.6;
+      box-shadow: 0px 8px 60px rgba(200, 170, 110, 0.8), 0px 0px 80px rgba(200, 170, 110, 0.5);
+    }
+    100% {
+      transform: scale(10) translate(0px, 5px);
+      opacity: 0;
+      box-shadow: 0px 10px 20px rgba(200, 170, 110, 0);
+    }
+  }
+
+  @keyframes scale-cyan {
+    0% {
+      transform: scale(0.5);
+      opacity: 0;
+      box-shadow: 0px 0px 30px rgba(10, 200, 185, 0.8);
+    }
+    50% {
+      transform: scale(5) translate(0px, -5px);
+      opacity: 0.6;
+      box-shadow: 0px 8px 60px rgba(10, 200, 185, 0.8), 0px 0px 80px rgba(10, 200, 185, 0.5);
+    }
+    100% {
+      transform: scale(10) translate(0px, 5px);
+      opacity: 0;
+      box-shadow: 0px 10px 20px rgba(10, 200, 185, 0);
+    }
+  }
+}
