@@ -40,8 +40,8 @@ class ProgressiveOrchestrator:
             return self._new_session(game_name, tag_line, region)
     
     def _new_session(self, game_name: str, tag_line: str, region: str) -> Dict[str, Any]:
-        from lambdas.league_data import LeagueDataFetcher
-        from lambdas.humor_context import HumorGenerator
+        from league_data import LeagueDataFetcher
+        from humor_context import HumorGenerator
         
         fetcher = LeagueDataFetcher()
         checkpoint_callback = self._create_checkpoint_callback()
@@ -77,8 +77,8 @@ class ProgressiveOrchestrator:
         }
     
     def _resume_session(self, existing_session: Dict[str, Any], region: str) -> Dict[str, Any]:
-        from lambdas.league_data import LeagueDataFetcher
-        from lambdas.humor_context import HumorGenerator
+        from league_data import LeagueDataFetcher
+        from humor_context import HumorGenerator
         
         session_id = existing_session['sessionId']
         

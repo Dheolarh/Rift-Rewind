@@ -20,12 +20,8 @@ logger.setLevel(logging.INFO)
 
 from services.aws_clients import get_bedrock_client, download_from_s3, upload_to_s3
 
-
-# Slide-specific prompt templates - COMEDY EDITION
-# Reframed as "witty commentary" for Claude content policy compliance
-# Still uses League memes and self-deprecating humor players love!
 SLIDE_PROMPTS = {
-    1: None,  # Player Details - No humor needed
+    1: None,
     
     2: """You're a witty League of Legends comedian writing for a year-in-review app (like Spotify Wrapped for gaming).
 
