@@ -3,9 +3,12 @@ Analytics Module: analytics.py
 Purpose: Calculate statistics for all slides
 """
 
+import logging
 from typing import Dict, Any, List, Optional
 from collections import Counter, defaultdict
 from datetime import datetime, timedelta
+
+logger = logging.getLogger(__name__)
 
 
 class RiftRewindAnalytics:

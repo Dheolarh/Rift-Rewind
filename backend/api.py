@@ -115,36 +115,35 @@ class RiftRewindAPI:
             fetcher.fetch_summoner_data(puuid, region)
             fetcher.fetch_ranked_info(puuid, region)
             
-            # Fetch matches
-            from services.riot_api_client import RiotAPIClient
-            from services.match_analyzer import IntelligentSampler
-            
-            riot = RiotAPIClient()
-            match_ids = riot.get_match_ids(puuid, region, count=self.max_matches_fetch)
-            fetcher.data['matchIds'] = match_ids
-            
-            # Apply intelligent sampling if > 300 matches
+            # Fetch ALL match IDs from the past year
+            match_ids = fetcher.fetch_match_history(puuid, region)
             total_matches = len(match_ids)
-            if total_matches > self.max_matches_analyze:
+            
+            # Apply intelligent sampling ONLY if > 300 matches
+            if total_matches > 300:
+                from services.match_analyzer import IntelligentSampler
                 sampler = IntelligentSampler()
                 sampling_result = sampler.sample_matches(match_ids)
-                matches_to_fetch = sampling_result['sampled_match_ids'][:self.max_matches_analyze]
+                matches_to_fetch = sampling_result['sampled_match_ids'][:300]  # Cap at 300
                 fetcher.data['samplingMetadata'] = {
                     'totalMatches': total_matches,
                     'analyzedMatches': len(matches_to_fetch),
-                    'samplePercentage': sampling_result['sample_percentage'],
+                    'samplePercentage': (len(matches_to_fetch) / total_matches) * 100,
                     'strategy': 'intelligent_monthly_sampling'
                 }
+                logger.info(f"🎯 Sampling {len(matches_to_fetch)} matches out of {total_matches} total")
             else:
+                # Fetch ALL matches if <= 300
                 matches_to_fetch = match_ids
                 fetcher.data['samplingMetadata'] = {
                     'totalMatches': total_matches,
                     'analyzedMatches': total_matches,
-                    'samplePercentage': 1.0,
+                    'samplePercentage': 100.0,
                     'strategy': 'full_analysis'
                 }
+                logger.info(f"✓ Analyzing all {total_matches} matches (no sampling needed)")
             
-            matches = fetcher.fetch_match_details_batch(matches_to_fetch, region)
+            matches = fetcher.fetch_match_details_batch(matches_to_fetch, region, use_sampling=False)
             
             # Store to S3
             s3_key = fetcher.store_to_s3()
@@ -160,18 +159,32 @@ class RiftRewindAPI:
             analytics_key = f"sessions/{session_id}/analytics.json"
             upload_to_s3(analytics_key, analytics)
             
-            # Step 3: Generate humor (async in production, sync in test mode)
-            if self.test_mode:
-                # Generate humor for sample slides immediately
-                humor_generator = HumorGenerator()
-                for slide_num in self.humor_slides:
+            # Step 3: Generate humor for ALL slides (2-15) before completing
+            logger.info("🎭 Generating AI humor for all slides...")
+            humor_generator = HumorGenerator()
+            humor_slides = list(range(2, 16))  # Slides 2-15 need humor
+            
+            import time
+            for idx, slide_num in enumerate(humor_slides):
+                try:
+                    # Add delay between requests to avoid throttling (except first request)
+                    if idx > 0:
+                        time.sleep(2)  # 2 second delay between requests
+                    
                     humor_generator.generate(session_id, slide_num)
+                    logger.info(f"  ✓ Slide {slide_num} humor generated")
+                except Exception as e:
+                    logger.warning(f"  ⚠️  Slide {slide_num} humor failed: {e}")
+                    # Continue with other slides even if one fails
+            
+            logger.info("✅ All humor generation complete!")
             
             return self.create_response(200, {
                 'sessionId': session_id,
-                'status': 'processing' if not self.test_mode else 'complete',
+                'status': 'complete',  # Always return complete after all processing
                 'testMode': self.test_mode,
-                'matchCount': len(matches),
+                'matchCount': len(matches_to_fetch),
+                'totalMatches': total_matches,
                 'player': {
                     'gameName': game_name,
                     'tagLine': tag_line,
@@ -211,6 +224,17 @@ class RiftRewindAPI:
                 })
             
             analytics = json.loads(analytics_str)
+            
+            # Download all humor data
+            humor_data = {}
+            for slide_num in range(2, 16):  # Slides 2-15 have humor
+                humor_str = download_from_s3(f"sessions/{session_id}/humor/slide_{slide_num}.json")
+                if humor_str:
+                    humor_json = json.loads(humor_str)
+                    humor_data[f"slide{slide_num}_humor"] = humor_json.get('humorText', '')
+            
+            # Merge humor into analytics
+            analytics.update(humor_data)
             
             return self.create_response(200, {
                 'sessionId': session_id,
