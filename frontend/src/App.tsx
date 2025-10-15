@@ -460,13 +460,13 @@ export default function App() {
               hoursPlayed={sessionData.slide2_timeSpent?.totalHours || 0}
               gamesPlayed={sessionData.slide2_timeSpent?.totalGames || 0}
               summonerName={displayName}
-              aiHumor={sessionData.slide2_timeSpent?.humor || "Time flies when you're having fun on the Rift!"}
+              aiHumor={sessionData.slide2_humor || "Time flies when you're having fun on the Rift!"}
             />
           )}
           {currentSlide === 3 && sessionData && (
             <FavoriteChampionsSlide 
               champions={sessionData.slide3_favoriteChampions || []} 
-              aiHumor={sessionData.slide3_favoriteChampions_humor || "Looks like someone has a type!"}
+              aiHumor={sessionData.slide3_humor || "Looks like someone has a type!"}
             />
           )}
           {currentSlide === 4 && (

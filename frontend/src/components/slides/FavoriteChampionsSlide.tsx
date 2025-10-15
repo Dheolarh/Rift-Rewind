@@ -78,7 +78,7 @@ function ChampionIcon({ championName, className }: { championName: string; class
 
   if (isLoading || !iconUrl) {
     return (
-      <div className={`${className} bg-[#0A1428] flex items-center justify-center`}>
+      <div className={`${className} bg-[#0A1428] flex items-center justify-center rounded-full`}>
         <div className="w-4 h-4 border-2 border-[#C8AA6E] border-t-transparent rounded-full animate-spin" />
       </div>
     );
@@ -88,7 +88,8 @@ function ChampionIcon({ championName, className }: { championName: string; class
     <ImageWithFallback
       src={iconUrl}
       alt={championName}
-      className={className}
+      className={`${className} rounded-full`}
+      style={{ borderRadius: '50%' }}
     />
   );
 }
@@ -177,19 +178,17 @@ export function FavoriteChampionsSlide({
 
         <div className="min-h-full flex flex-col items-center justify-center px-4 sm:px-6 py-8 sm:py-10 md:py-12">
 
-          {/* Champion Icon - Smaller, Simple Frame */}
+          {/* Champion Icon - Circular with proper fill */}
           <motion.div
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.3, duration: 0.6, ease: [0.4, 0.0, 0.2, 1] }}
             className="mb-4 sm:mb-5"
           >
-            <div 
-              className="w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 rounded-full overflow-hidden border-2 border-[#C8AA6E] bg-[#0A1428]"
-            >
+            <div className="w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 rounded-full overflow-hidden border-2 border-[#C8AA6E] bg-[#0A1428]">
               <ChampionIcon
                 championName={topChampion.name}
-                className="size-full object-cover scale-110"
+                className="size-full object-cover"
               />
             </div>
           </motion.div>
@@ -254,16 +253,16 @@ export function FavoriteChampionsSlide({
               style={{ background: 'linear-gradient(to bottom, transparent, #C8AA6E, transparent)' }}
             />
 
-            {/* Mastery */}
+            {/* KDA */}
             <div className="text-center">
               <div 
                 className="text-2xl sm:text-3xl md:text-4xl text-[#C8AA6E] mb-1 tabular-nums"
                 style={{ fontFamily: 'Georgia, serif' }}
               >
-                <Counter value={Math.floor(topChampion.mastery / 1000)} duration={2} delay={0.7} />K
+                {topChampion.kda.toFixed(2)}
               </div>
               <div className="text-xs sm:text-sm text-[#A09B8C] uppercase tracking-wider">
-                Mastery
+                KDA
               </div>
             </div>
           </motion.div>
@@ -330,7 +329,7 @@ export function FavoriteChampionsSlide({
                       <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full overflow-hidden border border-[#C8AA6E]/50 bg-[#0A1428]">
                         <ChampionIcon
                           championName={champ.name}
-                          className="size-full object-cover scale-110"
+                          className="size-full object-cover"
                         />
                       </div>
                     </motion.div>
@@ -345,10 +344,10 @@ export function FavoriteChampionsSlide({
                       </div>
                     </div>
 
-                    {/* Stats - Responsive Grid */}
-                    <div className="flex items-center gap-3 sm:gap-4 md:gap-6">
+                    {/* Stats - Fixed Width Columns */}
+                    <div className="flex items-center gap-2 sm:gap-3 md:gap-4">
                       {/* Games */}
-                      <div className="text-center">
+                      <div className="text-center w-12 sm:w-14">
                         <div className="text-[10px] sm:text-xs text-[#A09B8C] mb-0.5">GAMES</div>
                         <div 
                           className="text-xs sm:text-sm md:text-base text-white tabular-nums"
@@ -359,7 +358,7 @@ export function FavoriteChampionsSlide({
                       </div>
 
                       {/* Win Rate */}
-                      <div className="text-center">
+                      <div className="text-center w-12 sm:w-14">
                         <div className="text-[10px] sm:text-xs text-[#A09B8C] mb-0.5">WR</div>
                         <div 
                           className="text-xs sm:text-sm md:text-base text-[#0AC8B9] tabular-nums"
@@ -369,14 +368,14 @@ export function FavoriteChampionsSlide({
                         </div>
                       </div>
 
-                      {/* Mastery */}
-                      <div className="text-center">
-                        <div className="text-[10px] sm:text-xs text-[#A09B8C] mb-0.5">MST</div>
+                      {/* KDA */}
+                      <div className="text-center w-12 sm:w-14">
+                        <div className="text-[10px] sm:text-xs text-[#A09B8C] mb-0.5">KDA</div>
                         <div 
                           className="text-xs sm:text-sm md:text-base text-[#C8AA6E] tabular-nums"
                           style={{ fontFamily: 'monospace' }}
                         >
-                          {Math.floor(champ.mastery / 1000)}K
+                          {champ.kda.toFixed(2)}
                         </div>
                       </div>
                     </div>

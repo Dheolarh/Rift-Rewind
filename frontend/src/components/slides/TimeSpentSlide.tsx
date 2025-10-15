@@ -28,7 +28,7 @@ export function TimeSpentSlide({
   summonerName,
   aiHumor = "That's approximately 47 binge-worthy Netflix series... but who's counting? 📺"
 }: TimeSpentSlideProps) {
-  const days = Math.floor(hoursPlayed / 24);
+  const days = Math.floor(hoursPlayed / 24) + 1;
 
   return (
     <div className="relative size-full overflow-hidden bg-[#010A13] flex items-center justify-center">
@@ -79,7 +79,7 @@ export function TimeSpentSlide({
           className="text-center mb-6 sm:mb-8"
         >
           <p className="text-sm sm:text-base md:text-lg text-[#A09B8C] uppercase tracking-[0.3em]">
-            In 2024, you spent
+            In 2025, you spent
           </p>
         </motion.div>
 
@@ -106,7 +106,7 @@ export function TimeSpentSlide({
             hours on the Rift
           </p>
           <p className="text-sm sm:text-base md:text-lg text-[#A09B8C]">
-            That's <span className="text-[#0AC8B9]">{days} days</span> of pure League
+            That's about <span className="text-[#0AC8B9]">{days} days</span> of pure League
           </p>
         </motion.div>
 

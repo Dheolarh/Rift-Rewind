@@ -51,13 +51,11 @@ export function LoadingSlide({ playerName = "Summoner", onComplete }: LoadingSli
   const [messagePhase, setMessagePhase] = useState<'initial' | 'ongoing'>('initial');
   const [ongoingMessages, setOngoingMessages] = useState<string[]>([]);
 
-  // Replace {playerName} placeholder in messages
   const initialMessages = loadingMessageSets.initial.map(msg => 
     msg.replace('{playerName}', playerName)
   );
 
   useEffect(() => {
-    // Shuffle ongoing messages for variety
     const shuffled = [...loadingMessageSets.ongoing].sort(() => Math.random() - 0.5);
     setOngoingMessages(shuffled);
   }, []);
