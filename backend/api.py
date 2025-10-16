@@ -145,19 +145,28 @@ class RiftRewindAPI:
             
             matches = fetcher.fetch_match_details_batch(matches_to_fetch, region, use_sampling=False)
             
-            # Store to S3
-            s3_key = fetcher.store_to_s3()
-            session_id = fetcher.session_id
+            # Generate session ID
+            import uuid
+            session_id = str(uuid.uuid4())
+            logger.info(f"📝 Session ID: {session_id}")
             
-            # Step 2: Calculate analytics
-            raw_data_str = download_from_s3(f"sessions/{session_id}/raw_data.json")
-            raw_data = json.loads(raw_data_str) if raw_data_str else {}
+            # Step 2: Calculate analytics directly (no S3 upload/download of raw data)
+            logger.info("📊 Calculating analytics...")
+            raw_data = {
+                'account': account_data,
+                'summoner': fetcher.data.get('summoner', {}),
+                'ranked': fetcher.data.get('ranked', {}),
+                'matches': matches,
+                'puuid': puuid
+            }
             
             analytics_engine = RiftRewindAnalytics(raw_data)
             analytics = analytics_engine.calculate_all()
             
+            # Upload analytics to S3
             analytics_key = f"sessions/{session_id}/analytics.json"
             upload_to_s3(analytics_key, analytics)
+            logger.info(f"✓ Analytics uploaded to S3")
             
             # Step 3: Generate humor for ALL slides (2-15) before completing
             logger.info("🎭 Generating AI humor for all slides...")
@@ -169,7 +178,7 @@ class RiftRewindAPI:
                 try:
                     # Add delay between requests to avoid throttling (except first request)
                     if idx > 0:
-                        time.sleep(2)  # 2 second delay between requests
+                        time.sleep(4)  # 4 second delay between requests to avoid throttling
                     
                     humor_generator.generate(session_id, slide_num)
                     logger.info(f"  ✓ Slide {slide_num} humor generated")

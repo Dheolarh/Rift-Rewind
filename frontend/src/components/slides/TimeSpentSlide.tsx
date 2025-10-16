@@ -32,7 +32,6 @@ export function TimeSpentSlide({
 
   return (
     <div className="relative size-full overflow-hidden bg-[#010A13] flex items-center justify-center">
-      {/* LoL Character Background */}
       <div className="absolute inset-0">
         <ImageWithFallback
           src={zileanTime}

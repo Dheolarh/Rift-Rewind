@@ -33,31 +33,6 @@ function Counter({ value, duration = 2, delay = 0 }: { value: number; duration?:
   return <motion.span>{rounded}</motion.span>;
 }
 
-// Typing Animation Component
-function TypingText({ text, delay = 0 }: { text: string; delay?: number }) {
-  const [displayedText, setDisplayedText] = useState("");
-
-  useEffect(() => {
-    let timeout: NodeJS.Timeout;
-    let index = 0;
-
-    const startTyping = () => {
-      if (index < text.length) {
-        setDisplayedText(text.substring(0, index + 1));
-        index++;
-        timeout = setTimeout(startTyping, 30); // 30ms per character
-      }
-    };
-
-    // Start typing after delay
-    timeout = setTimeout(startTyping, delay * 1000);
-
-    return () => clearTimeout(timeout);
-  }, [text, delay]);
-
-  return <span>{displayedText}</span>;
-}
-
 // Champion Icon Component with async loading
 function ChampionIcon({ championName, className }: { championName: string; className?: string }) {
   const [iconUrl, setIconUrl] = useState<string>('');
@@ -188,7 +163,7 @@ export function FavoriteChampionsSlide({
             <div className="w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 rounded-full overflow-hidden border-2 border-[#C8AA6E] bg-[#0A1428]">
               <ChampionIcon
                 championName={topChampion.name}
-                className="size-full object-cover"
+                className="size-full object-cover rounded-full"
               />
             </div>
           </motion.div>
@@ -275,7 +250,7 @@ export function FavoriteChampionsSlide({
             className="text-center mb-6 sm:mb-8 max-w-xl px-2"
           >
             <p className="text-xs sm:text-sm md:text-base text-[#E8E6E3]/80 italic leading-relaxed">
-              <TypingText text={aiHumor} delay={1.2} />
+              {aiHumor}
             </p>
           </motion.div>
 
