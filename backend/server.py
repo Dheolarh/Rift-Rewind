@@ -76,13 +76,43 @@ def get_slide(session_id, slide_number):
     return jsonify(body), response['statusCode']
 
 
+@app.route('/api/cache/check', methods=['POST'])
+def check_cache():
+    """POST /api/cache/check - Check if cached session exists"""
+    data = request.json
+    response = api.check_cache(
+        data.get('gameName', ''),
+        data.get('tagLine', ''),
+        data.get('region', '')
+    )
+    
+    body = response.get('body')
+    return jsonify(body), response['statusCode']
+
+
+@app.route('/api/cache/invalidate', methods=['POST'])
+def invalidate_cache():
+    """POST /api/cache/invalidate - Invalidate cached session (force refresh)"""
+    data = request.json
+    response = api.invalidate_cache(
+        data.get('gameName', ''),
+        data.get('tagLine', ''),
+        data.get('region', '')
+    )
+    
+    body = response.get('body')
+    return jsonify(body), response['statusCode']
+
+
 @app.route('/api/health', methods=['GET'])
 def health_check():
     """GET /api/health - Health check endpoint"""
     return jsonify({
         'status': 'healthy',
         'testMode': api.test_mode,
-        'maxMatches': api.max_matches_analyze
+        'maxMatches': api.max_matches_analyze,
+        'cacheEnabled': True,
+        'cacheExpiryDays': api.cache_manager.cache_expiry_days
     }), 200
 
 
@@ -100,15 +130,18 @@ Server running at: http://localhost:{port}
 API Endpoints:
   GET  /api/health                                 Health check
   GET  /api/regions                                Get regions
-  POST /api/rewind                                 Start session
+  POST /api/rewind                                 Start session (checks cache first)
   GET  /api/rewind/:sessionId                      Get session
   GET  /api/rewind/:sessionId/slide/:slideNumber   Get slide
+  POST /api/cache/check                            Check cache status
+  POST /api/cache/invalidate                       Force refresh (clear cache)
 
 Configuration:
   Test Mode: {api.test_mode}
   Max Matches to Fetch: {api.max_matches_fetch}
   Max Matches to Analyze: {api.max_matches_analyze}
   Humor Slides: {api.humor_slides if api.test_mode else 'All (2-15)'}
+  Cache Expiry: {api.cache_manager.cache_expiry_days} days
 
 Frontend CORS: {', '.join(allowed_origins)}
     """)

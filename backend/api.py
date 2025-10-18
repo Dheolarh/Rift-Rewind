@@ -24,6 +24,7 @@ from lambdas.insights import InsightsGenerator
 from services.analytics import RiftRewindAnalytics
 from services.aws_clients import upload_to_s3, download_from_s3
 from services.constants import REGIONS
+from services.session_cache import SessionCacheManager
 
 
 class RiftRewindAPI:
@@ -39,6 +40,7 @@ class RiftRewindAPI:
         self.max_matches_fetch = int(os.getenv('MAX_MATCHES_TO_FETCH', '1000'))
         self.max_matches_analyze = 300  # Always analyze max 300 matches
         self.humor_slides = [2, 3, 6] if self.test_mode else list(range(2, 16))  # Slides 2-15
+        self.cache_manager = SessionCacheManager(cache_expiry_days=7)  # 7 day cache
     
     def create_response(self, status_code: int, body: Any, headers: Optional[Dict] = None) -> Dict[str, Any]:
         """
@@ -85,7 +87,7 @@ class RiftRewindAPI:
                 'error': f'Failed to fetch regions: {str(e)}'
             })
     
-    def start_rewind(self, game_name: str, tag_line: str, region: str) -> Dict[str, Any]:
+    def start_rewind(self, game_name: str, tag_line: str, region: str, force_refresh: bool = False) -> Dict[str, Any]:
         """
         POST /api/rewind
         Start a new Rift Rewind session
@@ -94,6 +96,7 @@ class RiftRewindAPI:
             game_name: Riot ID game name (e.g., "Hide on bush")
             tag_line: Riot ID tag line (e.g., "KR1")
             region: Platform region code (e.g., "kr")
+            force_refresh: Force new data fetch even if cache exists
         
         Returns:
             Session ID and status
@@ -104,6 +107,23 @@ class RiftRewindAPI:
                 return self.create_response(400, {
                     'error': 'Missing required fields: gameName, tagLine, region'
                 })
+            
+            # Check cache first (unless force refresh)
+            if not force_refresh:
+                cached_session = self.cache_manager.get_cached_session(game_name, tag_line, region)
+                if cached_session:
+                    logger.info(f"🎯 Returning cached session for {game_name}#{tag_line}-{region}")
+                    return self.create_response(200, {
+                        'sessionId': cached_session['metadata']['sessionId'],
+                        'status': 'complete',
+                        'fromCache': True,
+                        'testMode': self.test_mode,
+                        'matchCount': cached_session['metadata']['matchCount'],
+                        'totalMatches': cached_session['metadata']['totalMatches'],
+                        'player': cached_session['player'],
+                        'cachedAt': cached_session['metadata']['cachedAt']
+                    })
+                logger.info(f"📡 No cache found, fetching fresh data for {game_name}#{tag_line}-{region}")
             
             # Step 1: Fetch player data
             fetcher = LeagueDataFetcher()
@@ -188,19 +208,43 @@ class RiftRewindAPI:
             
             logger.info("✅ All humor generation complete!")
             
+            # Collect all humor for caching
+            humor_data = {}
+            for slide_num in range(2, 16):
+                humor_str = download_from_s3(f"sessions/{session_id}/humor/slide_{slide_num}.json")
+                if humor_str:
+                    humor_json = json.loads(humor_str)
+                    humor_data[f"slide{slide_num}_humor"] = humor_json.get('humorText', '')
+            
+            player_info = {
+                'gameName': game_name,
+                'tagLine': tag_line,
+                'region': region,
+                'summonerLevel': fetcher.data['summoner']['summonerLevel'],
+                'rank': analytics.get('slide6_rankedJourney', {}).get('currentRank', 'UNRANKED')
+            }
+            
+            # Save to cache in background (don't wait for it)
+            import threading
+            def save_cache_async():
+                self.cache_manager.save_session_to_cache(
+                    game_name, tag_line, region,
+                    session_id, analytics, humor_data, player_info,
+                    len(matches_to_fetch), total_matches
+                )
+            
+            cache_thread = threading.Thread(target=save_cache_async, daemon=True)
+            cache_thread.start()
+            logger.info("💾 Started background cache save")
+            
             return self.create_response(200, {
                 'sessionId': session_id,
                 'status': 'complete',  # Always return complete after all processing
+                'fromCache': False,
                 'testMode': self.test_mode,
                 'matchCount': len(matches_to_fetch),
                 'totalMatches': total_matches,
-                'player': {
-                    'gameName': game_name,
-                    'tagLine': tag_line,
-                    'region': region,
-                    'summonerLevel': fetcher.data['summoner']['summonerLevel'],
-                    'rank': analytics.get('slide6_rankedJourney', {}).get('currentRank', 'UNRANKED')
-                }
+                'player': player_info
             })
         
         except ValueError as e:
@@ -212,19 +256,34 @@ class RiftRewindAPI:
                 'error': f'Internal server error: {str(e)}'
             })
     
-    def get_session(self, session_id: str) -> Dict[str, Any]:
+    def get_session(self, session_id: str, game_name: str = None, tag_line: str = None, region: str = None) -> Dict[str, Any]:
         """
         GET /api/rewind/{sessionId}
         Get session status and basic info
         
         Args:
             session_id: Session ID
+            game_name: Optional - for cache lookup
+            tag_line: Optional - for cache lookup
+            region: Optional - for cache lookup
         
         Returns:
             Session data
         """
         try:
-            # Download analytics
+            # Try cache first if user info provided
+            if game_name and tag_line and region:
+                cached_session = self.cache_manager.get_cached_session(game_name, tag_line, region)
+                if cached_session:
+                    logger.info(f"📦 Returning cached session data")
+                    return self.create_response(200, {
+                        'sessionId': cached_session['metadata']['sessionId'],
+                        'status': 'complete',
+                        'fromCache': True,
+                        'analytics': {**cached_session['analytics'], **cached_session['humor']}
+                    })
+            
+            # Download analytics from session storage
             analytics_str = download_from_s3(f"sessions/{session_id}/analytics.json")
             
             if not analytics_str:
@@ -248,6 +307,7 @@ class RiftRewindAPI:
             return self.create_response(200, {
                 'sessionId': session_id,
                 'status': 'complete',
+                'fromCache': False,
                 'analytics': analytics
             })
         
@@ -343,6 +403,68 @@ class RiftRewindAPI:
         except Exception as e:
             return self.create_response(500, {
                 'error': f'Failed to fetch slide: {str(e)}'
+            })
+    
+    def check_cache(self, game_name: str, tag_line: str, region: str) -> Dict[str, Any]:
+        """
+        GET /api/cache/check
+        Check if cached session exists for a user
+        
+        Args:
+            game_name: Riot ID game name
+            tag_line: Riot ID tag line
+            region: Platform region
+        
+        Returns:
+            Cache status information
+        """
+        try:
+            cache_stats = self.cache_manager.get_cache_stats(game_name, tag_line, region)
+            
+            if not cache_stats:
+                return self.create_response(200, {
+                    'exists': False,
+                    'message': f'No cached data for {game_name}#{tag_line}-{region}'
+                })
+            
+            return self.create_response(200, cache_stats)
+        
+        except Exception as e:
+            return self.create_response(500, {
+                'error': f'Failed to check cache: {str(e)}'
+            })
+    
+    def invalidate_cache(self, game_name: str, tag_line: str, region: str) -> Dict[str, Any]:
+        """
+        DELETE /api/cache/invalidate
+        Invalidate cached session for a user (force fresh data next time)
+        
+        Args:
+            game_name: Riot ID game name
+            tag_line: Riot ID tag line
+            region: Platform region
+        
+        Returns:
+            Success/failure status
+        """
+        try:
+            success = self.cache_manager.invalidate_cache(game_name, tag_line, region)
+            
+            if success:
+                return self.create_response(200, {
+                    'message': f'Cache invalidated for {game_name}#{tag_line}-{region}',
+                    'success': True
+                })
+            else:
+                return self.create_response(500, {
+                    'error': 'Failed to invalidate cache',
+                    'success': False
+                })
+        
+        except Exception as e:
+            return self.create_response(500, {
+                'error': f'Failed to invalidate cache: {str(e)}',
+                'success': False
             })
 
 

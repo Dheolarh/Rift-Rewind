@@ -1,6 +1,11 @@
 """
 Session Manager for Progressive Data Loading
 Handles S3 checkpoint storage, retrieval, and 72-hour TTL management
+
+NOTE: This is used ONLY by Lambda functions (orchestrator.py, league_data.py, humor_context.py)
+for progressive loading and recovery from interruptions.
+
+For long-term user caching (7 days), see session_cache.py (SessionCacheManager)
 """
 
 import json
@@ -13,17 +18,31 @@ logger = logging.getLogger(__name__)
 
 
 class SessionManager:
-    """Manages progressive data loading sessions with S3 checkpoint storage"""
+    """
+    Manages progressive data loading sessions with S3 checkpoint storage.
+    
+    PURPOSE: Short-term (72h) session recovery during active analysis
+    USED BY: Lambda functions for progressive match fetching
+    NOT USED BY: api.py (uses SessionCacheManager instead)
+    """
     
     def __init__(self):
         self.s3_client = boto3.client('s3')
         self.bucket_name = 'rift-rewind-sessions'
-        self.ttl_hours = 72  # Session expires after 72 hours
+        self.ttl_hours = 72 
     
     def create_session_id(self, game_name: str, tag_line: str, region: str) -> str:
         """
-        Create deterministic session ID based on player identity
-        This allows finding existing sessions for returning players
+        Create deterministic session ID based on player identity.
+        This allows finding existing sessions for returning players.
+        
+        Args:
+            game_name: Player's Riot ID name
+            tag_line: Player's Riot ID tag
+            region: Platform region
+            
+        Returns:
+            SHA-256 hash-based session ID
         """
         import hashlib
         unique_string = f"{game_name.lower()}#{tag_line.lower()}#{region.lower()}"
