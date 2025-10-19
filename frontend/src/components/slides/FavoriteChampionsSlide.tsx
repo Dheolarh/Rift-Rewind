@@ -292,13 +292,11 @@ export function FavoriteChampionsSlide({
                     {/* Icon */}
                     <motion.div 
                       className="flex-shrink-0"
-                      initial={{ scale: 0, rotate: -180 }}
-                      animate={{ scale: 1, rotate: 0 }}
+                      initial={{ scale: 0.5, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
                       transition={{ 
                         delay: 1.4 + idx * 0.15,
-                        duration: 0.4,
-                        type: "spring",
-                        bounce: 0.5
+                        duration: 0.4
                       }}
                     >
                       <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full overflow-hidden border border-[#C8AA6E]/50 bg-[#0A1428]">

@@ -88,13 +88,13 @@ export function ChampionPoolSlide({
       {/* Animated gradient */}
       <motion.div
         animate={{
-          rotate: [0, 180, 360],
           scale: [1, 1.2, 1],
+          opacity: [0.15, 0.25, 0.15],
         }}
         transition={{
-          duration: 20,
+          duration: 8,
           repeat: Infinity,
-          ease: "linear"
+          ease: "easeInOut"
         }}
         className="absolute top-1/4 right-1/4 w-96 h-96 bg-[#8B5CF6] rounded-full blur-[120px] opacity-20"
       />

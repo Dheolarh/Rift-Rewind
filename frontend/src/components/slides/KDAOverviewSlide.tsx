@@ -63,11 +63,11 @@ export function KDAOverviewSlide({
       <div className="relative z-10 w-full h-full max-w-7xl mx-auto px-4 sm:px-6 md:px-8 py-6 sm:py-8 md:py-12 flex flex-col items-center justify-center overflow-y-auto scrollbar-hide">
         {/* Icon */}
         <motion.div
-          initial={{ opacity: 0, rotate: -180, scale: 0 }}
-          animate={{ opacity: 1, rotate: 0, scale: 1 }}
-          transition={{ delay: 0.2, duration: 0.9, type: "spring" }}
+          initial={{ opacity: 0, scale: 0.8, y: -20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          transition={{ delay: 0.2, duration: 0.6 }}
         >
-          <Swords className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 text-[#0AC8B9] mb-6 sm:mb-8" />
+          <Swords className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 text-[#0AC8B9] mb-3 sm:mb-4" />
         </motion.div>
 
         {/* Title */}
@@ -75,21 +75,21 @@ export function KDAOverviewSlide({
           initial={{ opacity: 0, y: -30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4, duration: 0.6 }}
-          className="text-center mb-12 sm:mb-16"
+          className="text-center mb-6 sm:mb-8"
         >
-          <p className="text-lg sm:text-xl md:text-2xl text-[#A09B8C] uppercase tracking-[0.3em]">
+          <p className="text-base sm:text-lg md:text-xl text-[#A09B8C] uppercase tracking-[0.3em]">
             You eliminated
           </p>
         </motion.div>
 
-        {/* HUGE Kill count */}
+        {/* Kill count - Reduced size */}
         <motion.div
-          initial={{ opacity: 0, scale: 0.5, rotateX: 90 }}
-          animate={{ opacity: 1, scale: 1, rotateX: 0 }}
-          transition={{ delay: 0.6, duration: 1, type: "spring" }}
-          className="mb-6 sm:mb-8"
+          initial={{ opacity: 0, scale: 0.8, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          transition={{ delay: 0.6, duration: 0.8 }}
+          className="mb-4 sm:mb-6"
         >
-          <div className="text-[100px] sm:text-[140px] md:text-[180px] lg:text-[220px] leading-none bg-gradient-to-br from-[#0AC8B9] via-[#5DADE2] to-[#3498DB] bg-clip-text text-transparent tabular-nums" style={{ fontFamily: 'Georgia, serif' }}>
+          <div className="text-[80px] sm:text-[100px] md:text-[120px] lg:text-[140px] leading-none bg-gradient-to-br from-[#0AC8B9] via-[#5DADE2] to-[#3498DB] bg-clip-text text-transparent tabular-nums" style={{ fontFamily: 'Georgia, serif' }}>
             <Counter value={totalKills} />K
           </div>
         </motion.div>
@@ -99,9 +99,9 @@ export function KDAOverviewSlide({
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 1.2, duration: 0.6 }}
-          className="text-center mb-12 sm:mb-16"
+          className="text-center mb-8 sm:mb-10"
         >
-          <p className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl text-white" style={{ fontFamily: 'Georgia, serif' }}>
+          <p className="text-2xl sm:text-3xl md:text-4xl text-white" style={{ fontFamily: 'Georgia, serif' }}>
             champions
           </p>
         </motion.div>

@@ -347,7 +347,7 @@ export default function App() {
   };
 
   const nextSlide = () => {
-    if (currentSlide < 14) {
+    if (currentSlide < 15) {
       setCurrentSlide(prev => prev + 1);
     }
   };
@@ -396,15 +396,15 @@ export default function App() {
       // Slide 2 - Champions (fade with scale)
       { initial: { opacity: 0, scale: 0.95 }, animate: { opacity: 1, scale: 1 }, exit: { opacity: 0, scale: 1.05 } },
       // Slide 3 - Best Match (slide from right)
-      { initial: { opacity: 0, x: 100 }, animate: { opacity: 1, x: 0 }, exit: { opacity: 0, x: -100 } },
+      { initial: { opacity: 0, scale: 0.8 }, animate: { opacity: 1, scale: 1 }, exit: { opacity: 0, scale: 1.1 } },
       // Slide 4 - KDA (slide from bottom)
       { initial: { opacity: 0, y: 100 }, animate: { opacity: 1, y: 0 }, exit: { opacity: 0, y: -100 } },
       // Slide 5 - Ranked (slide from left)
-      { initial: { opacity: 0, x: -100 }, animate: { opacity: 1, x: 0 }, exit: { opacity: 0, x: 100 } },
+      { initial: { opacity: 0, scale: 0.8 }, animate: { opacity: 1, scale: 1 }, exit: { opacity: 0, scale: 1.1 } },
       // Slide 6 - Vision (scale with rotate)
-      { initial: { opacity: 0, scale: 0.5, rotate: -45 }, animate: { opacity: 1, scale: 1, rotate: 0 }, exit: { opacity: 0, scale: 0.5, rotate: 45 } },
+      { initial: { opacity: 0, scale: 0.8 }, animate: { opacity: 1, scale: 1 }, exit: { opacity: 0, scale: 1.1 } },
       // Slide 7 - Champion Pool (flip)
-      { initial: { opacity: 0, rotateX: -90 }, animate: { opacity: 1, rotateX: 0 }, exit: { opacity: 0, rotateX: 90 } },
+      { initial: { opacity: 0, scale: 0.8 }, animate: { opacity: 1, scale: 1 }, exit: { opacity: 0, scale: 1.1 } },
       // Slide 8 - Duo (slide from sides)
       { initial: { opacity: 0, x: -50, y: 50 }, animate: { opacity: 1, x: 0, y: 0 }, exit: { opacity: 0, x: 50, y: -50 } },
       // Slide 9 - Strengths (slide from top)
@@ -412,9 +412,9 @@ export default function App() {
       // Slide 10 - Weaknesses (fade with slight scale)
       { initial: { opacity: 0, scale: 1.1 }, animate: { opacity: 1, scale: 1 }, exit: { opacity: 0, scale: 0.9 } },
       // Slide 11 - Progress (slide from bottom)
-      { initial: { opacity: 0, y: 80 }, animate: { opacity: 1, y: 0 }, exit: { opacity: 0, y: -80 } },
+      { initial: { opacity: 0, x: -50, y: 50 }, animate: { opacity: 1, x: 0, y: 0 }, exit: { opacity: 0, x: 50, y: -50 } },
       // Slide 12 - Achievements (rotate in)
-      { initial: { opacity: 0, rotate: 180, scale: 0.5 }, animate: { opacity: 1, rotate: 0, scale: 1 }, exit: { opacity: 0, rotate: -180, scale: 0.5 } },
+      { initial: { opacity: 0, x: -50, y: 50 }, animate: { opacity: 1, x: 0, y: 0 }, exit: { opacity: 0, x: 50, y: -50 } },
       // Slide 13 - Social (slide from right)
       { initial: { opacity: 0, x: 100 }, animate: { opacity: 1, x: 0 }, exit: { opacity: 0, x: -100 } },
       // Slide 14 - Final (fade)
