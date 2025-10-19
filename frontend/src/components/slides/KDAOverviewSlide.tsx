@@ -13,9 +13,12 @@ interface KDAOverviewSlideProps {
 
 function Counter({ value, duration = 2.5, decimals = 1 }: { value: number; duration?: number; decimals?: number }) {
   const count = useMotionValue(0);
-  const rounded = useTransform(count, (latest) => 
-    decimals > 0 ? (latest / 1000).toFixed(decimals) : Math.round(latest)
-  );
+  const rounded = useTransform(count, (latest) => {
+    if (decimals > 0) {
+      return (latest / 1000).toFixed(decimals);
+    }
+    return Math.round(latest).toString();
+  });
 
   useEffect(() => {
     const controls = animate(count, value, { duration, delay: 0.7 });
