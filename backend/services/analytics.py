@@ -344,42 +344,80 @@ class RiftRewindAnalytics:
             'winRate': round((stats['wins'] / stats['games'] * 100), 1) if stats['games'] > 0 else 0
         }
     
-    # Slide 10-11: Strengths & Weaknesses (placeholders for AI)
+    # Slide 10-11: Strengths & Weaknesses (prepared for AI analysis)
     def detect_strengths_weaknesses(self) -> Dict[str, Any]:
         """
-        Basic strength/weakness detection (AI will enhance this).
+        Prepare comprehensive data for AI-powered strength/weakness analysis.
+        Returns placeholder values - actual analysis done by insights Lambda.
         
         Returns:
-            Preliminary strengths and weaknesses
+            Placeholder strengths/weaknesses + comprehensive stats for AI
         """
         kda_stats = self.calculate_kda()
         vision_stats = self.calculate_vision_score()
+        time_stats = self.calculate_time_spent()
+        ranked_stats = self.get_ranked_journey()
+        top_champs = self.get_favorite_champions()
         
-        strengths = []
-        weaknesses = []
-        
-        # KDA analysis
-        if kda_stats['kdaRatio'] > 3.0:
-            strengths.append('Excellent KDA control')
-        elif kda_stats['kdaRatio'] < 1.5:
-            weaknesses.append('KDA needs improvement')
-        
-        # Vision analysis
-        if vision_stats['avgVisionScore'] > 30:
-            strengths.append('Good vision control')
-        elif vision_stats['avgVisionScore'] < 15:
-            weaknesses.append('Low vision score')
-        
-        # Death rate
-        if kda_stats['avgDeaths'] < 4:
-            strengths.append('Survives well in fights')
-        elif kda_stats['avgDeaths'] > 7:
-            weaknesses.append('High death count')
-        
-        return {
-            'strengths': strengths,
-            'weaknesses': weaknesses
+        # Prepare comprehensive stats for AI prompt
+        ai_context = {
+            # Combat stats
+            'avgKDA': kda_stats['kdaRatio'],
+            'avgKills': kda_stats['avgKills'],
+            'avgDeaths': kda_stats['avgDeaths'],
+            'avgAssists': kda_stats['avgAssists'],
+            'totalKills': kda_stats['totalKills'],
+            'totalDeaths': kda_stats['totalDeaths'],
+            
+            # Vision stats
+            'avgVisionScore': vision_stats['avgVisionScore'],
+            'avgWardsPlaced': vision_stats['avgWardsPlaced'],
+            'avgControlWards': vision_stats['avgControlWards'],
+            
+            # Game stats
+            'totalGames': time_stats['totalGames'],
+            'totalHours': time_stats['totalHours'],
+            'avgGameLength': time_stats['avgGameLength'],
+            'winRate': self._calculate_win_rate(),
+            
+            # Ranked stats
+            'currentTier': ranked_stats.get('currentTier'),
+            'currentDivision': ranked_stats.get('currentDivision'),
+            'currentLP': ranked_stats.get('currentLP'),
+            
+            # Champion pool
+            'topChampions': top_champs[:3],
+            'championPoolSize': len(self.analyze_champion_pool().get('championList', [])),
+            
+            # Performance indicators for AI to analyze
+            'performanceMetrics': {
+                'kda_performance': 'excellent' if kda_stats['kdaRatio'] > 3.0 else 'poor' if kda_stats['kdaRatio'] < 1.5 else 'average',
+                'vision_performance': 'excellent' if vision_stats['avgVisionScore'] > 30 else 'poor' if vision_stats['avgVisionScore'] < 15 else 'average',
+                'death_control': 'excellent' if kda_stats['avgDeaths'] < 4 else 'poor' if kda_stats['avgDeaths'] > 7 else 'average',
+                'ward_placement': 'excellent' if vision_stats['avgWardsPlaced'] > 20 else 'poor' if vision_stats['avgWardsPlaced'] < 10 else 'average',
+            }
         }
+        
+        # Return placeholder + AI context
+        return {
+            'strengths': ['Analyzing your gameplay...'],
+            'weaknesses': ['Analysis in progress...'],
+            'aiContext': ai_context,
+            'needsAIProcessing': True  # Flag for orchestrator to invoke insights Lambda
+        }
+    
+    def _calculate_win_rate(self) -> float:
+        """Calculate win rate percentage."""
+        if not self.matches:
+            return 0.0
+        
+        wins = 0
+        for match in self.matches:
+            stats = self._get_participant_stats(match)
+            if stats and stats.get('win'):
+                wins += 1
+        
+        return round((wins / len(self.matches)) * 100, 1)
     
     # Slide 12: Progress Timeline (requires historical data)
     def calculate_progress(self) -> Dict[str, Any]:

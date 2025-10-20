@@ -1,26 +1,21 @@
 import { motion } from "motion/react";
-import { Award, Star, Flame, Zap, Crown, Trophy } from "lucide-react";
 import { ImageWithFallback } from "../source/ImageWithFallback";
 
 interface Achievement {
-  title: string;
+  type: string;
+  count: number;
   description: string;
-  rarity: 'common' | 'rare' | 'epic' | 'legendary';
-  icon: 'award' | 'star' | 'flame' | 'zap' | 'crown' | 'trophy';
-  dateEarned: string;
 }
 
 interface AchievementsSlideProps {
   achievements: Achievement[];
+  aiHumor?: string;
 }
 
-const iconMap = {
-  award: Award,
-  star: Star,
-  flame: Flame,
-  zap: Zap,
-  crown: Crown,
-  trophy: Trophy,
+const rarityMap: Record<string, 'common' | 'rare' | 'epic' | 'legendary'> = {
+  'Pentakills': 'legendary',
+  'Quadrakills': 'epic',
+  'Dedication': 'rare',
 };
 
 const rarityColors = {
@@ -30,7 +25,10 @@ const rarityColors = {
   legendary: { border: '#C8AA6E', glow: '#FFD700', text: '#FFD700' },
 };
 
-export function AchievementsSlide({ achievements }: AchievementsSlideProps) {
+export function AchievementsSlide({ 
+  achievements,
+  aiHumor = "Achievement unlocked: Being absolutely legendary! 🏆"
+}: AchievementsSlideProps) {
   // Show only top 3 achievements
   const topAchievements = achievements.slice(0, 3);
 
@@ -89,19 +87,19 @@ export function AchievementsSlide({ achievements }: AchievementsSlideProps) {
           className="text-center max-w-lg"
         >
           <p className="text-xs sm:text-sm text-[#E8E6E3]/80 italic leading-relaxed">
-            Achievement unlocked: Being absolutely legendary! 🏆
+            {aiHumor}
           </p>
         </motion.div>
 
         {/* Achievement Cards - Vertical Stack */}
         <div className="w-full max-w-md space-y-3 sm:space-y-4">
           {topAchievements.map((achievement, idx) => {
-            const Icon = iconMap[achievement.icon];
-            const colors = rarityColors[achievement.rarity];
+            const rarity = rarityMap[achievement.type] || 'common';
+            const colors = rarityColors[rarity];
             
             return (
               <motion.div
-                key={achievement.title}
+                key={achievement.type}
                 initial={{ opacity: 0, x: -30 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ 
@@ -119,40 +117,29 @@ export function AchievementsSlide({ achievements }: AchievementsSlideProps) {
                 />
                 
                 {/* Card Content */}
-                <div className="relative p-4 sm:p-5 flex items-center gap-4">
-                  {/* Icon */}
-                  <div 
-                    className="flex-shrink-0 w-12 h-12 sm:w-14 sm:h-14 flex items-center justify-center rounded-full border-2"
-                    style={{
-                      borderColor: colors.border,
-                      backgroundColor: `${colors.glow}20`,
-                    }}
-                  >
-                    <Icon className="w-6 h-6 sm:w-7 sm:h-7" style={{ color: colors.glow }} />
-                  </div>
-
+                <div className="relative p-4 sm:p-5">
                   {/* Text Content */}
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-2 mb-1">
-                      <h3 className="text-sm sm:text-base text-white leading-tight" style={{ fontFamily: 'Georgia, serif' }}>
-                        {achievement.title}
+                    <div className="flex items-center justify-between gap-2 mb-2">
+                      <h3 className="text-base sm:text-lg text-white leading-tight font-semibold" style={{ fontFamily: 'Georgia, serif' }}>
+                        {achievement.type}
                       </h3>
                       <span 
-                        className="flex-shrink-0 text-xs uppercase tracking-wider px-2 py-0.5 border rounded-full"
+                        className="flex-shrink-0 text-xs uppercase tracking-wider px-2 py-0.5 border rounded-full font-medium"
                         style={{
                           color: colors.text,
                           borderColor: colors.border,
                           backgroundColor: `${colors.glow}10`,
                         }}
                       >
-                        {achievement.rarity}
+                        {rarity}
                       </span>
                     </div>
-                    <p className="text-xs sm:text-sm text-[#A09B8C] leading-relaxed mb-1">
+                    <p className="text-sm sm:text-base text-[#A09B8C] leading-relaxed mb-1">
                       {achievement.description}
                     </p>
                     <p className="text-xs text-[#78716C]">
-                      Earned: {achievement.dateEarned}
+                      Count: {achievement.count}
                     </p>
                   </div>
                 </div>

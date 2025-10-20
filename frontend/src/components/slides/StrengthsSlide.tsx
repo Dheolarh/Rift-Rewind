@@ -2,20 +2,18 @@ import { motion } from "motion/react";
 import { ImageWithFallback } from "../source/ImageWithFallback";
 import strengthBg from "../../assets/strength.webp";
 
-interface Strength {
-  title: string;
-  description: string;
-  score: number;
-  icon: 'zap' | 'target' | 'shield' | 'swords';
-}
-
 interface StrengthsSlideProps {
-  strengths: Strength[];
+  strengths: string[]; // Array of strength descriptions from backend
+  aiHumor?: string;
 }
 
-export function StrengthsSlide({ strengths }: StrengthsSlideProps) {
-  // Pick the top strength
-  const topStrength = strengths[0];
+export function StrengthsSlide({ 
+  strengths,
+  aiHumor = "These are the skills that separate the good from the legendary! ⚡"
+}: StrengthsSlideProps) {
+  // Get the first strength as the main one to display
+  const mainStrength = strengths[0] || "No strengths detected";
+  const additionalStrengths = strengths.slice(1);
 
   return (
     <div className="relative w-full h-full overflow-hidden bg-[#010A13] flex items-center justify-center">
@@ -102,11 +100,11 @@ export function StrengthsSlide({ strengths }: StrengthsSlideProps) {
               repeat: Infinity,
             }}
           >
-            Your Strength
+            Your Strengths
           </motion.h1>
         </motion.div>
 
-        {/* Strength Title - HUGE with animation */}
+        {/* Main Strength - HUGE with animation */}
         <motion.div
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -114,7 +112,7 @@ export function StrengthsSlide({ strengths }: StrengthsSlideProps) {
           className="text-center"
         >
           <motion.h2 
-            className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl bg-gradient-to-br from-[#FFD700] via-[#C8AA6E] to-[#8B7548] bg-clip-text text-transparent mb-3 sm:mb-4 leading-tight" 
+            className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl bg-gradient-to-br from-[#FFD700] via-[#C8AA6E] to-[#8B7548] bg-clip-text text-transparent mb-3 sm:mb-4 leading-tight px-4" 
             style={{ fontFamily: 'Georgia, serif' }}
             animate={{
               backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'],
@@ -125,21 +123,8 @@ export function StrengthsSlide({ strengths }: StrengthsSlideProps) {
               ease: "linear"
             }}
           >
-            {topStrength.title}
+            {mainStrength}
           </motion.h2>
-          <motion.div 
-            className="text-2xl sm:text-3xl md:text-4xl text-[#C8AA6E] tabular-nums" 
-            style={{ fontFamily: 'Georgia, serif' }}
-            animate={{
-              scale: [1, 1.1, 1],
-            }}
-            transition={{
-              duration: 2,
-              repeat: Infinity,
-            }}
-          >
-            {topStrength.score}%
-          </motion.div>
         </motion.div>
 
         {/* Decorative line */}
@@ -150,30 +135,43 @@ export function StrengthsSlide({ strengths }: StrengthsSlideProps) {
           className="w-24 sm:w-32 h-px bg-gradient-to-r from-transparent via-[#C8AA6E] to-transparent"
         />
 
-        {/* Description with fade in */}
+        {/* Additional Strengths and AI Humor */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 1, duration: 0.6 }}
-          className="text-center max-w-md space-y-3"
+          className="text-center max-w-2xl mx-auto space-y-4 px-4"
         >
-          <motion.p 
-            className="text-xs sm:text-sm text-[#E8E6E3]/90 leading-relaxed"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 1.2, duration: 0.8 }}
-          >
-            {topStrength.description}
-          </motion.p>
-          <motion.p 
-            className="text-xs sm:text-sm text-[#FFD700] italic leading-relaxed"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 1.4, duration: 0.8 }}
-            animate-pulse
-          >
-            These are the skills that separate the good from the legendary!
-          </motion.p>
+          {/* Additional Strengths List */}
+          {additionalStrengths.length > 0 && (
+            <div className="space-y-2">
+              {additionalStrengths.map((strength, index) => (
+                <motion.div
+                  key={index}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 1.2 + index * 0.1, duration: 0.5 }}
+                  className="text-sm sm:text-base text-[#A09B8C] leading-relaxed flex items-start justify-center gap-2"
+                  style={{ fontFamily: 'Georgia, serif' }}
+                >
+                  <span className="text-[#C8AA6E] mt-0.5">•</span>
+                  <span>{strength}</span>
+                </motion.div>
+              ))}
+            </div>
+          )}
+          
+          {/* AI Humor */}
+          {aiHumor && (
+            <motion.p 
+              className="text-xs sm:text-sm text-[#FFD700] italic leading-relaxed pt-2"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 1.6, duration: 0.8 }}
+            >
+              {aiHumor}
+            </motion.p>
+          )}
         </motion.div>
       </div>
     </div>

@@ -2,20 +2,18 @@ import { motion } from "motion/react";
 import { ImageWithFallback } from "../source/ImageWithFallback";
 import growthBg from "../../assets/growth.webp";
 
-interface Weakness {
-  title: string;
-  description: string;
-  improvement: string;
-  icon: 'alert' | 'trending' | 'xcircle' | 'brain';
-}
-
 interface WeaknessesSlideProps {
-  weaknesses: Weakness[];
+  weaknesses: string[]; // Array of weakness descriptions from backend
+  aiHumor?: string;
 }
 
-export function WeaknessesSlide({ weaknesses }: WeaknessesSlideProps) {
-  // Pick the first area to improve
-  const firstWeakness = weaknesses[0];
+export function WeaknessesSlide({ 
+  weaknesses,
+  aiHumor = "Every legend has room to grow - even the greats started somewhere! 💪"
+}: WeaknessesSlideProps) {
+  // Get the first weakness as the main one to display
+  const mainWeakness = weaknesses[0] || "No significant weaknesses detected";
+  const additionalWeaknesses = weaknesses.slice(1);
 
   return (
     <div className="relative w-full h-full overflow-hidden bg-[#010A13] flex items-center justify-center">
@@ -102,11 +100,11 @@ export function WeaknessesSlide({ weaknesses }: WeaknessesSlideProps) {
               repeat: Infinity,
             }}
           >
-            Room to Grow
+            Areas to Improve
           </motion.h1>
         </motion.div>
 
-        {/* Weakness Title - HUGE with animation */}
+        {/* Main Weakness - HUGE with animation */}
         <motion.div
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -114,7 +112,7 @@ export function WeaknessesSlide({ weaknesses }: WeaknessesSlideProps) {
           className="text-center"
         >
           <motion.h2 
-            className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl text-white mb-2 sm:mb-3 leading-tight" 
+            className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl text-white mb-3 sm:mb-4 leading-tight px-4" 
             style={{ fontFamily: 'Georgia, serif' }}
             animate={{
               opacity: [0.9, 1, 0.9],
@@ -124,7 +122,7 @@ export function WeaknessesSlide({ weaknesses }: WeaknessesSlideProps) {
               repeat: Infinity,
             }}
           >
-            {firstWeakness.title}
+            {mainWeakness}
           </motion.h2>
         </motion.div>
 
@@ -136,44 +134,43 @@ export function WeaknessesSlide({ weaknesses }: WeaknessesSlideProps) {
           className="w-24 sm:w-32 h-px bg-gradient-to-r from-transparent via-[#0AC8B9] to-transparent"
         />
 
-        {/* Description & Improvement with fade in */}
+        {/* Additional Weaknesses and AI Humor */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 1, duration: 0.6 }}
-          className="text-center max-w-md space-y-3"
+          className="text-center max-w-2xl mx-auto space-y-4 px-4"
         >
-          <motion.p 
-            className="text-xs sm:text-sm text-[#E8E6E3]/90 leading-relaxed"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 1.2, duration: 0.8 }}
-          >
-            {firstWeakness.description}
-          </motion.p>
-          
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 1.4, duration: 0.8 }}
-            className="pt-2"
-          >
-            <div className="text-xs sm:text-sm text-[#0AC8B9] uppercase tracking-wider mb-2">
-              How to improve
+          {/* Additional Weaknesses List */}
+          {additionalWeaknesses.length > 0 && (
+            <div className="space-y-2">
+              {additionalWeaknesses.map((weakness, index) => (
+                <motion.div
+                  key={index}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 1.2 + index * 0.1, duration: 0.5 }}
+                  className="text-sm sm:text-base text-[#E8E6E3]/90 leading-relaxed flex items-start justify-center gap-2"
+                  style={{ fontFamily: 'Georgia, serif' }}
+                >
+                  <span className="text-[#0AC8B9] mt-0.5">•</span>
+                  <span>{weakness}</span>
+                </motion.div>
+              ))}
             </div>
-            <p className="text-xs sm:text-sm text-white/90 leading-relaxed mb-2">
-              {firstWeakness.improvement}
-            </p>
-          </motion.div>
-
-          <motion.p 
-            className="text-xs sm:text-sm text-[#0AC8B9] italic leading-relaxed"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 1.6, duration: 0.8 }}
-          >
-            Every weakness is just a strength waiting to be discovered!
-          </motion.p>
+          )}
+          
+          {/* AI Humor */}
+          {aiHumor && (
+            <motion.p 
+              className="text-xs sm:text-sm text-[#0AC8B9] italic leading-relaxed pt-2"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 1.6, duration: 0.8 }}
+            >
+              {aiHumor}
+            </motion.p>
+          )}
         </motion.div>
       </div>
     </div>

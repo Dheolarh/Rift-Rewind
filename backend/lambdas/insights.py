@@ -55,66 +55,105 @@ class InsightsGenerator:
         Create comprehensive insights prompt for Bedrock.
         
         Args:
-            analytics: Analytics data
+            analytics: Analytics data with aiContext from detect_strengths_weaknesses
         
         Returns:
             Formatted prompt string
         """
-        # Extract key metrics (with safe defaults)
-        total_games = analytics.get('totalGames', 0)
-        avg_kda = analytics.get('avgKDA', 0)
-        rank = analytics.get('rank', 'UNRANKED')
-        win_rate = analytics.get('winRate', 0)
-        avg_cs = analytics.get('avgCS', 0)
-        vision_score = analytics.get('avgVisionScore', 0)
-        top_champions = analytics.get('topChampions', [])[:3]
-        avg_deaths = analytics.get('avgDeaths', 0)
+        # Extract slide10_11_analysis data
+        slide_data = analytics.get('slide10_11_analysis', {})
+        ai_context = slide_data.get('aiContext', {})
+        perf_metrics = ai_context.get('performanceMetrics', {})
         
-        # Format top champions list
-        champs_list = ', '.join([f"{c.get('name', 'Unknown')} ({c.get('games', 0)} games)" for c in top_champions])
+        # Extract comprehensive stats
+        total_games = ai_context.get('totalGames', 0)
+        avg_kda = ai_context.get('avgKDA', 0)
+        avg_kills = ai_context.get('avgKills', 0)
+        avg_deaths = ai_context.get('avgDeaths', 0)
+        avg_assists = ai_context.get('avgAssists', 0)
         
-        prompt = f"""You are a professional League of Legends coach analyzing a player's Season 15 performance. Provide actionable, specific insights.
+        win_rate = ai_context.get('winRate', 0)
+        vision_score = ai_context.get('avgVisionScore', 0)
+        avg_wards = ai_context.get('avgWardsPlaced', 0)
+        avg_control = ai_context.get('avgControlWards', 0)
+        
+        current_tier = ai_context.get('currentTier', 'UNRANKED')
+        current_div = ai_context.get('currentDivision', '')
+        rank_display = f"{current_tier} {current_div}" if current_div else current_tier
+        
+        top_champions = ai_context.get('topChampions', [])[:3]
+        champ_pool_size = ai_context.get('championPoolSize', 0)
+        
+        # Format top champions list with detailed stats
+        champs_list = ', '.join([
+            f"{c.get('champion', 'Unknown')} ({c.get('gamesPlayed', 0)} games, {c.get('winRate', 0):.1f}% WR, {c.get('kda', 0):.2f} KDA)" 
+            for c in top_champions
+        ]) if top_champions else 'Not enough data'
+        
+        prompt = f"""You are a professional League of Legends coach analyzing a player's Season 15 performance. Provide brutally honest, data-driven insights that identify REAL strengths and areas needing improvement.
 
 **Player Statistics:**
-- Total Games: {total_games}
-- Average KDA: {avg_kda}
-- Current Rank: {rank}
+- Total Games Played: {total_games}
+- Current Rank: {rank_display}
 - Win Rate: {win_rate}%
-- Average CS/Min: {avg_cs}
-- Average Vision Score: {vision_score}
-- Average Deaths per Game: {avg_deaths}
-- Top 3 Champions: {champs_list if champs_list else 'Not enough data'}
+
+**Combat Performance:**
+- Average KDA: {avg_kda:.2f}
+- Average K/D/A per game: {avg_kills:.1f} / {avg_deaths:.1f} / {avg_assists:.1f}
+- Death Control: {perf_metrics.get('death_control', 'unknown')}
+- KDA Performance: {perf_metrics.get('kda_performance', 'unknown')}
+
+**Vision & Map Control:**
+- Average Vision Score: {vision_score:.1f} per game
+- Average Wards Placed: {avg_wards:.1f} per game
+- Average Control Wards: {avg_control:.1f} per game
+- Vision Performance: {perf_metrics.get('vision_performance', 'unknown')}
+- Ward Placement: {perf_metrics.get('ward_placement', 'unknown')}
+
+**Champion Pool:**
+- Pool Size: {champ_pool_size} champions played
+- Top 3 Champions: {champs_list}
+
+**CRITICAL ANALYSIS GUIDELINES:**
+1. **Identify CONFLICTING patterns** - e.g., high kills but low vision, good KDA but low win rate
+2. **Call out BELOW AVERAGE metrics** - compare to typical {rank_display} players
+3. **Detect POOR PERFORMANCE indicators** - high deaths, low vision, inconsistent champion picks
+4. **Be SPECIFIC with numbers** - "Your 7.2 deaths per game is 40% higher than average for {rank_display}"
+5. **Highlight PLAYSTYLE MISMATCHES** - e.g., playing assassins but dying too much
 
 **Task: Generate insights in the following JSON format (respond ONLY with valid JSON):**
 
 {{
   "strengths": [
-    "Specific strength #1 with data example",
-    "Specific strength #2 with data example",
-    "Specific strength #3 with data example"
+    "Specific strength with exact numbers (max 3-4 strengths, only if truly deserved)",
+    "Another data-backed strength",
+    "Third strength if applicable"
   ],
   "weaknesses": [
-    "Specific weakness #1 with data example",
-    "Specific weakness #2 with data example",
-    "Specific weakness #3 with data example"
+    "Critical weakness with comparison to rank average (at least 3-4 weaknesses)",
+    "Another weakness explaining WHY it's hurting performance",
+    "Third weakness with actionable context",
+    "Fourth weakness if multiple issues exist"
   ],
   "coaching_tips": [
-    "Actionable tip #1 - be specific about what to practice",
-    "Actionable tip #2 - include how to improve",
-    "Actionable tip #3 - prioritize by impact"
+    "Highest priority tip addressing biggest weakness",
+    "Second priority improvement with practice method",
+    "Third tip for long-term growth"
   ],
-  "play_style": "One sentence describing their playstyle based on data",
-  "personality_title": "Creative 3-4 word player title (e.g., 'The Calculated Assassin')"
+  "play_style": "One sentence HONEST description of their actual playstyle based on data patterns",
+  "personality_title": "Creative 3-4 word title reflecting their ACTUAL performance (e.g., 'The Reckless Brawler', 'The Vision-Blind Assassin')"
 }}
 
-**Guidelines:**
-- Be encouraging but honest
-- Use specific numbers from stats
-- Reference champion pool and playstyle
-- Make coaching tips actionable (not generic)
-- Personality title should be creative and match their playstyle
-- Keep each point concise (1-2 sentences)
-- Use League terminology (CS, vision control, objectives, etc.)
+**IMPORTANT:**
+- If KDA < 2.0, it's a major weakness
+- If deaths > 6 per game, they're dying too much
+- If vision score < 20, they're not warding enough
+- If win rate < 48%, something fundamental needs work
+- Don't sugarcoat - be direct but constructive
+- Strengths must be backed by above-average performance
+- Weaknesses should identify root causes, not just symptoms
+- Use professional language - NO emojis or excessive punctuation
+- Keep tone analytical and coaching-focused, not casual
 
 Respond ONLY with valid JSON - no other text."""
         

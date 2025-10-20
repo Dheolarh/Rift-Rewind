@@ -504,23 +504,46 @@ export default function App() {
               aiHumor={sessionData.slide8_humor || "Talk about champion diversity! You're basically a one-person champion ocean. 🌊"}
             />
           )}
-          {currentSlide === 9 && (
-            <DuoPartnerSlide {...mockData.duoPartner} />
+          {currentSlide === 9 && sessionData && sessionData.slide9_duoPartner && (
+            <DuoPartnerSlide 
+              {...sessionData.slide9_duoPartner}
+              playerName={displayName}
+              aiHumor={sessionData.slide9_humor || "You two are like peanut butter and jelly... if jelly could flash-ult and secure pentas! 🥜✨"}
+            />
           )}
           {currentSlide === 10 && (
-            <StrengthsSlide strengths={mockData.strengths} />
+            <StrengthsSlide 
+              strengths={sessionData.slide10_11_analysis?.strengths || []} 
+              aiHumor={sessionData.slide10_humor || "Your gameplay is so clean, you must have a mental checklist longer than a patch notes document! 📋✨"}
+            />
           )}
           {currentSlide === 11 && (
-            <WeaknessesSlide weaknesses={mockData.weaknesses} />
+            <WeaknessesSlide 
+              weaknesses={sessionData.slide10_11_analysis?.weaknesses || []} 
+              aiHumor={sessionData.slide11_humor || "Remember: even Faker started as a Bronze player. You've got this! 💪✨"}
+            />
           )}
           {currentSlide === 12 && (
-            <ProgressSlide {...mockData.progress} />
+            <ProgressSlide 
+              message={sessionData.slide12_progress?.message}
+              currentSeason={sessionData.slide12_progress?.currentSeason}
+              aiHumor={sessionData.slide12_humor || "Every match is another chapter in your legend! 📖✨"}
+            />
           )}
           {currentSlide === 13 && (
-            <AchievementsSlide achievements={mockData.achievements} />
+            <AchievementsSlide 
+              achievements={sessionData.slide13_achievements || []}
+              aiHumor={sessionData.slide13_humor || "Achievement unlocked: Being absolutely legendary! 🏆✨"}
+            />
           )}
           {currentSlide === 14 && (
-            <SocialComparisonSlide {...mockData.socialComparison} />
+            <SocialComparisonSlide 
+              rankPercentile={sessionData.slide14_percentile?.rankPercentile || 50}
+              rank={sessionData.slide14_percentile?.rank}
+              kdaRatio={sessionData.slide14_percentile?.kdaRatio}
+              comparison={sessionData.slide14_percentile?.comparison}
+              aiHumor={sessionData.slide14_humor || "You're rubbing shoulders with the elite! 🎮✨"}
+            />
           )}
           {currentSlide === 15 && (
             <FinalRecapSlide

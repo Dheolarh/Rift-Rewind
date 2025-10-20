@@ -4,10 +4,15 @@ import { ImageWithFallback } from "../source/ImageWithFallback";
 import progressBg from "../../assets/progress.webp";
 
 interface ProgressSlideProps {
-  improvement: {
-    winRate: number;
-    kda: number;
-    visionScore: number;
+  message?: string;
+  currentSeason?: {
+    currentRank?: string;
+    tier?: string;
+    division?: string;
+    lp?: number;
+    wins?: number;
+    losses?: number;
+    winRate?: number;
   };
   aiHumor?: string;
 }
@@ -25,9 +30,14 @@ function Counter({ value, duration = 2 }: { value: number; duration?: number }) 
 }
 
 export function ProgressSlide({
-  improvement,
-  aiHumor = "You've grown more than a Cho'Gath with full stacks! 🦖 The grind never stops!"
+  message = "Progress tracking requires multi-season data",
+  currentSeason,
+  aiHumor = "Every game is a step forward in your journey! 🎯"
 }: ProgressSlideProps) {
+  const wins = currentSeason?.wins || 0;
+  const losses = currentSeason?.losses || 0;
+  const winRate = currentSeason?.winRate || 0;
+  const totalGames = wins + losses;
   return (
     <div className="relative w-full h-full overflow-hidden bg-[#010A13]">
       {/* Background Image */}
@@ -64,9 +74,9 @@ export function ProgressSlide({
           className="text-center"
         >
           <h1 className="text-2xl sm:text-3xl md:text-4xl text-[#A09B8C] uppercase tracking-[0.3em]" style={{ fontFamily: 'Georgia, serif' }}>
-            Your Progress
+            Season Journey
           </h1>
-          <p className="text-sm sm:text-base text-[#A09B8C]/70 mt-2">This Season's Improvement</p>
+          <p className="text-sm sm:text-base text-[#A09B8C]/70 mt-2">Your Ranked Performance</p>
         </motion.div>
 
         {/* Three Stats - Horizontal Row */}
@@ -76,37 +86,37 @@ export function ProgressSlide({
           transition={{ delay: 0.5, duration: 0.6 }}
           className="flex flex-wrap items-center justify-center gap-8 sm:gap-12 md:gap-16"
         >
-          {/* Win Rate */}
+          {/* Total Games */}
           <div className="text-center">
             <div className="text-5xl sm:text-6xl md:text-7xl text-[#0AC8B9] mb-2 sm:mb-3 tabular-nums" style={{ fontFamily: 'Georgia, serif' }}>
-              +<Counter value={improvement.winRate} />%
+              <Counter value={totalGames} />
+            </div>
+            <div className="text-xs sm:text-sm text-[#A09B8C] uppercase tracking-wider">
+              Games Played
+            </div>
+          </div>
+
+          <div className="w-px h-16 sm:h-20 md:h-24 bg-[#C8AA6E]/30" />
+
+          {/* Wins */}
+          <div className="text-center">
+            <div className="text-5xl sm:text-6xl md:text-7xl text-[#C8AA6E] mb-2 sm:mb-3 tabular-nums" style={{ fontFamily: 'Georgia, serif' }}>
+              <Counter value={wins} />
+            </div>
+            <div className="text-xs sm:text-sm text-[#A09B8C] uppercase tracking-wider">
+              Victories
+            </div>
+          </div>
+
+          <div className="w-px h-16 sm:h-20 md:h-24 bg-[#C8AA6E]/30" />
+
+          {/* Win Rate */}
+          <div className="text-center">
+            <div className="text-5xl sm:text-6xl md:text-7xl text-[#8B5CF6] mb-2 sm:mb-3 tabular-nums" style={{ fontFamily: 'Georgia, serif' }}>
+              <Counter value={winRate} />%
             </div>
             <div className="text-xs sm:text-sm text-[#A09B8C] uppercase tracking-wider">
               Win Rate
-            </div>
-          </div>
-
-          <div className="w-px h-16 sm:h-20 md:h-24 bg-[#C8AA6E]/30" />
-
-          {/* KDA */}
-          <div className="text-center">
-            <div className="text-5xl sm:text-6xl md:text-7xl text-[#C8AA6E] mb-2 sm:mb-3 tabular-nums" style={{ fontFamily: 'Georgia, serif' }}>
-              +<Counter value={improvement.kda} />
-            </div>
-            <div className="text-xs sm:text-sm text-[#A09B8C] uppercase tracking-wider">
-              KDA
-            </div>
-          </div>
-
-          <div className="w-px h-16 sm:h-20 md:h-24 bg-[#C8AA6E]/30" />
-
-          {/* Vision Score */}
-          <div className="text-center">
-            <div className="text-5xl sm:text-6xl md:text-7xl text-[#8B5CF6] mb-2 sm:mb-3 tabular-nums" style={{ fontFamily: 'Georgia, serif' }}>
-              +<Counter value={improvement.visionScore} />
-            </div>
-            <div className="text-xs sm:text-sm text-[#A09B8C] uppercase tracking-wider">
-              Vision
             </div>
           </div>
         </motion.div>

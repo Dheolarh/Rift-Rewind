@@ -42,6 +42,7 @@ class ProgressiveOrchestrator:
     def _new_session(self, game_name: str, tag_line: str, region: str) -> Dict[str, Any]:
         from league_data import LeagueDataFetcher
         from humor_context import HumorGenerator
+        from insights import InsightsGenerator
         
         fetcher = LeagueDataFetcher()
         checkpoint_callback = self._create_checkpoint_callback()
@@ -55,6 +56,19 @@ class ProgressiveOrchestrator:
         
         session_id = fetch_result['sessionId']
         elapsed = time.time() - self.start_time
+        
+        # Generate AI insights for strengths/weaknesses (BEFORE humor)
+        logger.info(f"Generating AI insights for session: {session_id}")
+        insights_generator = InsightsGenerator()
+        try:
+            insights_result = insights_generator.generate(session_id)
+            logger.info(f"AI insights generated: {insights_result.get('status')}")
+            
+            # Update analytics with AI-generated strengths/weaknesses
+            self._update_analytics_with_insights(session_id, insights_result.get('insights', {}))
+        except Exception as e:
+            logger.error(f"Failed to generate AI insights: {e}")
+            # Continue without AI insights - will use placeholder values
         
         humor_generator = HumorGenerator()
         
@@ -79,6 +93,7 @@ class ProgressiveOrchestrator:
     def _resume_session(self, existing_session: Dict[str, Any], region: str) -> Dict[str, Any]:
         from league_data import LeagueDataFetcher
         from humor_context import HumorGenerator
+        from insights import InsightsGenerator
         
         session_id = existing_session['sessionId']
         
@@ -90,6 +105,20 @@ class ProgressiveOrchestrator:
             region=region,
             checkpoint_callback=checkpoint_callback
         )
+        
+        # Check if AI insights need to be generated
+        analytics = existing_session.get('analytics', {})
+        slide_data = analytics.get('slide10_11_analysis', {})
+        needs_ai = slide_data.get('needsAIProcessing', True)
+        
+        if needs_ai:
+            logger.info(f"Generating missing AI insights for resumed session: {session_id}")
+            insights_generator = InsightsGenerator()
+            try:
+                insights_result = insights_generator.generate(session_id)
+                self._update_analytics_with_insights(session_id, insights_result.get('insights', {}))
+            except Exception as e:
+                logger.error(f"Failed to generate AI insights on resume: {e}")
         
         humor_generator = HumorGenerator()
         existing_humor = existing_session.get('aiHumor', {})
@@ -122,6 +151,46 @@ class ProgressiveOrchestrator:
             if elapsed >= self.priority_humor_trigger and not hasattr(self, '_priority_humor_triggered'):
                 self._priority_humor_triggered = True
         return checkpoint_callback
+    
+    def _update_analytics_with_insights(self, session_id: str, insights: Dict[str, Any]):
+        """
+        Update analytics with AI-generated insights.
+        
+        Args:
+            session_id: Session ID
+            insights: AI-generated insights dict with strengths, weaknesses, etc.
+        """
+        from services.aws_clients import download_from_s3, upload_to_s3
+        
+        try:
+            # Download current analytics
+            s3_key = f"sessions/{session_id}/analytics.json"
+            analytics_str = download_from_s3(s3_key)
+            
+            if not analytics_str:
+                logger.error(f"Analytics not found for session: {session_id}")
+                return
+            
+            analytics = json.loads(analytics_str)
+            
+            # Update slide10_11_analysis with AI-generated strengths/weaknesses
+            if 'slide10_11_analysis' in analytics:
+                analytics['slide10_11_analysis']['strengths'] = insights.get('strengths', ['Analysis complete'])
+                analytics['slide10_11_analysis']['weaknesses'] = insights.get('weaknesses', ['Analysis complete'])
+                analytics['slide10_11_analysis']['needsAIProcessing'] = False
+                
+                # Store additional insights for potential future use
+                analytics['slide10_11_analysis']['coaching_tips'] = insights.get('coaching_tips', [])
+                analytics['slide10_11_analysis']['play_style'] = insights.get('play_style', '')
+                analytics['slide10_11_analysis']['personality_title'] = insights.get('personality_title', '')
+            
+            # Upload updated analytics
+            upload_to_s3(s3_key, analytics)
+            logger.info(f"Analytics updated with AI insights for session: {session_id}")
+            
+        except Exception as e:
+            logger.error(f"Error updating analytics with insights: {e}")
+            raise
 
 
 def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
