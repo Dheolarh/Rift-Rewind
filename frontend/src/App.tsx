@@ -459,6 +459,8 @@ export default function App() {
             <TimeSpentSlide
               hoursPlayed={sessionData.slide2_timeSpent?.totalHours || 0}
               gamesPlayed={sessionData.slide2_timeSpent?.totalGames || 0}
+              minutesPlayed={sessionData.slide2_timeSpent?.totalMinutes || 0}
+              averageGameLength={sessionData.slide2_timeSpent?.avgGameLength || 0}
               summonerName={displayName}
               aiHumor={sessionData.slide2_humor || "Time flies when you're having fun on the Rift!"}
             />
@@ -469,20 +471,38 @@ export default function App() {
               aiHumor={sessionData.slide3_humor || "Looks like someone has a type!"}
             />
           )}
-          {currentSlide === 4 && (
-            <BestMatchSlide {...mockData.bestMatch} />
+          {currentSlide === 4 && sessionData && sessionData.slide4_bestMatch && (
+            <BestMatchSlide 
+              {...sessionData.slide4_bestMatch}
+              aiHumor={sessionData.slide4_humor || "This match was so epic, even the enemy team was probably cheering for you! 🎭"}
+            />
           )}
-          {currentSlide === 5 && (
-            <KDAOverviewSlide {...mockData.kdaOverview} />
+          {currentSlide === 5 && sessionData && sessionData.slide5_kda && (
+            <KDAOverviewSlide 
+              averageKDA={sessionData.slide5_kda.kdaRatio}
+              totalKills={sessionData.slide5_kda.totalKills}
+              totalDeaths={sessionData.slide5_kda.totalDeaths}
+              totalAssists={sessionData.slide5_kda.totalAssists}
+              aiHumor={sessionData.slide5_humor || "You've eliminated more champions than there are people in a small village! 🏰"}
+            />
           )}
-          {currentSlide === 6 && (
-            <RankedJourneySlide {...mockData.rankedJourney} />
+          {currentSlide === 6 && sessionData && sessionData.slide6_rankedJourney && (
+            <RankedJourneySlide 
+              {...sessionData.slide6_rankedJourney}
+              aiHumor={sessionData.slide6_humor || "You climbed more ranks than a chess grandmaster... but with way more rage quits! ♟️😤"}
+            />
           )}
-          {currentSlide === 7 && (
-            <VisionSlide {...mockData.vision} />
+          {currentSlide === 7 && sessionData && sessionData.slide7_visionScore && (
+            <VisionSlide 
+              {...sessionData.slide7_visionScore}
+              aiHumor={sessionData.slide7_humor || "You've placed more wards than a hospital has patients! 🏥"}
+            />
           )}
-          {currentSlide === 8 && (
-            <ChampionPoolSlide {...mockData.championPool} />
+          {currentSlide === 8 && sessionData && sessionData.slide8_championPool && (
+            <ChampionPoolSlide 
+              {...sessionData.slide8_championPool}
+              aiHumor={sessionData.slide8_humor || "Talk about champion diversity! You're basically a one-person champion ocean. 🌊"}
+            />
           )}
           {currentSlide === 9 && (
             <DuoPartnerSlide {...mockData.duoPartner} />

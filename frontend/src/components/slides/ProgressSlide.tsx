@@ -1,5 +1,7 @@
 import { motion, useMotionValue, useTransform, animate } from "motion/react";
 import { useEffect } from "react";
+import { ImageWithFallback } from "../source/ImageWithFallback";
+import progressBg from "../../assets/progress.webp";
 
 interface ProgressSlideProps {
   improvement: {
@@ -27,7 +29,17 @@ export function ProgressSlide({
   aiHumor = "You've grown more than a Cho'Gath with full stacks! 🦖 The grind never stops!"
 }: ProgressSlideProps) {
   return (
-    <div className="relative w-full h-full overflow-hidden bg-gradient-to-br from-[#1a0b2e] via-[#010A13] to-[#2d0a4e]">
+    <div className="relative w-full h-full overflow-hidden bg-[#010A13]">
+      {/* Background Image */}
+      <div className="absolute inset-0">
+        <ImageWithFallback
+          src={progressBg}
+          alt="Progress Background"
+          className="w-full h-full object-cover opacity-15"
+        />
+        <div className="absolute inset-0 bg-gradient-to-br from-[#1a0b2e]/90 via-[#010A13]/95 to-[#2d0a4e]/98" />
+      </div>
+
       {/* Animated upward gradient */}
       <motion.div
         animate={{

@@ -1,4 +1,6 @@
 import { motion } from "motion/react";
+import { ImageWithFallback } from "../source/ImageWithFallback";
+import growthBg from "../../assets/growth.webp";
 
 interface Weakness {
   title: string;
@@ -16,7 +18,17 @@ export function WeaknessesSlide({ weaknesses }: WeaknessesSlideProps) {
   const firstWeakness = weaknesses[0];
 
   return (
-    <div className="relative w-full h-full overflow-hidden bg-gradient-to-br from-[#1a0b2e] via-[#0a0515] to-[#010A13] flex items-center justify-center">
+    <div className="relative w-full h-full overflow-hidden bg-[#010A13] flex items-center justify-center">
+      {/* Background Image */}
+      <div className="absolute inset-0">
+        <ImageWithFallback
+          src={growthBg}
+          alt="Growth Background"
+          className="w-full h-full object-cover opacity-15"
+        />
+        <div className="absolute inset-0 bg-gradient-to-br from-[#1a0b2e]/90 via-[#0a0515]/95 to-[#010A13]/98" />
+      </div>
+
       {/* Animated gradient orbs */}
       <motion.div
         animate={{
@@ -147,7 +159,7 @@ export function WeaknessesSlide({ weaknesses }: WeaknessesSlideProps) {
             className="pt-2"
           >
             <div className="text-xs sm:text-sm text-[#0AC8B9] uppercase tracking-wider mb-2">
-              💡 How to improve
+              How to improve
             </div>
             <p className="text-xs sm:text-sm text-white/90 leading-relaxed mb-2">
               {firstWeakness.improvement}
@@ -160,7 +172,7 @@ export function WeaknessesSlide({ weaknesses }: WeaknessesSlideProps) {
             animate={{ opacity: 1 }}
             transition={{ delay: 1.6, duration: 0.8 }}
           >
-            Every weakness is just a strength waiting to be discovered! 💪
+            Every weakness is just a strength waiting to be discovered!
           </motion.p>
         </motion.div>
       </div>

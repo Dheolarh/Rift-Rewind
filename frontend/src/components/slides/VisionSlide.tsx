@@ -1,23 +1,34 @@
 import { motion } from "motion/react";
-import { Eye } from "lucide-react";
+import { ImageWithFallback } from "../source/ImageWithFallback";
+import visionBg from "../../assets/vision.webp";
 
 interface VisionSlideProps {
-  wardsPlaced: number;
-  wardsDestroyed: number;
-  visionScore: number;
-  controlWardsBought: number;
+  avgVisionScore: number;
+  avgWardsPlaced: number;
+  avgControlWards: number;
+  totalVisionScore: number;
   aiHumor?: string;
 }
 
 export function VisionSlide({
-  wardsPlaced,
-  wardsDestroyed,
-  visionScore,
-  controlWardsBought,
+  avgVisionScore,
+  avgWardsPlaced,
+  avgControlWards,
+  totalVisionScore,
   aiHumor = "You've placed more wards than a hospital has patients! 🏥 Your map awareness is legendary!"
 }: VisionSlideProps) {
   return (
-    <div className="relative size-full overflow-hidden bg-gradient-to-br from-[#0a1929] via-[#1a0b2e] to-[#010A13]">
+    <div className="relative size-full overflow-hidden bg-[#010A13]">
+      {/* Background Image */}
+      <div className="absolute inset-0">
+        <ImageWithFallback
+          src={visionBg}
+          alt="Vision Background"
+          className="size-full object-cover opacity-15"
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#0a1929]/90 via-[#1a0b2e]/95 to-[#010A13]/98" />
+      </div>
+
       {/* Pulsing gradient */}
       <motion.div
         animate={{
@@ -35,15 +46,6 @@ export function VisionSlide({
       {/* Scrollable Content */}
       <div className="relative z-10 size-full overflow-y-auto scrollbar-hide">
         <div className="min-h-full flex flex-col items-center justify-center px-4 sm:px-6 py-6 sm:py-8">
-          {/* Icon */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.2, duration: 0.6, type: "spring" }}
-          >
-            <Eye className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 text-[#0AC8B9] mb-4 sm:mb-6" />
-          </motion.div>
-
           {/* Title */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -52,11 +54,11 @@ export function VisionSlide({
             className="text-center mb-6 sm:mb-8"
           >
             <p className="text-sm sm:text-base md:text-lg text-[#A09B8C] uppercase tracking-[0.2em] sm:tracking-[0.3em]">
-              You lit up the map with
+              Your Vision Score
             </p>
           </motion.div>
 
-          {/* Ward count */}
+          {/* Vision Score */}
           <motion.div
             initial={{ opacity: 0, scale: 0.7 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -64,7 +66,7 @@ export function VisionSlide({
             className="mb-4 sm:mb-6"
           >
             <div className="text-6xl sm:text-7xl md:text-8xl lg:text-9xl leading-none bg-gradient-to-br from-[#0AC8B9] via-[#5DADE2] to-[#3498DB] bg-clip-text text-transparent tabular-nums" style={{ fontFamily: 'Georgia, serif' }}>
-              {(wardsPlaced / 1000).toFixed(1)}K
+              {avgVisionScore.toFixed(1)}
             </div>
           </motion.div>
 
@@ -76,10 +78,12 @@ export function VisionSlide({
             className="text-center mb-6 sm:mb-8"
           >
             <p className="text-2xl sm:text-3xl md:text-4xl text-white mb-2 sm:mb-3" style={{ fontFamily: 'Georgia, serif' }}>
-              wards
+              per game
             </p>
             <p className="text-sm sm:text-base md:text-lg text-[#A09B8C]">
-              and destroyed <span className="text-[#C8AA6E]">{(wardsDestroyed / 1000).toFixed(1)}K</span> enemy wards
+              <span className="text-[#C8AA6E]">{avgWardsPlaced.toFixed(1)}</span> wards placed
+              <span className="text-[#A09B8C]"> • </span>
+              <span className="text-[#0AC8B9]">{avgControlWards.toFixed(1)}</span> control wards
             </p>
           </motion.div>
 

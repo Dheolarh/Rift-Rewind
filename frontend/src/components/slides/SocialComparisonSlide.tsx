@@ -1,6 +1,7 @@
 import { motion, useMotionValue, useTransform, animate } from "motion/react";
 import { useEffect } from "react";
 import { ImageWithFallback } from "../source/ImageWithFallback";
+import rankingBg from "../../assets/ranking.webp";
 
 interface PlayerComparison {
   rank: number;
@@ -40,14 +41,14 @@ export function SocialComparisonSlide({
 
   return (
     <div className="relative w-full h-full overflow-hidden bg-[#010A13] flex items-center justify-center">
-      {/* LoL Character Background */}
+      {/* Background Image */}
       <div className="absolute inset-0">
         <ImageWithFallback
-          src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=1920"
-          alt="Background"
-          className="w-full h-full object-cover opacity-5"
+          src={rankingBg}
+          alt="Ranking Background"
+          className="w-full h-full object-cover opacity-15"
         />
-        <div className="absolute inset-0 bg-gradient-to-br from-[#0a1929]/90 via-[#010A13]/90 to-[#1a0b2e]/90" />
+        <div className="absolute inset-0 bg-gradient-to-br from-[#0a1929]/90 via-[#010A13]/95 to-[#1a0b2e]/98" />
       </div>
 
       {/* Animated gradient */}

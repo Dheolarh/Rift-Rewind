@@ -1,14 +1,19 @@
 import { motion, useMotionValue, useTransform, animate } from "motion/react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { ImageWithFallback } from "../source/ImageWithFallback";
+import { getChampionIconUrl } from "../../utils/championImages";
 
 interface BestMatchSlideProps {
-  championName: string;
+  matchId?: string;
+  champion: string;
   kills: number;
   deaths: number;
   assists: number;
   kda: number;
-  date: string;
+  result?: string;
+  duration?: number;
+  gameMode?: string;
+  timestamp: number;
   aiHumor?: string;
 }
 
@@ -25,14 +30,31 @@ function Counter({ value, duration = 1.5, delay = 0 }: { value: number; duration
 }
 
 export function BestMatchSlide({
-  championName,
+  champion,
   kills,
   deaths,
   assists,
   kda,
-  date,
+  result,
+  timestamp,
   aiHumor = "This match was so epic, even the enemy team was probably cheering for you! 🎭"
 }: BestMatchSlideProps) {
+  const [championIcon, setChampionIcon] = useState<string>("");
+
+  // Load champion icon
+  useEffect(() => {
+    getChampionIconUrl(champion).then(setChampionIcon);
+  }, [champion]);
+
+  // Format timestamp to readable date
+  const formatDate = (timestamp: number): string => {
+    const date = new Date(timestamp);
+    return date.toLocaleDateString('en-US', { 
+      month: 'short', 
+      day: 'numeric', 
+      year: 'numeric' 
+    });
+  };
   return (
     <div className="relative w-full h-full overflow-hidden bg-gradient-to-br from-[#1a0b2e] via-[#010A13] to-[#2d0a4e] flex items-center justify-center px-4">
       {/* Animated gradient */}
@@ -71,8 +93,8 @@ export function BestMatchSlide({
           style={{ width: '160px', height: '160px' }}
         >
           <ImageWithFallback
-            src="https://images.unsplash.com/photo-1542751371-adc38448a05e?w=300"
-            alt={championName}
+            src={championIcon}
+            alt={champion}
             className="w-full h-full object-cover"
           />
         </motion.div>
@@ -85,9 +107,14 @@ export function BestMatchSlide({
           className="text-center"
         >
           <h2 className="text-2xl sm:text-3xl md:text-4xl text-white mb-1" style={{ fontFamily: 'Georgia, serif' }}>
-            {championName}
+            {champion}
           </h2>
-          <p className="text-xs text-[#A09B8C]">{date}</p>
+          <p className="text-xs text-[#A09B8C]">{formatDate(timestamp)}</p>
+          {result && (
+            <p className={`text-sm mt-1 ${result === 'Victory' ? 'text-[#0AC8B9]' : 'text-[#C75050]'}`}>
+              {result}
+            </p>
+          )}
         </motion.div>
 
         {/* K/D/A Stats */}

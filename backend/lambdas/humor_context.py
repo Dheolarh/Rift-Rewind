@@ -28,13 +28,16 @@ SLIDE_PROMPTS = {
 Stats:
 - Total Games: {totalGames}
 - Total Hours: {totalHours} hours
+- Total Minutes: {totalMinutes} minutes
+- Average Game Length: {avgGameLength} minutes
 
-Write ONE savage but funny sentence (max 30 words) roasting their time investment. Use the EXACT numbers from the stats. NO EMOJIS.
+Write ONE savage but funny hilarious sentence (max 30 words) roasting their time investment. Use the EXACT numbers from the stats. NO EMOJIS.
 
 Examples:
-"{totalHours} hours of play?! if you took up knitting, you might actually create something useful in that time. Ever heard of a thing called a job?"
+"{totalMinutes} minutes of play?! if you took up knitting, you might actually create something useful in that time. Ever heard of a thing called a job?"
 "{totalGames} games? Your poor keyboard deserves hazard pay at this point!"
 "Spent {totalHours} hours this year. The grass outside filed a missing persons report!"
+
 
 Max 30 words. Be SAVAGE but hilarious. Use actual stats. NO EMOJIS:""",
     

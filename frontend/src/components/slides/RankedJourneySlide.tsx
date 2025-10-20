@@ -1,31 +1,58 @@
 import { motion } from "motion/react";
-import { Calendar } from "lucide-react";
 import { ImageWithFallback } from "../source/ImageWithFallback";
+import { useMemo } from "react";
 
-interface Milestone {
-  rank: string;
-  division: string;
-  month: string;
-  lp: number;
-}
+// Rank images
+import ironRank from "../../assets/ranks/iron.webp";
+import bronzeRank from "../../assets/ranks/bronze.webp";
+import silverRank from "../../assets/ranks/silver.webp";
+import goldRank from "../../assets/ranks/gold.webp";
+import platinumRank from "../../assets/ranks/platinum.webp";
+import emeraldRank from "../../assets/ranks/emerald.webp";
+import diamondRank from "../../assets/ranks/diamond.webp";
+import masterRank from "../../assets/ranks/master.webp";
+import grandmasterRank from "../../assets/ranks/grandmaster.png";
+import challengerRank from "../../assets/ranks/challenger.webp";
 
 interface RankedJourneySlideProps {
-  startRank: string;
-  endRank: string;
-  peakRank: string;
-  milestones: Milestone[];
+  currentRank: string;
+  tier: string;
+  division: string;
+  lp: number;
+  wins: number;
+  losses: number;
+  winRate: number;
   aiHumor?: string;
 }
 
+const RANK_IMAGES: Record<string, string> = {
+  'IRON': ironRank,
+  'BRONZE': bronzeRank,
+  'SILVER': silverRank,
+  'GOLD': goldRank,
+  'PLATINUM': platinumRank,
+  'EMERALD': emeraldRank,
+  'DIAMOND': diamondRank,
+  'MASTER': masterRank,
+  'GRANDMASTER': grandmasterRank,
+  'CHALLENGER': challengerRank,
+  'UNRANKED': ironRank, // Default fallback
+};
+
 export function RankedJourneySlide({
-  startRank,
-  endRank,
-  peakRank,
-  milestones,
+  currentRank,
+  tier,
+  division,
+  lp,
+  wins,
+  losses,
+  winRate,
   aiHumor = "You climbed more ranks than a chess grandmaster... but with way more rage quits! ♟️😤"
 }: RankedJourneySlideProps) {
-  // Find the peak rank from milestones
-  const peakMilestone = milestones.find(m => `${m.rank} ${m.division}` === peakRank) || milestones[0];
+  // Get the appropriate rank image based on tier
+  const rankImage = useMemo(() => {
+    return RANK_IMAGES[tier.toUpperCase()] || RANK_IMAGES['UNRANKED'];
+  }, [tier]);
 
   return (
     <div className="relative w-full h-full overflow-hidden bg-[#010A13] flex items-center justify-center">
@@ -77,7 +104,7 @@ export function RankedJourneySlide({
           }}
         >
           <ImageWithFallback
-            src="https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=400"
+            src={rankImage}
             alt="Rank Icon"
             className="object-cover"
             style={{ width: '160px', height: '160px' }}
@@ -92,11 +119,16 @@ export function RankedJourneySlide({
           className="text-center"
         >
           <div className="text-5xl sm:text-6xl md:text-7xl text-[#C8AA6E] mb-2" style={{ fontFamily: 'Georgia, serif' }}>
-            {peakRank}
+            {tier} {division}
           </div>
-          <div className="flex items-center justify-center gap-2 text-base sm:text-lg text-[#A09B8C]">
-            <Calendar className="w-5 h-5" />
-            <span>{peakMilestone.month}</span>
+          <div className="flex items-center justify-center gap-4 text-base sm:text-lg text-[#A09B8C]">
+            <span>{lp} LP</span>
+            <span>•</span>
+            <span className="text-[#0AC8B9]">{wins}W</span>
+            <span className="text-[#C75050]">{losses}L</span>
+          </div>
+          <div className="text-sm text-[#C8AA6E] mt-1">
+            {winRate.toFixed(1)}% Win Rate
           </div>
         </motion.div>
 

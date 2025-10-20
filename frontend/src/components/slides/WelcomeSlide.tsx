@@ -1,8 +1,8 @@
 import { motion } from "motion/react";
 import { Swords, ChevronDown, Music } from "lucide-react";
 import { ImageWithFallback } from "../source/ImageWithFallback";
-import logoImage from "../../assets/logo.png";
-import welcomeBg from "../../assets/WelcomeBg.jpg";
+import logoImage from "../../assets/logo.webp";
+import welcomeBg from "../../assets/WelcomeBg.webp";
 
 interface WelcomeSlideProps {
   summonerName: string;

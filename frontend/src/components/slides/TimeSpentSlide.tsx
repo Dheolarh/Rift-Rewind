@@ -6,6 +6,8 @@ import zileanTime from "../../assets/Zilean_Time.webp";
 interface TimeSpentSlideProps {
   hoursPlayed: number;
   gamesPlayed: number;
+  minutesPlayed?: number;
+  averageGameLength?: number;
   summonerName: string;
   aiHumor?: string;
 }
@@ -24,8 +26,7 @@ function Counter({ value, duration = 2.5 }: { value: number; duration?: number }
 
 export function TimeSpentSlide({
   hoursPlayed,
-  gamesPlayed,
-  summonerName,
+  minutesPlayed,
   aiHumor = "That's approximately 47 binge-worthy Netflix series... but who's counting? 📺"
 }: TimeSpentSlideProps) {
   const days = Math.floor(hoursPlayed / 24) + 1;
@@ -105,7 +106,7 @@ export function TimeSpentSlide({
             hours on the Rift
           </p>
           <p className="text-sm sm:text-base md:text-lg text-[#A09B8C]">
-            That's about <span className="text-[#0AC8B9]">{days} days</span> of pure League
+            {minutesPlayed} minutes played? That's about <span className="text-[#0AC8B9]">{days} days</span> of pure League
           </p>
         </motion.div>
 

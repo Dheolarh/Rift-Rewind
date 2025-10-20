@@ -2,6 +2,7 @@ import { motion, useMotionValue, useTransform, animate } from "motion/react";
 import { useEffect } from "react";
 import { Plus } from "lucide-react";
 import { ImageWithFallback } from "../source/ImageWithFallback";
+import duoBg from "../../assets/duo.webp";
 
 interface DuoPartnerSlideProps {
   partnerName: string;
@@ -34,7 +35,17 @@ export function DuoPartnerSlide({
   aiHumor = "You two are like peanut butter and jelly... if jelly could flash-ult and secure pentas!"
 }: DuoPartnerSlideProps) {
   return (
-    <div className="relative w-full h-full overflow-hidden bg-gradient-to-br from-[#1a0b2e] via-[#010A13] to-[#0a1929] flex items-center justify-center px-4">
+    <div className="relative w-full h-full overflow-hidden bg-[#010A13] flex items-center justify-center px-4">
+      {/* Background Image */}
+      <div className="absolute inset-0">
+        <ImageWithFallback
+          src={duoBg}
+          alt="Duo Background"
+          className="w-full h-full object-cover opacity-15"
+        />
+        <div className="absolute inset-0 bg-gradient-to-br from-[#1a0b2e]/90 via-[#010A13]/95 to-[#0a1929]/98" />
+      </div>
+
       {/* Animated gradient */}
       <motion.div
         animate={{
@@ -72,14 +83,14 @@ export function DuoPartnerSlide({
         >
           {/* Your Champion */}
           <div className="flex flex-col items-center gap-1.5">
-            <div className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-full overflow-hidden border-2 border-[#C8AA6E]">
+            <div className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 overflow-hidden border-2 border-[#C8AA6E]">
               <ImageWithFallback
                 src="https://images.unsplash.com/photo-1614294148960-9aa740632a87?w=150"
                 alt="Your champion"
                 className="w-full h-full object-cover"
               />
             </div>
-            <div className="text-xs text-[#A09B8C]">You</div>
+            <div className="text-xs text-[#A09B8C]">PlayerName</div>
           </div>
 
           {/* Plus Sign */}
@@ -87,7 +98,7 @@ export function DuoPartnerSlide({
 
           {/* Partner's Champion */}
           <div className="flex flex-col items-center gap-1.5">
-            <div className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-full overflow-hidden border-2 border-[#0AC8B9]">
+            <div className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 overflow-hidden border-2 border-[#0AC8B9]">
               <ImageWithFallback
                 src="https://images.unsplash.com/photo-1614294148960-9aa740632a87?w=150"
                 alt="Partner champion"

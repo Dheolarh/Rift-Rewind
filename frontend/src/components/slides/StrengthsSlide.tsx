@@ -1,4 +1,6 @@
 import { motion } from "motion/react";
+import { ImageWithFallback } from "../source/ImageWithFallback";
+import strengthBg from "../../assets/strength.webp";
 
 interface Strength {
   title: string;
@@ -16,7 +18,17 @@ export function StrengthsSlide({ strengths }: StrengthsSlideProps) {
   const topStrength = strengths[0];
 
   return (
-    <div className="relative w-full h-full overflow-hidden bg-gradient-to-br from-[#1a0b2e] via-[#0a0515] to-[#010A13] flex items-center justify-center">
+    <div className="relative w-full h-full overflow-hidden bg-[#010A13] flex items-center justify-center">
+      {/* Background Image */}
+      <div className="absolute inset-0">
+        <ImageWithFallback
+          src={strengthBg}
+          alt="Strength Background"
+          className="w-full h-full object-cover opacity-15"
+        />
+        <div className="absolute inset-0 bg-gradient-to-br from-[#1a0b2e]/90 via-[#0a0515]/95 to-[#010A13]/98" />
+      </div>
+
       {/* Animated gradient orbs */}
       <motion.div
         animate={{
@@ -160,7 +172,7 @@ export function StrengthsSlide({ strengths }: StrengthsSlideProps) {
             transition={{ delay: 1.4, duration: 0.8 }}
             animate-pulse
           >
-            These are the skills that separate the good from the legendary! ⚡
+            These are the skills that separate the good from the legendary!
           </motion.p>
         </motion.div>
       </div>
