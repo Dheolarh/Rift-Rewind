@@ -370,6 +370,77 @@ class RiotAPIClient:
         
         return matches
     
+    def get_league_entries(
+        self,
+        summoner_id: str,
+        platform: str
+    ) -> List[Dict[str, Any]]:
+        """
+        Get league entries for a summoner (their rank positions).
+        
+        Args:
+            summoner_id: Encrypted summoner ID
+            platform: Platform code (e.g., 'na1', 'euw1')
+            
+        Returns:
+            List of league entries (one per queue)
+        """
+        endpoint = f'/lol/league/v4/entries/by-summoner/{summoner_id}'
+        url = f"{RIOT_API_PLATFORM_BASE[platform]}{endpoint}"
+        
+        try:
+            response = self._make_request('GET', url)
+            return response if response else []
+        except Exception as e:
+            logger.error(f"Failed to get league entries: {e}")
+            return []
+    
+    def get_league_position_in_tier(
+        self,
+        queue: str,
+        tier: str,
+        division: str,
+        lp: int,
+        platform: str
+    ) -> Optional[int]:
+        """
+        Estimate player's position within their tier/division.
+        Fetches a page of entries to determine approximate position.
+        
+        Args:
+            queue: Queue type (e.g., 'RANKED_SOLO_5x5')
+            tier: Tier (e.g., 'GOLD', 'PLATINUM')
+            division: Division (e.g., 'I', 'II', 'III', 'IV')
+            lp: Player's league points
+            platform: Platform code
+            
+        Returns:
+            Approximate position/rank number
+        """
+        endpoint = f'/lol/league/v4/entries/{queue}/{tier}/{division}'
+        url = f"{RIOT_API_PLATFORM_BASE[platform]}{endpoint}"
+        
+        try:
+            # Fetch first page to see LP distribution
+            params = {'page': 1}
+            response = self._make_request('GET', url, params=params)
+            
+            if not response:
+                return None
+            
+            # Count how many players have higher LP
+            higher_lp_count = sum(1 for entry in response if entry.get('leaguePoints', 0) > lp)
+            
+            # Estimate: Assume ~200 players per page, add offset
+            estimated_position = higher_lp_count + 1
+            
+            logger.info(f"Estimated position in {tier} {division}: {estimated_position}")
+            return estimated_position
+            
+        except Exception as e:
+            logger.error(f"Failed to get league position: {e}")
+            return None
+    
     def _get_matches_parallel(
         self,
         match_ids: List[str],

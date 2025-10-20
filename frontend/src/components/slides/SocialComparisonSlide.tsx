@@ -3,11 +3,18 @@ import { useEffect } from "react";
 import { ImageWithFallback } from "../source/ImageWithFallback";
 import rankingBg from "../../assets/ranking.webp";
 
+interface PlayerComparison {
+  rank: number;
+  summonerName: string;
+  winRate: number;
+  gamesPlayed: number;
+  isYou?: boolean;
+}
+
 interface SocialComparisonSlideProps {
+  yourRank: number;
   rankPercentile: number;
-  rank?: string;
-  kdaRatio?: number;
-  comparison?: string;
+  leaderboard: PlayerComparison[];
   aiHumor?: string;
 }
 
@@ -24,12 +31,13 @@ function Counter({ value, duration = 2 }: { value: number; duration?: number }) 
 }
 
 export function SocialComparisonSlide({
+  yourRank,
   rankPercentile,
-  rank = "UNRANKED",
-  kdaRatio = 0,
-  comparison = "Keep climbing!",
+  leaderboard,
   aiHumor = "You're rubbing shoulders with the elite! 🎮✨"
 }: SocialComparisonSlideProps) {
+  // Find the user's entry
+  const userEntry = leaderboard.find(player => player.isYou);
 
   return (
     <div className="relative w-full h-full overflow-hidden bg-[#010A13] flex items-center justify-center">
@@ -67,10 +75,10 @@ export function SocialComparisonSlide({
           className="text-center"
         >
           <p className="text-base sm:text-lg md:text-xl text-[#A09B8C] uppercase tracking-[0.3em] mb-2" style={{ fontFamily: 'Georgia, serif' }}>
-            Global Standing
+            Leaderboard Position
           </p>
           <p className="text-xs sm:text-sm text-[#A09B8C]/70">
-            You're in the
+            You're in the top
           </p>
         </motion.div>
 
@@ -79,9 +87,8 @@ export function SocialComparisonSlide({
           initial={{ opacity: 0, scale: 0.7 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.5, duration: 0.8, type: "spring" }}
-          className="text-center"
         >
-          <div className="flex items-baseline justify-center mb-2">
+          <div className="flex items-baseline justify-center">
             <span className="text-6xl sm:text-7xl md:text-8xl leading-none bg-gradient-to-br from-[#FFD700] via-[#C8AA6E] to-[#8B7548] bg-clip-text text-transparent tabular-nums" style={{ fontFamily: 'Georgia, serif' }}>
               <Counter value={rankPercentile} />
             </span>
@@ -89,40 +96,53 @@ export function SocialComparisonSlide({
               %
             </span>
           </div>
-          <p className="text-sm sm:text-base text-[#A09B8C]/80">
-            {comparison}
-          </p>
         </motion.div>
 
-        {/* Stats Card */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.8, duration: 0.6 }}
-          className="w-full max-w-sm"
-        >
-          <div className="bg-[#0A1428]/60 border border-[#C8AA6E]/40 backdrop-blur-sm p-4 sm:p-5 rounded">
-            <div className="flex items-center justify-around gap-4">
-              {/* Current Rank */}
-              <div className="text-center">
-                <div className="text-lg sm:text-xl text-[#C8AA6E] mb-1 font-semibold" style={{ fontFamily: 'Georgia, serif' }}>
-                  {rank}
+        {/* Your Stats Card - Only show user */}
+        {userEntry && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.8, duration: 0.6 }}
+            className="w-full max-w-sm"
+          >
+            <div className="bg-[#0A1428]/60 border border-[#C8AA6E]/40 backdrop-blur-sm p-4 sm:p-5 rounded">
+              <div className="flex items-center gap-4">
+                {/* Rank Badge */}
+                <div className="flex-shrink-0 w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-br from-[#C8AA6E] to-[#8B7548] flex items-center justify-center rounded-full border-2 border-[#FFD700]">
+                  <span className="text-xl sm:text-2xl font-bold text-[#0A1428]" style={{ fontFamily: 'Georgia, serif' }}>
+                    #{userEntry.rank > 0 ? userEntry.rank.toLocaleString() : '?'}
+                  </span>
                 </div>
-                <div className="text-xs text-[#78716C]">Current Rank</div>
-              </div>
 
-              <div className="w-px h-12 bg-[#C8AA6E]/30" />
-
-              {/* KDA */}
-              <div className="text-center">
-                <div className="text-lg sm:text-xl text-[#0AC8B9] tabular-nums" style={{ fontFamily: 'Georgia, serif' }}>
-                  <Counter value={kdaRatio} />
+                {/* Stats */}
+                <div className="flex-1">
+                  <div className="text-base sm:text-lg text-[#C8AA6E] mb-1 font-semibold" style={{ fontFamily: 'Georgia, serif' }}>
+                    {userEntry.summonerName}
+                  </div>
+                  <div className="text-xs text-[#A09B8C] mb-2">
+                    {userEntry.rank > 0 ? `Rank #${userEntry.rank.toLocaleString()}` : 'Calculating rank...'}
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div>
+                      <div className="text-lg sm:text-xl text-[#0AC8B9] tabular-nums" style={{ fontFamily: 'Georgia, serif' }}>
+                        {userEntry.winRate.toFixed(1)}%
+                      </div>
+                      <div className="text-xs text-[#78716C]">Win Rate</div>
+                    </div>
+                    <div className="w-px h-8 bg-[#C8AA6E]/30" />
+                    <div>
+                      <div className="text-lg sm:text-xl text-white tabular-nums" style={{ fontFamily: 'Georgia, serif' }}>
+                        {userEntry.gamesPlayed}
+                      </div>
+                      <div className="text-xs text-[#78716C]">Games</div>
+                    </div>
+                  </div>
                 </div>
-                <div className="text-xs text-[#78716C]">KDA Ratio</div>
               </div>
             </div>
-          </div>
-        </motion.div>
+          </motion.div>
+        )}
 
         {/* AI Humor */}
         <motion.div

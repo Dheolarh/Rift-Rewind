@@ -538,23 +538,24 @@ export default function App() {
           )}
           {currentSlide === 14 && (
             <SocialComparisonSlide 
+              yourRank={sessionData.slide14_percentile?.yourRank || 0}
               rankPercentile={sessionData.slide14_percentile?.rankPercentile || 50}
-              rank={sessionData.slide14_percentile?.rank}
-              kdaRatio={sessionData.slide14_percentile?.kdaRatio}
-              comparison={sessionData.slide14_percentile?.comparison}
+              leaderboard={sessionData.slide14_percentile?.leaderboard || []}
               aiHumor={sessionData.slide14_humor || "You're rubbing shoulders with the elite! 🎮✨"}
             />
           )}
           {currentSlide === 15 && (
             <FinalRecapSlide
               summonerName={displayName}
-              playerTitle="The Windborne Legend"
-              year={2024}
+              playerTitle={sessionData.slide10_11_analysis?.personality_title || "The Rising Legend"}
+              year={2025}
               highlightStats={{
-                gamesPlayed: mockData.timeSpent.gamesPlayed,
-                hoursPlayed: mockData.timeSpent.hoursPlayed,
-                peakRank: mockData.rankedJourney.peakRank,
-                favoriteChampion: mockData.favoriteChampions.champions[0].name,
+                gamesPlayed: sessionData.slide2_timeSpent?.totalGames || 0,
+                hoursPlayed: sessionData.slide2_timeSpent?.totalHours || 0,
+                peakRank: sessionData.slide6_rankedJourney?.currentRank || "UNRANKED",
+                favoriteChampion: sessionData.slide3_favoriteChampions?.[0]?.champion || "Unknown",
+                kdaRatio: sessionData.slide5_kda?.kdaRatio || 0,
+                winRate: sessionData.slide6_rankedJourney?.winRate || 0,
               }}
               onRestart={handleRestart}
             />

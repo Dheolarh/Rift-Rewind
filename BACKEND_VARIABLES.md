@@ -359,15 +359,38 @@ This document shows all variables sent from the backend analytics for each slide
   "rankPercentile": 80,
   "rank": "PLATINUM I",
   "kdaRatio": 2.78,
-  "comparison": "Top 20%"
+  "comparison": "Top 20%",
+  "yourRank": 1247,
+  "leaderboard": [
+    {
+      "rank": 1247,
+      "summonerName": "PlayerName#NA1",
+      "winRate": 54.6,
+      "gamesPlayed": 260,
+      "isYou": true
+    }
+  ]
 }
 ```
 
 **Variables:**
 - `rankPercentile` (float) - Player's rank percentile (0-100)
-- `rank` (string) - Current rank
+- `rank` (string) - Current rank (e.g., "PLATINUM I")
 - `kdaRatio` (float) - KDA ratio
-- `comparison` (string) - Comparative description
+- `comparison` (string) - Comparative description (e.g., "Top 20%")
+- `yourRank` (int) - **NEW** - Player's position on the leaderboard
+- `leaderboard` (array) - **NEW** - Player's leaderboard entry
+  - `rank` (int) - Position number
+  - `summonerName` (string) - Player's display name (GameName#TagLine)
+  - `winRate` (float) - Win rate percentage
+  - `gamesPlayed` (int) - Total ranked games played
+  - `isYou` (boolean) - Always true (marks the player)
+
+**Leaderboard Position:**
+- Fetched from Riot API `/lol/league/v4/entries/{queue}/{tier}/{division}`
+- Shows approximate position within tier/division
+- Based on LP (League Points) comparison
+- Falls back to 0 if API call fails
 
 **Rank Percentiles:**
 - IRON: 5%
@@ -477,15 +500,45 @@ Cached sessions store the complete structure above in:
 
 ---
 
-## 📝 Notes
+## � ShareCard Component
+
+The ShareCard uses data from multiple slides to generate a downloadable summary:
+
+**Required Data:**
+```typescript
+{
+  summonerName: string,        // From player account
+  playerTitle: string,          // From slide10_11_analysis.personality_title
+  year: number,                 // Current year (2025)
+  stats: {
+    gamesPlayed: number,        // From slide2_timeSpent.totalGames
+    hoursPlayed: number,        // From slide2_timeSpent.totalHours
+    peakRank: string,           // From slide6_rankedJourney.currentRank
+    favoriteChampion: string,   // From slide3_favoriteChampions[0].champion
+    kdaRatio: number,           // From slide5_kda.kdaRatio
+    winRate: number             // From slide6_rankedJourney.winRate
+  }
+}
+```
+
+**Usage:**
+- Triggered from Final Recap slide (Slide 15) via "Share" button
+- Generates beautiful card with player stats
+- Downloads as PNG image using html2canvas
+- Filename format: `{summonerName}-RiftRewind-{year}.png`
+
+---
+
+## �📝 Notes
 
 1. **Slide 1 (Welcome)** has no analytics - it's just the input form
-2. **Slide 15 (Final Recap)** combines data from multiple slides
+2. **Slide 15 (Final Recap)** combines data from multiple slides + ShareCard
 3. All numeric values are rounded for frontend display
 4. `null` values indicate missing or unavailable data
 5. Arrays may be empty if no data matches criteria
 6. Humor is generated for ALL slides (2-15) before marking session complete
 7. Some features (like progress tracking) are limited without historical data
+8. **ShareCard** aggregates 6 different backend sources for downloadable recap
 
 ---
 

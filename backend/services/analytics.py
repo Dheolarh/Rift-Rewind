@@ -28,6 +28,7 @@ class RiftRewindAnalytics:
         self.matches = raw_data.get('matches', [])
         self.summoner = raw_data.get('summoner', {})
         self.ranked = raw_data.get('ranked', {})
+        self.region = raw_data.get('metadata', {}).get('region', 'na1')
     
     def _get_participant_stats(self, match: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """
@@ -486,15 +487,18 @@ class RiftRewindAnalytics:
     # Slide 14: Social Comparison
     def calculate_percentile(self) -> Dict[str, Any]:
         """
-        Calculate player percentile vs global average.
+        Calculate player percentile and leaderboard position.
         
         Returns:
-            Percentile and comparison data
+            Percentile, comparison data, and player details for leaderboard display
         """
+        from .riot_api_client import RiotAPIClient
+        
         ranked_info = self.get_ranked_journey()
         kda_stats = self.calculate_kda()
+        time_stats = self.calculate_time_spent()
         
-        # Simplified percentile (would need real global data)
+        # Get base percentile from rank
         tier = ranked_info.get('tier', 'UNRANKED')
         
         rank_percentiles = {
@@ -512,11 +516,53 @@ class RiftRewindAnalytics:
         
         percentile = rank_percentiles.get(tier, 50)
         
+        # Try to get actual leaderboard position
+        summoner_id = self.summoner.get('id')
+        leaderboard_rank = None
+        
+        if summoner_id and tier != 'UNRANKED':
+            try:
+                api_client = RiotAPIClient()
+                division = ranked_info.get('division', 'IV')
+                lp = ranked_info.get('lp', 0)
+                
+                # Get position within tier/division
+                position = api_client.get_league_position_in_tier(
+                    queue='RANKED_SOLO_5x5',
+                    tier=tier,
+                    division=division,
+                    lp=lp,
+                    platform=self.region
+                )
+                
+                if position:
+                    leaderboard_rank = position
+                    logger.info(f"Retrieved leaderboard position: {position}")
+                    
+            except Exception as e:
+                logger.error(f"Failed to get leaderboard position: {e}")
+        
+        # Get player details
+        game_name = self.raw_data.get('account', {}).get('gameName', 'Player')
+        tag_line = self.raw_data.get('account', {}).get('tagLine', '')
+        summoner_name = f"{game_name}#{tag_line}" if tag_line else game_name
+        
+        win_rate = self._calculate_win_rate()
+        total_games = time_stats['totalGames']
+        
         return {
             'rankPercentile': percentile,
             'rank': ranked_info.get('currentRank'),
             'kdaRatio': kda_stats['kdaRatio'],
-            'comparison': f'Top {100 - percentile}%' if percentile > 50 else f'Bottom {percentile}%'
+            'comparison': f'Top {100 - percentile}%' if percentile > 50 else f'Bottom {percentile}%',
+            'yourRank': leaderboard_rank or 0,
+            'leaderboard': [{
+                'rank': leaderboard_rank or 0,
+                'summonerName': summoner_name,
+                'winRate': win_rate,
+                'gamesPlayed': total_games,
+                'isYou': True
+            }]
         }
     
     # Master function: Calculate all analytics

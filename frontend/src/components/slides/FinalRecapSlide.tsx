@@ -14,6 +14,8 @@ interface FinalRecapSlideProps {
     hoursPlayed: number;
     peakRank: string;
     favoriteChampion: string;
+    kdaRatio: number;
+    winRate: number;
   };
   onRestart: () => void;
 }
@@ -44,8 +46,8 @@ export function FinalRecapSlide({
           hoursPlayed: highlightStats.hoursPlayed,
           peakRank: highlightStats.peakRank,
           favoriteChampion: highlightStats.favoriteChampion,
-          kdaRatio: 3.8,
-          winRate: 57,
+          kdaRatio: highlightStats.kdaRatio,
+          winRate: highlightStats.winRate,
         }}
       />
       
