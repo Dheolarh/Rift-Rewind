@@ -10,6 +10,7 @@ interface DuoPartnerSlideProps {
   wins: number;
   winRate: number;
   playerName?: string; // Player's own name
+  playerProfileIconId?: number; // Player's profile icon ID from API
   aiHumor?: string;
 }
 
@@ -31,8 +32,18 @@ export function DuoPartnerSlide({
   wins,
   winRate,
   playerName,
+  playerProfileIconId,
   aiHumor = "You two are like peanut butter and jelly... if jelly could flash-ult and secure pentas!"
 }: DuoPartnerSlideProps) {
+  // Riot Data Dragon URLs for profile icons
+  const DDRAGON_VERSION = '14.23.1'; // Can be updated to latest
+  const playerIconUrl = playerProfileIconId 
+    ? `https://ddragon.leagueoflegends.com/cdn/${DDRAGON_VERSION}/img/profileicon/${playerProfileIconId}.png`
+    : "https://ddragon.leagueoflegends.com/cdn/14.23.1/img/profileicon/29.png"; // Default icon
+  
+  // Partner icon - use default since we don't have their profileIconId
+  const partnerIconUrl = "https://ddragon.leagueoflegends.com/cdn/14.23.1/img/profileicon/588.png"; // Default duo icon
+  
   return (
     <div className="relative w-full h-full overflow-hidden bg-[#010A13] flex items-center justify-center px-4">
       {/* Background Image */}
@@ -73,15 +84,36 @@ export function DuoPartnerSlide({
           </h1>
         </motion.div>
 
-        {/* Partner Icon (using Plus icon as duo symbol) */}
+        {/* Profile Icons with Plus */}
         <motion.div
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.4, duration: 0.6 }}
-          className="flex items-center justify-center"
+          className="flex items-center gap-3 sm:gap-4"
         >
-          <div className="w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 rounded-full bg-gradient-to-br from-[#0AC8B9] to-[#C8AA6E] flex items-center justify-center">
-            <Plus className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 text-white" strokeWidth={3} />
+          {/* Your Profile Icon */}
+          <div className="flex flex-col items-center gap-1.5">
+            <div className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-full overflow-hidden border-2 border-[#C8AA6E] bg-[#0A0E15]">
+              <ImageWithFallback
+                src={playerIconUrl}
+                alt="Your profile"
+                className="w-full h-full object-cover"
+              />
+            </div>
+          </div>
+
+          {/* Plus Sign */}
+          <Plus className="w-5 h-5 sm:w-6 sm:h-6 text-[#0AC8B9]" />
+
+          {/* Partner's Profile Icon */}
+          <div className="flex flex-col items-center gap-1.5">
+            <div className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-full overflow-hidden border-2 border-[#0AC8B9] bg-[#0A0E15]">
+              <ImageWithFallback
+                src={partnerIconUrl}
+                alt="Partner profile"
+                className="w-full h-full object-cover"
+              />
+            </div>
           </div>
         </motion.div>
 

@@ -239,6 +239,7 @@ export default function App() {
   // Backend integration state
   const [sessionId, setSessionId] = useState<string>("");
   const [sessionData, setSessionData] = useState<any>(null);
+  const [playerInfo, setPlayerInfo] = useState<any>(null);
   const [loadingError, setLoadingError] = useState<string>("");
   const [isAnalysisComplete, setIsAnalysisComplete] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
@@ -298,6 +299,7 @@ export default function App() {
       );
       
       setSessionData(session.analytics);
+      setPlayerInfo(session.player);
       setIsAnalysisComplete(true);
       
     } catch (error) {
@@ -508,6 +510,7 @@ export default function App() {
             <DuoPartnerSlide 
               {...sessionData.slide9_duoPartner}
               playerName={displayName}
+              playerProfileIconId={playerInfo?.profileIconId}
               aiHumor={sessionData.slide9_humor || "You two are like peanut butter and jelly... if jelly could flash-ult and secure pentas! 🥜✨"}
             />
           )}
@@ -553,7 +556,7 @@ export default function App() {
                 gamesPlayed: sessionData.slide2_timeSpent?.totalGames || 0,
                 hoursPlayed: sessionData.slide2_timeSpent?.totalHours || 0,
                 peakRank: sessionData.slide6_rankedJourney?.currentRank || "UNRANKED",
-                favoriteChampion: sessionData.slide3_favoriteChampions?.[0]?.champion || "Unknown",
+                favoriteChampion: sessionData.slide3_favoriteChampions?.[0]?.name || "Unknown",
                 kdaRatio: sessionData.slide5_kda?.kdaRatio || 0,
                 winRate: sessionData.slide6_rankedJourney?.winRate || 0,
               }}

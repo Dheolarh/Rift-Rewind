@@ -3,6 +3,8 @@ import { Swords, ChevronDown, Music } from "lucide-react";
 import { ImageWithFallback } from "../source/ImageWithFallback";
 import logoImage from "../../assets/logo.webp";
 import welcomeBg from "../../assets/WelcomeBg.webp";
+import { useState, useEffect } from "react";
+import api, { Region } from "../../services/api";
 
 interface WelcomeSlideProps {
   summonerName: string;
@@ -16,20 +18,6 @@ interface WelcomeSlideProps {
   onMusicToggle: () => void;
 }
 
-const REGIONS = [
-  { value: "na", label: "North America" },
-  { value: "euw", label: "Europe West" },
-  { value: "eune", label: "Europe Nordic & East" },
-  { value: "kr", label: "Korea" },
-  { value: "br", label: "Brazil" },
-  { value: "lan", label: "Latin America North" },
-  { value: "las", label: "Latin America South" },
-  { value: "oce", label: "Oceania" },
-  { value: "ru", label: "Russia" },
-  { value: "tr", label: "Turkey" },
-  { value: "jp", label: "Japan" },
-];
-
 export function WelcomeSlide({
   summonerName,
   summonerTag,
@@ -41,6 +29,27 @@ export function WelcomeSlide({
   isMusicPlaying,
   onMusicToggle,
 }: WelcomeSlideProps) {
+  const [regions, setRegions] = useState<Region[]>([]);
+  const [loadingRegions, setLoadingRegions] = useState(true);
+
+  // Fetch regions from API
+  useEffect(() => {
+    const fetchRegions = async () => {
+      try {
+        const response = await api.getRegions();
+        setRegions(response.regions);
+      } catch (error) {
+        console.error('Failed to fetch regions:', error);
+        // Fallback to empty array if API fails
+        setRegions([]);
+      } finally {
+        setLoadingRegions(false);
+      }
+    };
+
+    fetchRegions();
+  }, []);
+
   const canStart = summonerName.trim() && summonerTag.trim() && region;
 
   return (
@@ -176,10 +185,13 @@ export function WelcomeSlide({
                   <select
                     value={region}
                     onChange={(e) => onRegionChange(e.target.value)}
+                    disabled={loadingRegions}
                     className="w-full bg-[#010A13]/80 border-2 border-[#0AC8B9]/40 rounded-sm px-3 py-2 text-white appearance-none focus:border-[#0AC8B9] focus:outline-none transition-all cursor-pointer text-sm"
                   >
-                    <option value="" disabled>Select your region...</option>
-                    {REGIONS.map(({ value, label }) => (
+                    <option value="" disabled>
+                      {loadingRegions ? 'Loading regions...' : 'Select your region...'}
+                    </option>
+                    {regions.map(({ value, label }) => (
                       <option key={value} value={value} className="bg-[#0A1428]">
                         {label}
                       </option>

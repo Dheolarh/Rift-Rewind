@@ -10,7 +10,7 @@ This document shows all variables sent from the backend analytics for each slide
 
 ```json
 {
-  "totalGames": 377,
+  "totalGames": 669,
   "totalHours": 312.5,
   "avgGameLength": 28.5,
   "totalMinutes": 18750
@@ -18,10 +18,16 @@ This document shows all variables sent from the backend analytics for each slide
 ```
 
 **Variables:**
-- `totalGames` (int) - Total number of games played
-- `totalHours` (float) - Total hours spent playing (rounded to 1 decimal)
+- `totalGames` (int) - Total number of matches analyzed (all matches fetched)
+- `totalHours` (float) - Total hours spent playing
 - `avgGameLength` (float) - Average game duration in minutes
-- `totalMinutes` (float) - Total minutes played
+- `totalMinutes` (int) - Total minutes played
+
+**Important Notes:**
+- **NO SAMPLING** - All matches are fetched and analyzed
+- `totalGames` = actual number of matches in the time period
+- All calculations based on complete match history
+- Matches consistency with all other slides
 
 ---
 

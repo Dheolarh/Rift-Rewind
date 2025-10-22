@@ -40,10 +40,22 @@ export function BestMatchSlide({
   aiHumor = "This match was so epic, even the enemy team was probably cheering for you! 🎭"
 }: BestMatchSlideProps) {
   const [championIcon, setChampionIcon] = useState<string>("");
+  const [loading, setLoading] = useState(true);
 
   // Load champion icon
   useEffect(() => {
-    getChampionIconUrl(champion).then(setChampionIcon);
+    const loadIcon = async () => {
+      try {
+        const url = await getChampionIconUrl(champion);
+        setChampionIcon(url);
+      } catch (error) {
+        console.error('Failed to load champion icon:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    loadIcon();
   }, [champion]);
 
   // Format timestamp to readable date
@@ -90,13 +102,19 @@ export function BestMatchSlide({
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.4, duration: 0.6 }}
-          style={{ width: '160px', height: '160px' }}
+          className="w-40 h-40 border-2 border-[#C8AA6E] rounded-sm overflow-hidden bg-[#0A0E15]"
         >
-          <ImageWithFallback
-            src={championIcon}
-            alt={champion}
-            className="w-full h-full object-cover"
-          />
+          {!loading ? (
+            <ImageWithFallback
+              src={championIcon}
+              alt={champion}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <div className="w-full h-full bg-[#1a1f2e] animate-pulse flex items-center justify-center">
+              <div className="text-[#C8AA6E] text-sm">Loading...</div>
+            </div>
+          )}
         </motion.div>
 
         {/* Champion Name & Date */}

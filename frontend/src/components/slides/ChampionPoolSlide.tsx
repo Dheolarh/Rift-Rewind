@@ -114,7 +114,7 @@ export function ChampionPoolSlide({
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.6, duration: 0.8 }}
-          className="flex-1 w-full overflow-y-auto scrollbar-thin scrollbar-thumb-[#8B5CF6] scrollbar-track-[#8B5CF6]/10 px-2"
+          className="flex-1 w-full overflow-y-auto scrollbar-hide px-2"
         >
           <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-1.5 sm:gap-2 w-full max-w-4xl mx-auto pb-4">
             {displayChampions.map((championName, idx) => (

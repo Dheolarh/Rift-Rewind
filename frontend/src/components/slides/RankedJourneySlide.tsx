@@ -125,6 +125,7 @@ export function RankedJourneySlide({
             <span>{lp} LP</span>
             <span>•</span>
             <span className="text-[#0AC8B9]">{wins}W</span>
+            <span>•</span>
             <span className="text-[#C75050]">{losses}L</span>
           </div>
           <div className="text-sm text-[#C8AA6E] mt-1">

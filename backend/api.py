@@ -139,29 +139,15 @@ class RiftRewindAPI:
             match_ids = fetcher.fetch_match_history(puuid, region)
             total_matches = len(match_ids)
             
-            # Apply intelligent sampling ONLY if > 300 matches
-            if total_matches > 300:
-                from services.match_analyzer import IntelligentSampler
-                sampler = IntelligentSampler()
-                sampling_result = sampler.sample_matches(match_ids)
-                matches_to_fetch = sampling_result['sampled_match_ids'][:300]  # Cap at 300
-                fetcher.data['samplingMetadata'] = {
-                    'totalMatches': total_matches,
-                    'analyzedMatches': len(matches_to_fetch),
-                    'samplePercentage': (len(matches_to_fetch) / total_matches) * 100,
-                    'strategy': 'intelligent_monthly_sampling'
-                }
-                logger.info(f"🎯 Sampling {len(matches_to_fetch)} matches out of {total_matches} total")
-            else:
-                # Fetch ALL matches if <= 300
-                matches_to_fetch = match_ids
-                fetcher.data['samplingMetadata'] = {
-                    'totalMatches': total_matches,
-                    'analyzedMatches': total_matches,
-                    'samplePercentage': 100.0,
-                    'strategy': 'full_analysis'
-                }
-                logger.info(f"✓ Analyzing all {total_matches} matches (no sampling needed)")
+            # NO SAMPLING - Analyze ALL matches
+            matches_to_fetch = match_ids
+            fetcher.data['samplingMetadata'] = {
+                'totalMatches': total_matches,
+                'analyzedMatches': total_matches,
+                'samplePercentage': 100.0,
+                'strategy': 'full_analysis'
+            }
+            logger.info(f"✓ Analyzing ALL {total_matches} matches (no sampling)")
             
             matches = fetcher.fetch_match_details_batch(matches_to_fetch, region, use_sampling=False)
             
@@ -221,6 +207,7 @@ class RiftRewindAPI:
                 'tagLine': tag_line,
                 'region': region,
                 'summonerLevel': fetcher.data['summoner']['summonerLevel'],
+                'profileIconId': fetcher.data['summoner']['profileIconId'],
                 'rank': analytics.get('slide6_rankedJourney', {}).get('currentRank', 'UNRANKED')
             }
             

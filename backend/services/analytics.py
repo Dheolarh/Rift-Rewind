@@ -56,6 +56,7 @@ class RiftRewindAnalytics:
         Returns:
             Dict with total games, hours, average game length
         """
+        # Count all analyzed matches (no sampling - we fetch everything now)
         total_games = len(self.matches)
         total_seconds = 0
         
@@ -148,25 +149,33 @@ class RiftRewindAnalytics:
             if not stats:
                 continue
             
-            # Calculate performance score
+            # Get actual stats from API (not calculated)
             kills = stats.get('kills', 0)
             deaths = stats.get('deaths', 0)
             assists = stats.get('assists', 0)
             won = stats.get('win', False)
             
-            # Score = KDA + win bonus
-            kda = (kills + assists) / deaths if deaths > 0 else (kills + assists)
-            score = kda + (10 if won else 0)
+            # Try to get KDA from API challenges, fallback to calculation
+            # Riot API provides pre-calculated KDA in challenges.kda
+            kda = stats.get('challenges', {}).get('kda')
+            if kda is None:
+                # Fallback: calculate KDA from kills/deaths/assists
+                kda = (kills + assists) / deaths if deaths > 0 else (kills + assists)
+            
+            # Enhanced scoring: KDA * (kills + assists/2) + win bonus
+            # This rewards both high KDA AND high kill participation
+            kill_participation = kills + (assists / 2)  # Kills worth more than assists
+            score = (kda * kill_participation) + (20 if won else 0)
             
             if score > best_score:
                 best_score = score
                 best_match = {
                     'matchId': match.get('metadata', {}).get('matchId'),
                     'champion': stats.get('championName'),
-                    'kills': kills,
-                    'deaths': deaths,
-                    'assists': assists,
-                    'kda': round(kda, 2),
+                    'kills': kills,  # Direct from API
+                    'deaths': deaths,  # Direct from API
+                    'assists': assists,  # Direct from API
+                    'kda': round(kda, 2),  # From API or calculated
                     'result': 'Victory' if won else 'Defeat',
                     'duration': round(match.get('info', {}).get('gameDuration', 0) / 60, 0),
                     'gameMode': match.get('info', {}).get('gameMode', 'CLASSIC'),
@@ -382,9 +391,9 @@ class RiftRewindAnalytics:
             'winRate': self._calculate_win_rate(),
             
             # Ranked stats
-            'currentTier': ranked_stats.get('currentTier'),
-            'currentDivision': ranked_stats.get('currentDivision'),
-            'currentLP': ranked_stats.get('currentLP'),
+            'currentTier': ranked_stats.get('tier', 'UNRANKED'),
+            'currentDivision': ranked_stats.get('division', ''),
+            'currentLP': ranked_stats.get('lp', 0),
             
             # Champion pool
             'topChampions': top_champs[:3],

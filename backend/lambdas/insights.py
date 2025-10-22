@@ -86,7 +86,7 @@ class InsightsGenerator:
         
         # Format top champions list with detailed stats
         champs_list = ', '.join([
-            f"{c.get('champion', 'Unknown')} ({c.get('gamesPlayed', 0)} games, {c.get('winRate', 0):.1f}% WR, {c.get('kda', 0):.2f} KDA)" 
+            f"{c.get('name', 'Unknown')} ({c.get('games', 0)} games, {c.get('winRate', 0):.1f}% WR, {c.get('kda', 0):.2f} KDA)" 
             for c in top_champions
         ]) if top_champions else 'Not enough data'
         

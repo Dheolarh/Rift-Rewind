@@ -637,8 +637,8 @@ class LeagueDataFetcher:
         # Step 5: Fetch match history (FULL YEAR)
         match_ids = self.fetch_match_history(puuid, region)
         
-        # Step 6: Fetch match details for ALL matches
-        self.fetch_match_details_batch(match_ids, region)
+        # Step 6: Fetch match details for ALL matches (no sampling)
+        self.fetch_match_details_batch(match_ids, region, use_sampling=False)
         
         # Step 7: Store to S3
         s3_key = self.store_to_s3()

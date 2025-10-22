@@ -24,18 +24,32 @@ export function FavoriteChampionsSlide({
 }: FavoriteChampionsSlideProps) {
   // Show top 5 champions
   const topFive = champions.slice(0, 5);
+  const [iconUrls, setIconUrls] = useState<Record<string, string>>({});
+  const [loading, setLoading] = useState(true);
 
-  // Champion icon component with dynamic loading
+  // Preload all champion icons at once
+  useEffect(() => {
+    const loadIcons = async () => {
+      const urls: Record<string, string> = {};
+      const championsToLoad = champions.slice(0, 5);
+      await Promise.all(
+        championsToLoad.map(async (champion) => {
+          const url = await getChampionIconUrl(champion.name);
+          urls[champion.name] = url;
+        })
+      );
+      setIconUrls(urls);
+      setLoading(false);
+    };
+    
+    loadIcons();
+  }, [champions]);
+
+  // Champion icon component
   const ChampionIcon = ({ championName }: { championName: string }) => {
-    const [iconUrl, setIconUrl] = useState<string>("");
-
-    useEffect(() => {
-      getChampionIconUrl(championName).then(setIconUrl);
-    }, [championName]);
-
     return (
       <ImageWithFallback
-        src={iconUrl}
+        src={iconUrls[championName] || ""}
         alt={championName}
         className="size-full object-cover"
       />
@@ -94,13 +108,13 @@ export function FavoriteChampionsSlide({
           transition={{ duration: 0.6 }}
           className="mb-6 sm:mb-8"
         >
-          <h1 className="text-2xl sm:text-2xl md:text-3xl bg-gradient-to-r from-[#FFD700] via-[#C8AA6E] to-[#F0E6D2] bg-clip-text text-transparent" style={{ fontFamily: 'Georgia, serif' }}>
+          <h1 className="text-2xl sm:text-2xl md:text-3xl bg-gradient-to-r from-[#FFD700] via-[#C8AA6E] to-[#FFD700] bg-clip-text text-transparent" style={{ fontFamily: 'Georgia, serif' }}>
             Your Top Champions
           </h1>
         </motion.div>
 
         {/* Champions List */}
-        <div className="w-full max-w-md space-y-4 sm:space-y-4">
+        <div className="w-full max-w-md space-y-5 sm:space-y-6">
           {topFive.map((champion, index) => (
             <motion.div
               key={champion.name}
@@ -111,21 +125,29 @@ export function FavoriteChampionsSlide({
                 duration: 0.5,
                 ease: [0.4, 0, 0.2, 1]
               }}
-              className="flex items-center gap-4 sm:gap-4"
+              className="flex items-center gap-4 sm:gap-5"
             >
               {/* Number - LoL Gold */}
               <div className="text-2xl sm:text-2xl md:text-3xl text-[#C8AA6E] w-7 sm:w-8 flex-shrink-0 tabular-nums" style={{ fontFamily: 'Georgia, serif' }}>
                 {index + 1}
               </div>
 
-              {/* Champion Image with Gold Frame - NO corner accents */}
-              <div className="relative w-14 h-14 sm:w-14 sm:h-14 md:w-16 md:h-16 flex-shrink-0">
-                {/* Gold Frame Border */}
-                <div className="absolute inset-0 bg-gradient-to-br from-[#FFD700] via-[#C8AA6E] to-[#8B7548] p-[2px]">
-                  <div className="w-full h-full bg-[#010A13] overflow-hidden">
+              {/* Champion Image with Gold Frame */}
+              <div className="relative w-16 h-16 sm:w-16 sm:h-16 md:w-18 md:h-18 flex-shrink-0" style={{marginTop: '2px', marginBottom: '2px'}}>
+                {/* Gold Border Frame */}
+                <div className="relative w-full h-full border-2 border-[#C8AA6E] rounded-sm overflow-hidden bg-[#0A0E15]">
+                  {!loading ? (
                     <ChampionIcon championName={champion.name} />
-                  </div>
+                  ) : (
+                    <div className="w-full h-full bg-[#1a1f2e] animate-pulse"></div>
+                  )}
                 </div>
+                
+                {/* Corner Accents - Small gold corners */}
+                <div className="absolute top-0 left-0 w-2 h-2 border-t-2 border-l-2 border-[#FFD700]"></div>
+                <div className="absolute top-0 right-0 w-2 h-2 border-t-2 border-r-2 border-[#FFD700]"></div>
+                <div className="absolute bottom-0 left-0 w-2 h-2 border-b-2 border-l-2 border-[#FFD700]"></div>
+                <div className="absolute bottom-0 right-0 w-2 h-2 border-b-2 border-r-2 border-[#FFD700]"></div>
               </div>
 
               {/* Champion Info */}
@@ -143,7 +165,7 @@ export function FavoriteChampionsSlide({
                   <span className="text-[#A09B8C]"> • </span>
                   <span className="text-[#FFD700]">{champion.kda.toFixed(2)} KDA</span>
                   <span className="text-[#A09B8C]"> • </span>
-                  <span className="text-[#5DADE2]">{champion.avgKills.toFixed(1)} K</span>
+                  <span className="text-[#0AC8B9]">{champion.avgKills.toFixed(1)} Average kills</span>
                 </p>
               </div>
             </motion.div>

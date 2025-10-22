@@ -4,22 +4,22 @@ Constants for Riot API endpoints, region mappings, and configuration
 
 # Region mappings for Riot API routing
 REGIONS = [
-    {"label": "North America", "value": "na1", "flag": "🇺🇸", "regional": "americas"},
-    {"label": "Europe West", "value": "euw1", "flag": "🇪🇺", "regional": "europe"},
-    {"label": "Europe Nordic & East", "value": "eun1", "flag": "🇪🇺", "regional": "europe"},
-    {"label": "Korea", "value": "kr", "flag": "🇰🇷", "regional": "asia"},
-    {"label": "Brazil", "value": "br1", "flag": "🇧🇷", "regional": "americas"},
-    {"label": "Japan", "value": "jp1", "flag": "🇯🇵", "regional": "asia"},
-    {"label": "Latin America North", "value": "la1", "flag": "🇲🇽", "regional": "americas"},
-    {"label": "Latin America South", "value": "la2", "flag": "🇦🇷", "regional": "americas"},
-    {"label": "Oceania", "value": "oc1", "flag": "🇦🇺", "regional": "americas"},
-    {"label": "Turkey", "value": "tr1", "flag": "🇹🇷", "regional": "europe"},
-    {"label": "Russia", "value": "ru", "flag": "🇷🇺", "regional": "europe"},
-    {"label": "Philippines", "value": "ph2", "flag": "🇵🇭", "regional": "sea"},
-    {"label": "Singapore", "value": "sg2", "flag": "🇸🇬", "regional": "sea"},
-    {"label": "Thailand", "value": "th2", "flag": "🇹🇭", "regional": "sea"},
-    {"label": "Taiwan", "value": "tw2", "flag": "🇹🇼", "regional": "sea"},
-    {"label": "Vietnam", "value": "vn2", "flag": "🇻🇳", "regional": "sea"},
+    {"label": "North America (NA)", "value": "na1", "flag": "🇺🇸", "regional": "americas"},
+    {"label": "Europe West (EUW)", "value": "euw1", "flag": "🇪🇺", "regional": "europe"},
+    {"label": "Europe Nordic & East (EUNE)", "value": "eun1", "flag": "🇪🇺", "regional": "europe"},
+    {"label": "Korea (KR)", "value": "kr", "flag": "🇰🇷", "regional": "asia"},
+    {"label": "Brazil (BR)", "value": "br1", "flag": "🇧🇷", "regional": "americas"},
+    {"label": "Japan (JP)", "value": "jp1", "flag": "🇯🇵", "regional": "asia"},
+    {"label": "Latin America North (LAN)", "value": "la1", "flag": "🇲🇽", "regional": "americas"},
+    {"label": "Latin America South (LAS)", "value": "la2", "flag": "🇦🇷", "regional": "americas"},
+    {"label": "Oceania (OCE)", "value": "oc1", "flag": "🇦🇺", "regional": "americas"},
+    {"label": "Turkey (TR)", "value": "tr1", "flag": "🇹🇷", "regional": "europe"},
+    {"label": "Russia (RU)", "value": "ru", "flag": "🇷🇺", "regional": "europe"},
+    {"label": "Philippines (PH)", "value": "ph2", "flag": "🇵🇭", "regional": "sea"},
+    {"label": "Singapore (SG)", "value": "sg2", "flag": "🇸🇬", "regional": "sea"},
+    {"label": "Thailand (TH)", "value": "th2", "flag": "🇹🇭", "regional": "sea"},
+    {"label": "Taiwan (TW)", "value": "tw2", "flag": "🇹🇼", "regional": "sea"},
+    {"label": "Vietnam (VN)", "value": "vn2", "flag": "🇻🇳", "regional": "sea"},
 ]
 
 # Platform to Regional routing mapping

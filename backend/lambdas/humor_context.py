@@ -23,7 +23,7 @@ from services.aws_clients import get_bedrock_client, download_from_s3, upload_to
 SLIDE_PROMPTS = {
     1: None,
     
-    2: """You're roasting a player's gaming habits.
+    2: """You're a hilarious commentator like Doublelift or Tyler1, you are to make funny, sarcastic and hilarious commentaries on a player's League of legends gaming habit based on analytics recieved from player season recap.
 
 Stats:
 - Total Games: {totalGames}
@@ -31,31 +31,28 @@ Stats:
 - Total Minutes: {totalMinutes} minutes
 - Average Game Length: {avgGameLength} minutes
 
-Write ONE savage but funny hilarious sentence (max 30 words) roasting their time investment. Use the EXACT numbers from the stats. NO EMOJIS.
+Write one hilarious comment that references popular memes (max 30 words) based on the amount of time player spent player games. Use the EXACT numbers from the stats. NO EMOJIS.
 
 Examples:
-"{totalMinutes} minutes of play?! if you took up knitting, you might actually create something useful in that time. Ever heard of a thing called a job?"
-"{totalGames} games? Your poor keyboard deserves hazard pay at this point!"
-"Spent {totalHours} hours this year. The grass outside filed a missing persons report!"
+if game totalHours is above average ( {totalHours} > 500 hours)
+"You played a total of {totalHours} hours??? That's longer than most Netflix series. Touch grass challenge: FAILED."
+"Grinding {totalHours} hours straight? Your parents must think you're dead. Haven't seen daylight since S13."
+"{totalGames} games in {totalHours} hours? That's Olympic-level dedication to losing."
 
+if game totalHours is average ({totalHours} is between 100-500 hours)
+"{totalGames} games and {totalHours} hours? Your sleep schedule called, it's filing a restraining order."
+"Playing {totalGames} games for {totalHours} hours? That's 'I told my girlfriend it's just one more game' energy."
+"Mom controlling your playtime at {totalHours} hours? More like dad unplugging the router."
+
+if game totalHours is below average ({totalHours} < 100 hours)
+"Just {totalHours} hours and {totalGames} games? That's {avgGameLength} minutes per game. Why queue if you FF at 15?"
+"Averaging {avgGameLength} minutes per game? You're not playing League, you're speedrunning losses."
+"{totalHours} hours across {totalGames} games? That's speedrunner energy with hardstuck results."
 
 Max 30 words. Be SAVAGE but hilarious. Use actual stats. NO EMOJIS:""",
     
-    3: """You're roasting a player's champion choice.
-
-Their champions:
-{championsList}
-
-Write ONE savage sentence (max 30 words) roasting their champion pool. Use ACTUAL champion names and stats. NO EMOJIS.
-
-Examples:
-"Yasuo main with 142 games at 45% winrate? The 0/10 powerspike isn't a meme, it's your lifestyle!"
-"84 games on Yuumi? That's not playing League, that's watching Netflix with extra steps!"
-"Master Yi one-trick with 38% winrate? Right-click harder, surely that'll work eventually!"
-
-Max 30 words. ROAST them using real champion names and stats. NO EMOJIS:""",
     
-    4: """You're commenting on someone's best match performance.
+    4: """You're a hilarious commentator like Doublelift or Tyler1, You're commenting on someone's best match performance based on his league of legends season recap.
 
 Match stats:
 - Result: {win}
@@ -63,33 +60,52 @@ Match stats:
 - Champion: {championName}
 - Duration: {gameDuration} minutes
 
-Write ONE savage but funny sentence (max 30 words) about this match. Use EXACT stats. NO EMOJIS.
+Write ONE sarcastic comment (max 30 words) about this match. Use EXACT stats. NO EMOJIS.
 
 Examples:
-"18/2/12 {championName} game? Okay smurf, we see you! The enemy team probably FF'd at 15!"
-"3/9/5? Well... you tried. That's what participation trophies are for, right?"
-"{kills}/{deaths}/{assists} on {championName}? That KDA is definitely... a set of numbers that happened!"
+if player have high stats ({kills} > 20)
+"Wow, you are a beautiful source of ragebait to your opponents. {Kills} kills in {totalMinutes} minutes? Did you hack the game? "
 
-Max 30 words. Roast their performance using actual stats. NO EMOJIS:""",
+if player have average stats ({Kills} is between 10-20)
+"Your best match? {kills} kills in {gameDuration} minutes? What an average Joe moment."
+
+if player has low stats ({kills} < 10)
+"How does one even score this low in their BEST match? {kills} Kills/{deaths} Deaths/{assists} Assists? Did your cat play?"
+"Your best performance was {kills} kills? Even participation trophies look down on you."
+"{gameDuration} minutes and only {kills} kills on {championName}? That's not a best game, that's a cry for help."
+
+Max 30 words. Rate and give sarcastic comments about their performance using actual stats. NO EMOJIS:""",
     
-    5: """You're roasting someone's KDA stats.
+    5: """You're roasting someone's KDA stats in their league of legends seasons recap.
 
 Stats:
+- Total Kills: {totalKills}
 - Average Kills: {avgKills}
 - Average Deaths: {avgDeaths}
 - Average Assists: {avgAssists}
 - KDA Ratio: {kdaRatio}
 
-Write ONE savage sentence (max 30 words) about their KDA. Use EXACT numbers. NO EMOJIS.
+Write ONE savage sarcastic sentence (max 30 words) about their KDA. Use EXACT numbers. NO EMOJIS.
 
 Examples:
-"{kdaRatio} KDA with {avgDeaths} average deaths? You're not running it down, just speedwalking to the fountain!"
-"7.2 deaths per game? The grey screen sees you more than your teammates do!"
-"That {kdaRatio} KDA screams 'I play for the team!' Translation: professional feeder!"
+if KDA is high ({kdaRatio}>4.0)
+"I thought John Wick was the best. Guess he hasn't seen your {totalKills} kills.    "
+"{kdaRatio} KDA ratio? That's not a statistic, that's a war crime. Your enemies have a support group."
+"{avgKills} kills per game average? You're out here playing deathmatch while everyone else plays chess."
 
-Max 30 words. Be SAVAGE with the actual stats. NO EMOJIS:""",
+if KDA is average ({kdaRatio} is between 2.0-4.0)
+"{totalKills} kills across hundreds of games? You're the participation trophy of League players."
+"{avgKills} kills, {avgDeaths} deaths? You're trying your best and that's what matters, champ."
+"KDA of {kdaRatio}? You're like that friend who's not bad, just... forgettable."
+
+if KDA is low ({kdaRatio}<2.0)
+"{totalKills} kills total? You're the side character in your own movie, not even a villain."
+"KDA ratio of {kdaRatio}? Even your ward has better statistics than you."
+"{avgDeaths} deaths per game average? You're not playing League, you're speedrunning the fountain respawn timer."
+
+Max 30 words. Be SAVAGE and SARCASTIC with the actual stats. NO EMOJIS:""",
     
-    6: """You're roasting someone's ranked journey.
+    6: """You're commenting a player's ranked journey in their league of legends seasons recap.
 
 Ranked stats:
 - Current Rank: {currentRank}
@@ -100,31 +116,56 @@ Ranked stats:
 Write ONE savage sentence (max 30 words) about their rank. Use EXACT rank and stats. NO EMOJIS.
 
 Examples (ranked):
-"{currentRank} with {winRate}% winrate after {totalGames} games? Hardstuck isn't a rank, it's a lifestyle!"
-"Gold 2? So close to Platinum yet so far. The climb is real! Or... is it?"
-"Silver with 200 games played? Elo hell doesn't exist, it's a skill issue!"
+if high rank (Diamond+)
+"What audacity do I have in the face of {currentRank} summoner? At your command, sire. Teach us mere mortals."
+"{currentRank} at {leaguePoints} LP? You're living the dream we Bronze players only fantasize about."
+"Climbing to {currentRank} with {winRate}% winrate? Even your losses have the smell of superiority."
+
+if medium rank (Gold-Platinum)
+"You're {currentRank} with a {winRate}% winrate? We're basically the same rank, we both suck equally."
+"{currentRank} after {totalGames} games? You're stable mediocrity incarnate. Not bad, just... mid."
+"{leaguePoints} LP away from the next tier? You're the Sisyphus of League, forever pushing that boulder."
+
+if low rank (Silver and below)
+"David killed Goliath, but you... You didn't even pick up the stones. Still stuck in {currentRank}."
+"{currentRank} after {totalGames} games? That's dedication to the struggle I respect but also pity."
+"Your rank? It's giving 'elo hell' when it's actually just you."
 
 Examples (unranked):
-"Unranked after all those games? Normals warrior protecting that mental!"
+"A knight with no honor is like a summoner with no rank after {totalGames} games."
+"{totalGames} normals but no ranked? You're scared of the truth that you're hardstuck Iron."
+"You've played {totalGames} games but won't touch ranked? Even bots have more conviction."
 
 Max 30 words. Use actual rank and stats. NO EMOJIS:""",
     
-    7: """You're roasting someone's vision score.
+    7: """You're commenting on a summoner's vision score in their league of legends seasons recap.
 
 Stats:
 - Avg Vision Score: {avgVisionScore}
+- Vision Score: {visionScore}
 - Wards Placed: {avgWardsPlaced}
 
 Write ONE savage sentence (max 30 words) about their warding. Use EXACT numbers.
 
 Examples:
-"Vision score {avgVisionScore}? The minimap must be decorative for you! Have you heard of Control Wards? �️"
-"{avgWardsPlaced} wards per game? So generous! That's almost one every 5 minutes! 🔍"
-"Average {avgVisionScore} vision? The fog of war is your best friend apparently! Buy wards! 🎯"
+if high vision score ({visionScore} > 70 avg)
+"Hope you have 20/20 vision IRL too because {visionScore} is no joke. {avgWardsPlaced} wards per game? You're a utility god."
+"{avgVisionScore} average vision score? You're literally carrying your team's eyeballs. They owe you a drink."
+"You place {avgWardsPlaced} wards per game? That's not support, that's OCD in the best way possible."
 
-Max 30 words. Roast the actual vision stats:""",
+if average vision score ({visionScore} is between 40-70)
+"I don't know what to say... {avgVisionScore} vision score? You did... okay? Not great, not terrible."
+"Your {visionScore} vision score is respectable. You've heard of warding. Congrats on the bare minimum."
+"{avgWardsPlaced} wards per game? That's the statistical definition of 'trying but forgetting.'"
+
+if low vision score ({visionScore} <40)
+"I'm launching my mini-map goggles at 100% discount! You know what it does?"
+"Your vision score is {visionScore}? Even the enemy jungler has better map awareness at this point."
+"{avgWardsPlaced} wards per game? Did you forget wards heal you or just don't believe in vision?"
+
+Max 30 words. Comment on the actual vision stats. NO EMOJIS:""",
     
-    8: """You're roasting champion pool diversity.
+    8: """You're commenting on a summoner's champion pool diversity in their league of legends seasons recap.
 
 Stats:
 - Unique Champions: {uniqueChampions}
@@ -133,13 +174,22 @@ Stats:
 Write ONE savage sentence (max 30 words) using EXACT numbers. NO EMOJIS.
 
 Examples:
-"Played {uniqueChampions} different champions in {totalGames} games? That's not versatility, that's a full-blown identity crisis!"
-"One-trick with {uniqueChampions} champions? Master of none! Jack of... well, nothing really!"
-"{uniqueChampions} champions means you're equally bad at all of them! Congrats on the consistency!"
+if {uniqueChampions} > 50
+"Yeah, {uniqueChampions} unique champions is absolutely necessary to solo the rift. Mastery: 0 on all of them probably."
+"{uniqueChampions} champions?   A jack of all trades and master of none"
+if {uniqueChampions} is between 20-50
+"You took {uniqueChampions} soldiers to the battlefield. What was the result? Confusion and mediocrity, probably."
+"{uniqueChampions} champions across {totalGames} games? You're jack of all trades, master of absolute nothing."
+"Playing {uniqueChampions} different champs? That's 'I panic-lock whatever' energy right there."
+
+if {uniqueChampions} < 20
+"Only {uniqueChampions} champions? That's either dedication or you're scared of learning anything new."
+"{uniqueChampions} champions in {totalGames} games? You're ACTUALLY a one-trick pony. Own it."
+"Playing just {uniqueChampions} different champions? That's the opposite of having options; that's having a problem."
 
 Max 30 words. Use actual numbers. NO EMOJIS:""",
     
-    9: """You're commenting on duo queue habits.
+    9: """You're commenting on player duo bonding in their league of legends seasons recap.
 
 Stats:
 - Partner: {partnerName}
@@ -149,41 +199,90 @@ Stats:
 Write ONE savage sentence (max 30 words) using actual stats. NO EMOJIS.
 
 Examples (with duo):
-"{gamesTogether} games with {partnerName} at {duoWinRate}% winrate? Either perfect synergy or they're carrying you. Probably the latter!"
-"Your duo carried you {gamesTogether} games. We both know it. Admit it!"
+if low {gamesTogether} (<20)
+"You only played {gamesTogether} games with {partnerName}? I wouldn't call that bonding, I'd call that a one-night stand."
+"Just {gamesTogether} games together? Your friendship needs experience points to level up."
+"{partnerName} and you: {gamesTogether} games? That's not a duo, that's a trial period."
+
+if high {gamesTogether} and high {duoWinRate} (>60%)
+"You and {partnerName} are the real reasons players quit. {duoWinRate}% winrate across {gamesTogether} games? Absolutely cringe."
+"{gamesTogether} games, {duoWinRate}% winrate with {partnerName}? You two are basically the dynamic duo of suffering."
+"Playing {gamesTogether} games with {partnerName} at {duoWinRate}% winrate? Even your enemies' therapy bills are climbing."
+
+if high {gamesTogether} and low {duoWinRate} (<45%)
+"Why even bother playing together, {partnerName}? {duoWinRate}% winrate? You're better off spectating."
+"{gamesTogether} games and {duoWinRate}% winrate? That's not a duo, that's a therapy session."
+"You two have played {gamesTogether} games together but only won {duoWinRate}% of them? Uninstall together too."
 
 Examples (solo):
-"No duo partner? Can't find anyone willing to suffer through your gameplay? Understandable!"
+"No duo partner? Can't find anyone willing to suffer through your gameplay? Understandable, honestly."
+"Playing solo after {totalGames} games? Your teammates appreciate the break from your existence."
+"No duo? Smart call. Spreading yourself across teams is damage control."
 
 Max 30 words. Roast using real stats. NO EMOJIS:""",
     
-    10: """You're giving a backhanded compliment about their strengths.
+    10: """You're giving a backhanded compliment about the players strengths derived from analysis result from their league of legends seasons recap.
 
 Top Strength: {strengths}
 
-Write ONE savage sentence (max 30 words) that sounds like praise but is actually a roast. NO EMOJIS.
+Write ONE sarcastic and witty sentence (max 30 words) that sounds like praise but is actually a roast. NO EMOJIS.
 
 Examples:
-"Great at not dying in teamfights! Now if only you could contribute kills or assists while hiding!"
-"Excellent CS! Too bad this isn't Farming Simulator. Kills win games, not creeps!"
-"Highest damage dealer! Turns out hitting minions all game does that! Who knew?"
+if strength is map awareness
+"Your map awareness is {strengths}? Wow, you occasionally glance at the minimap. Revolutionary gameplay right here."
+"Your strength is map awareness? That's not a strength, that's just playing the game correctly."
 
-Max 30 words. Compliment that's secretly an insult. NO EMOJIS:""",
+if strength is teamfighting
+"Wow, your {strengths} in teamfights is admirable. Finally, someone who shows up and presses buttons with intent!"
+"Your strength is teamfighting? Congratulations on doing the bare minimum and actually participating."
+
+if strength is mechanics
+"Your mechanical skill is {strengths}? That's great, shame the mental game doesn't exist."
+"Strong mechanics you say? Now if only your decision-making caught up."
+
+if strength is farming/CS
+"Your {strengths} CS per minute is incredible. You're basically a creep farming simulator with legs."
+"Excellent farming stats! Too bad you die immediately after."
+
+if strength is engaging
+"Your strength is engaging? You sure are engaging... the enemy team and losing fights."
+
+Max 30 words. Compliment that's secretly a roast. NO EMOJIS:""",
     
-    11: """You're pointing out a weakness with 'helpful' advice.
+    11: """You're pointing out a weakness with 'helpful' advice from analysis result from their league of legends seasons recap.
 
 Top Weakness: {weaknesses}
 
-Write ONE savage sentence (max 30 words) that sounds helpful but is actually brutal. NO EMOJIS.
+Write ONE savage and sarcastic sentence (max 30 words) that sounds helpful but is actually canny. NO EMOJIS.
 
 Examples:
-"Your CS per minute needs work. Minions don't last-hit themselves! Maybe watch a YouTube tutorial? Or three?"
-"Map awareness: 2/10. Good news: vision is free! Bad news: you still won't look at it!"
-"Positioning in teamfights? Flash is for escaping danger, not running into 1v5s! Just a tip!"
+if weakness is CS/farming
+"Your CS needs work. Minions don't last-hit themselves. Maybe watch a YouTube tutorial? Or three? Or all of them?"
+"Farm more, you say? Revolutionary advice. Minions are free gold, but apparently so is gold for you."
+
+if weakness is map awareness
+"Map awareness: critical failure. Good news: vision is free! Bad news: you still won't look at the minimap anyway."
+"Can't see the jungler? That's what the minimap is for. Try opening your eyes? Just a thought!"
+
+if weakness is positioning
+"Positioning in teamfights? Flash is for escaping danger, not running solo 1v5. Just a helpful tip!"
+"Your positioning is rough. Try staying behind your team instead of in the enemy fountain."
+
+if weakness is warding
+"You don't ward? Wards are literally free gold sense at minute 3. Even support understands this concept."
+"Vision score too low? Buy wards. It's cheaper than therapy for your teammates."
+
+if weakness is mechanics
+"Your mechanics need work. Practice in Practice Tool for once instead of bleeding LP in ranked."
+"Clunky mechanics? That's okay, start with a 2-button champion and work your way up."
+
+if weakness is decision making
+"Decision-making? Rough. Pro tip: not everything needs to be a fight. Sometimes running away is winning."
+"Your macro is atrocious. Here's a wild thought: don't fight when down 5k gold."
 
 Max 30 words. Savage advice disguised as help. NO EMOJIS:""",
-    
-    12: """You're commenting on player progress over the year.
+
+    12: """You're commenting on year overview from analysis result from their league of legends seasons recap.
 
 Stats:
 - Total Games: {totalGames}
@@ -192,31 +291,36 @@ Stats:
 Write ONE savage sentence (max 30 words) about their journey using actual numbers. NO EMOJIS.
 
 Examples (with improvement):
-"KDA went from 1.8 to {kdaRatio}? That's progress! Only took {totalGames} games to figure out dying is bad!"
-"Your winrate improved 5%! At this rate you'll hit Challenger in 2043! Keep grinding!"
-
-Examples (first season):
-"Welcome to League of Legends! {totalGames} games in and you've discovered true pain! Enjoy your stay!"
+"After {totalGames} games, your KDA is {kdaRatio}? That's not a journey, that's a hostage situation."
+"A pitiful {kdaRatio} KDA after {totalGames} games? At this rate, you'll hit average in 2030."
+"{totalGames} games later and your KDA is still {kdaRatio}? Even your
 
 Max 30 words. Progress roast with real stats. NO EMOJIS:""",
     
-    13: """You're roasting their achievements (or lack thereof).
+    13: """You're commenting on their achievements (or lack thereof).
 
 Achievements: {achievements}
 
 Write ONE savage sentence (max 30 words). NO EMOJIS.
 
 Examples (with achievements):
-"ONE pentakill all year? Congrats! The enemy team's 'stand completely still' strategy finally paid off!"
-"Triple kill! Not a quadra, not a penta, just... triple. Baby steps!"
+"Congratulations on your achievements! Now if only wins were an achievement too."
+"Look at you, collecting achievements like participation trophies. Truly impressive."
+"Your achievements: {achievements}. Your rank: still stuck. Priorities unclear."
 
 Examples (no achievements):
-"No pentakills all year? There's always next season! Or the one after. Or never. Probably never!"
-"Zero achievements? At least you showed up! Participation trophy incoming!"
+"No achievements? Not even trying for goals? That's just speedrunning irrelevance."
+"Zero achievements recorded. Were you even playing or just afk farming?"
+"No special achievements? Even bots aim for something. What's your excuse?"
+
+Examples (mid-tier achievements):
+"Some modest achievements here. Baby steps, I respect the effort."
+"Your achievements are respectable. Not exciting, but respectable in a 'participation' way."
+"Got some achievements! Now graduate to actually being good."
 
 Max 30 words. Achievement roast. NO EMOJIS:""",
     
-    14: """You're commenting on their rank percentile.
+    14: """You're commenting on their rank percentile and their position on the leaderboard from analysis result from their league of legends seasons recap.
 
 Stats:
 - Rank: {currentRank}
@@ -225,10 +329,19 @@ Stats:
 Write ONE savage sentence (max 30 words) using EXACT percentile. NO EMOJIS.
 
 Examples:
-"Top {percentile}%? So you're better than {percentile}% of players! That's... technically above average! Congrats!"
-"Top 30%? Average with extra steps! But hey, better than the bottom 70%! Silver linings!"
-"Challenger - Top 0.01%?! Grass filed a missing persons report for you months ago!"
-"Bronze - Bottom 15%? Hey, someone has to be down there! Thanks for your service!"
+if percentile is high (Top 1-5%)
+"Top {percentile}%? You're basically royalty. Everyone else is peasants. Enjoy the view from up there."
+"Only top {percentile}% of players reached your rank? That's elite. That's also unreachable for the 99.9% watching."
+
+if percentile is medium (Top 10-30%)
+"Top {percentile}% players? Congrats, you beat the casuals. Now beat the actual players."
+"In the top {percentile}%? You're better than average, which isn't saying much."
+"Top {percentile}% rank? You're basically a middle manager of League."
+
+if percentile is low (Top 50%+)
+"Top {percentile}%? Buddy, that's not an achievement, that's an average Tuesday."
+"Top {percentile}%? You and roughly half the server are equally mid."
+"Congratulations on being better than exactly half of everyone. You're median."
 
 Max 30 words. Use actual percentile. NO EMOJIS:""",
     
@@ -242,13 +355,23 @@ Stats:
 Write ONE memorable closing line (max 30 words) using actual stats. Make it savage but funny. NO EMOJIS.
 
 Examples:
-"{totalGames} games playing {topChampion} to end in {currentRank}. What a journey! Same addiction next year? See you soon!"
-"Another year, another {totalGames} games of pain, glory, and questionable decisions. Can't wait for next season's suffering!"
-"{currentRank} after all that grinding? Well... there's always next year! Maybe touch some grass first though?"
+if positive conclusion
+"That's {totalGames} games, {currentRank} rank, and one {topChampion} one-trick away from actual competence. Until next season!"
+"What a year: {totalGames} games, {currentRank} rank, and a {topChampion} obsession. Same time next year?"
+"Here's to {totalGames} games of trying. You reached {currentRank}. Growth is growth, even if it's microscopic."
 
-Max 30 words. Epic savage farewell using real stats. NO EMOJIS:""",
+if neutral/average conclusion
+"{totalGames} games. {currentRank} rank. {topChampion} addiction. That's your legacy this season. Thrilling stuff."
+"Final verdict: {totalGames} games didn't change much. You're still you, just more tired and slightly older."
+"Year summary: {totalGames} grinding sessions = {currentRank}. Mathematically concerning but emotionally relatable."
+
+if hard roast conclusion
+"{totalGames} games and you're still {currentRank}? The only thing grinding harder than you are your enemies' teeth."
+"After {totalGames} games spamming {topChampion}, you reached {currentRank}? That's not a season, that's a cry for help."
+"Wrap up: {totalGames} games, {currentRank} rank, zero self-respect. See you next season for round two!"
+
+Max 30 words. Epic savage farewell using real stats. NO EMOJIS:"""
 }
-
 
 class HumorGenerator:
     """
@@ -303,9 +426,16 @@ class HumorGenerator:
         try:
             if slide_number == 2:  # Time Spent
                 data = analytics.get('slide2_timeSpent', {})
+                total_minutes = data.get('totalMinutes')
+                # Calculate totalMinutes if not present (for old cached data)
+                if total_minutes is None:
+                    total_hours = data.get('totalHours', 0)
+                    total_minutes = int(total_hours * 60)
+                
                 template_data = {
                     'totalGames': data.get('totalGames', 0),
                     'totalHours': data.get('totalHours', 0),
+                    'totalMinutes': total_minutes,
                     'avgGameLength': data.get('avgGameLength', 0)
                 }
             
@@ -324,8 +454,9 @@ class HumorGenerator:
                     'kills': match.get('kills', 0),
                     'deaths': match.get('deaths', 0),
                     'assists': match.get('assists', 0),
-                    'championName': match.get('championName', 'Unknown'),
-                    'gameDuration': round(match.get('gameDuration', 0))
+                    'championName': match.get('champion', 'Unknown'),
+                    'gameDuration': round(match.get('duration', 0)),
+                    'totalMinutes': round(match.get('duration', 0))
                 }
             
             elif slide_number == 5:  # KDA
@@ -334,14 +465,15 @@ class HumorGenerator:
                     'avgKills': round(kda.get('avgKills', 0), 1),
                     'avgDeaths': round(kda.get('avgDeaths', 0), 1),
                     'avgAssists': round(kda.get('avgAssists', 0), 1),
-                    'kdaRatio': round(kda.get('kdaRatio', 0), 2)
+                    'kdaRatio': round(kda.get('kdaRatio', 0), 2),
+                    'totalKills': kda.get('totalKills', 0)
                 }
             
             elif slide_number == 6:  # Ranked
                 ranked = analytics.get('slide6_rankedJourney', {})
                 template_data = {
                     'currentRank': ranked.get('currentRank', 'Unranked'),
-                    'leaguePoints': ranked.get('leaguePoints', 0),
+                    'leaguePoints': ranked.get('lp', 0),
                     'winRate': ranked.get('winRate', 0),
                     'totalGames': ranked.get('wins', 0) + ranked.get('losses', 0)
                 }
@@ -351,7 +483,7 @@ class HumorGenerator:
                 template_data = {
                     'avgVisionScore': round(vision.get('avgVisionScore', 0), 1),
                     'avgWardsPlaced': round(vision.get('avgWardsPlaced', 0), 1),
-                    'avgControlWardsPurchased': round(vision.get('avgControlWardsPurchased', 0), 1)
+                    'avgControlWardsPurchased': round(vision.get('avgControlWards', 0), 1)
                 }
             
             elif slide_number == 8:  # Champion Pool
@@ -410,7 +542,7 @@ class HumorGenerator:
             elif slide_number == 14:  # Social Comparison
                 percentile = analytics.get('slide14_percentile', {})
                 template_data = {
-                    'percentile': percentile.get('percentile', 50),
+                    'percentile': percentile.get('rankPercentile', 50),
                     'currentRank': percentile.get('rank', 'Unranked'),
                     'kdaRatio': round(percentile.get('kdaRatio', 0), 2)
                 }

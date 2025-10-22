@@ -38,6 +38,14 @@ export interface SessionData {
   sessionId: string;
   status: string;
   analytics: any;
+  player?: {
+    gameName: string;
+    tagLine: string;
+    region: string;
+    summonerLevel: number;
+    profileIconId: number;
+    rank: string;
+  };
 }
 
 export interface SlideData {
