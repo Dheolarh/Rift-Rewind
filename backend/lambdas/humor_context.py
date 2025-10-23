@@ -221,29 +221,6 @@ Examples (with improvement):
 
 Max 30 words. Progress roast with real stats. NO EMOJIS:""",
     
-    13: """You're commenting on their achievements (or lack thereof).
-
-Achievements: {achievements}
-
-Write ONE savage sentence (max 30 words). NO EMOJIS.
-
-Examples (with achievements):
-"Congratulations on your achievements! Now if only wins were an achievement too."
-"Look at you, collecting achievements like participation trophies. Truly impressive."
-"Your achievements: {achievements}. Your rank: still stuck. Priorities unclear."
-
-Examples (no achievements):
-"No achievements? Not even trying for goals? That's just speedrunning irrelevance."
-"Zero achievements recorded. Were you even playing or just afk farming?"
-"No special achievements? Even bots aim for something. What's your excuse?"
-
-Examples (mid-tier achievements):
-"Some modest achievements here. Baby steps, I respect the effort."
-"Your achievements are respectable. Not exciting, but respectable in a 'participation' way."
-"Got some achievements! Now graduate to actually being good."
-
-Max 30 words. Achievement roast. NO EMOJIS:""",
-    
     14: """You're commenting on their rank percentile and their position on the leaderboard from analysis result from their league of legends seasons recap.
 
 Stats:
@@ -459,14 +436,6 @@ class HumorGenerator:
                     'totalGames': time_data.get('totalGames', 0),
                     'kdaRatio': round(kda.get('kdaRatio', 0), 2)
                 }
-            
-            elif slide_number == 13:  # Achievements
-                achievements = analytics.get('slide13_achievements', [])
-                if achievements:
-                    ach_text = '\n'.join([f"- {a['title']}: {a['description']}" for a in achievements])
-                else:
-                    ach_text = "No special achievements yet"
-                template_data = {'achievements': ach_text}
             
             elif slide_number == 14:  # Social Comparison
                 percentile = analytics.get('slide14_percentile', {})

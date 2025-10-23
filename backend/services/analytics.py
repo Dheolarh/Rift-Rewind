@@ -662,7 +662,6 @@ class RiftRewindAnalytics:
             'slide9_duoPartner': self.find_duo_partner(),
             'slide10_11_analysis': self.detect_strengths_weaknesses(),
             'slide12_progress': self.calculate_progress(),
-            'slide13_achievements': self.detect_achievements(),
             'slide14_percentile': self.calculate_percentile(),
             
             'metadata': {
@@ -741,7 +740,6 @@ class RiftRewindAnalytics:
             'slide9_duoPartner': self.find_duo_partner(),
             'slide10_11_analysis': self.detect_strengths_weaknesses(),
             'slide12_progress': self.calculate_progress(),
-            'slide13_achievements': self.detect_achievements(),
             'slide14_percentile': self.calculate_percentile(),
             'metadata': {
                 'calculatedAt': datetime.utcnow().isoformat(),

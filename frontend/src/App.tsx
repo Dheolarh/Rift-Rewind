@@ -13,7 +13,6 @@ import { DuoPartnerSlide } from "./components/slides/DuoPartnerSlide";
 import { StrengthsSlide } from "./components/slides/StrengthsSlide";
 import { WeaknessesSlide } from "./components/slides/WeaknessesSlide";
 import { ProgressSlide } from "./components/slides/ProgressSlide";
-import { AchievementsSlide } from "./components/slides/AchievementsSlide";
 import { SocialComparisonSlide } from "./components/slides/SocialComparisonSlide";
 import { FinalRecapSlide } from "./components/slides/FinalRecapSlide";
 import { SlideNavigation } from "./components/SlideNavigation";
@@ -246,10 +245,10 @@ export default function App() {
 
   // Auto-advance slides after 10 seconds (but not on welcome, loading or final slide, and when not paused)
   useEffect(() => {
-    if (!hasStarted || currentSlide === 0 || currentSlide === 1 || currentSlide === 15 || isPaused) return;
+    if (!hasStarted || currentSlide === 0 || currentSlide === 1 || currentSlide === 14 || isPaused) return;
     
     const timer = setTimeout(() => {
-      if (currentSlide < 15) {
+      if (currentSlide < 14) {
         setCurrentSlide(prev => prev + 1);
       }
     }, 10000);
@@ -262,7 +261,7 @@ export default function App() {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (!hasStarted || isLoading) return;
       
-      if (e.key === "ArrowRight" && currentSlide < 15) {
+      if (e.key === "ArrowRight" && currentSlide < 14) {
         setCurrentSlide(prev => prev + 1);
       } else if (e.key === "ArrowLeft" && currentSlide > 1) {
         setCurrentSlide(prev => prev - 1);
@@ -349,7 +348,7 @@ export default function App() {
   };
 
   const nextSlide = () => {
-    if (currentSlide < 15) {
+    if (currentSlide < 14) {
       setCurrentSlide(prev => prev + 1);
     }
   };
@@ -534,12 +533,6 @@ export default function App() {
             />
           )}
           {currentSlide === 13 && (
-            <AchievementsSlide 
-              achievements={sessionData.slide13_achievements || []}
-              aiHumor={sessionData.slide13_humor || "Achievement unlocked: Being absolutely legendary! 🏆✨"}
-            />
-          )}
-          {currentSlide === 14 && (
             <SocialComparisonSlide 
               yourRank={sessionData.slide14_percentile?.yourRank || 0}
               rankPercentile={sessionData.slide14_percentile?.rankPercentile || 50}
@@ -547,7 +540,7 @@ export default function App() {
               aiHumor={sessionData.slide14_humor || "You're rubbing shoulders with the elite! 🎮✨"}
             />
           )}
-          {currentSlide === 15 && (
+          {currentSlide === 14 && (
             <FinalRecapSlide
               summonerName={displayName}
               playerTitle={sessionData.slide10_11_analysis?.personality_title || "The Rising Legend"}
@@ -577,7 +570,7 @@ export default function App() {
       {hasStarted && !isLoading && (
         <SlideNavigation
           currentSlide={currentSlide}
-          totalSlides={16}
+          totalSlides={15}
           onPrevious={previousSlide}
           onNext={nextSlide}
           isPaused={isPaused}

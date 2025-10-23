@@ -70,12 +70,12 @@ class ProgressiveOrchestrator:
             logger.error(f"Failed to generate AI insights: {e}")
             # Continue without AI insights - will use placeholder values
         
-        # Generate ALL humor before marking complete (slides 2-15)
-        logger.info(f"Generating humor for all slides (2-15)")
+        # Generate ALL humor before marking complete (slides 2-12, 14 - skip 13 achievements)
+        logger.info(f"Generating humor for all slides (2-12, 14)")
         humor_generator = HumorGenerator()
         
-        # Generate all slides 2-15 synchronously
-        all_slide_numbers = range(2, 16)  # Slides 2-15 have humor
+        # Generate slides 2-12, then 14 (skip 13 - achievements removed)
+        all_slide_numbers = list(range(2, 13)) + [14]  # Slides 2-12, 14 have humor
         for slide_num in all_slide_numbers:
             try:
                 logger.info(f"Generating humor for slide {slide_num}")
@@ -134,11 +134,12 @@ class ProgressiveOrchestrator:
             except Exception as e:
                 logger.error(f"Failed to generate AI insights on resume: {e}")
         
-        # Generate humor for any missing slides (2-15)
+        # Generate humor for any missing slides (2-12, 14 - skip 13 achievements)
         logger.info(f"Checking for missing humor in resumed session")
         humor_generator = HumorGenerator()
         existing_humor = existing_session.get('aiHumor', {})
-        missing_slides = [i for i in range(2, 16) if not existing_humor.get(f"slide{i}")]
+        # Check slides 2-12 and 14 (skip 13 - achievements removed)
+        missing_slides = [i for i in list(range(2, 13)) + [14] if not existing_humor.get(f"slide{i}")]
         
         if missing_slides:
             logger.info(f"Generating humor for {len(missing_slides)} missing slides: {missing_slides}")
