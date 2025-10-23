@@ -79,6 +79,7 @@ DATA_DRAGON_VERSION_URL = f"{DATA_DRAGON_BASE}/api/versions.json"
 DATA_DRAGON_CHAMPION_DATA = f"{DATA_DRAGON_BASE}/cdn/{{version}}/data/en_US/champion.json"
 DATA_DRAGON_SPLASH_ART = f"{DATA_DRAGON_BASE}/cdn/img/champion/splash/{{champion}}_0.jpg"
 DATA_DRAGON_SQUARE_ICON = f"{DATA_DRAGON_BASE}/cdn/{{version}}/img/champion/{{champion}}.png"
+DATA_DRAGON_PROFILE_ICON = f"{DATA_DRAGON_BASE}/cdn/{{version}}/img/profileicon/{{icon_id}}.png"
 
 # Champion name normalization (Riot API uses different names for some champions)
 CHAMPION_NAME_MAP = {

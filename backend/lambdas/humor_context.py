@@ -23,203 +23,127 @@ from services.aws_clients import get_bedrock_client, download_from_s3, upload_to
 SLIDE_PROMPTS = {
     1: None,
     
-    2: """You're a hilarious commentator like Doublelift or Tyler1, you are to make funny, sarcastic and hilarious commentaries on a player's League of legends gaming habit based on analytics recieved from player season recap.
+    2: """Roast this League player's time commitment. BE CONTEXT AWARE.
 
-Stats:
-- Total Games: {totalGames}
-- Total Hours: {totalHours} hours
-- Total Minutes: {totalMinutes} minutes
-- Average Game Length: {avgGameLength} minutes
+Stats: {totalGames} games, {totalHours} hours, {avgGameLength} min/game
 
-Write one hilarious comment that references popular memes (max 30 words) based on the amount of time player spent player games. Use the EXACT numbers from the stats. NO EMOJIS.
+HARDCORE (500+ hours): Sarcastic compliment or "get a life" roast
+AVERAGE (100-500 hours): Light roast, modest mockery  
+CASUAL (<100 hours): "Why even bother" energy
 
-Examples:
-if game totalHours is above average ( {totalHours} > 500 hours)
-"You played a total of {totalHours} hours??? That's longer than most Netflix series. Touch grass challenge: FAILED."
-"Grinding {totalHours} hours straight? Your parents must think you're dead. Haven't seen daylight since S13."
-"{totalGames} games in {totalHours} hours? That's Olympic-level dedication to losing."
+Examples by tier:
+HARDCORE: "{totalHours} hours? At this point League IS your job. Unpaid, but still."
+HARDCORE: "Touch grass? You played {totalGames} games. Grass is a myth to you now."
+AVERAGE: "{totalHours} hours of ranked. Not casual, not addicted. Just... sad."
+CASUAL: "{totalGames} games? {totalHours} hours? You barely even tried to ruin your life."
 
-if game totalHours is average ({totalHours} is between 100-500 hours)
-"{totalGames} games and {totalHours} hours? Your sleep schedule called, it's filing a restraining order."
-"Playing {totalGames} games for {totalHours} hours? That's 'I told my girlfriend it's just one more game' energy."
-"Mom controlling your playtime at {totalHours} hours? More like dad unplugging the router."
-
-if game totalHours is below average ({totalHours} < 100 hours)
-"Just {totalHours} hours and {totalGames} games? That's {avgGameLength} minutes per game. Why queue if you FF at 15?"
-"Averaging {avgGameLength} minutes per game? You're not playing League, you're speedrunning losses."
-"{totalHours} hours across {totalGames} games? That's speedrunner energy with hardstuck results."
-
-Max 30 words. Be SAVAGE but hilarious. Use actual stats. NO EMOJIS:""",
+Context-aware roast. Under 30 words. No emojis:""",
     
     
-    4: """You're a hilarious commentator like Doublelift or Tyler1, You're commenting on someone's best match performance based on his league of legends season recap.
+    4: """Roast (or compliment) this player's BEST SINGLE MATCH performance. BE CONTEXT AWARE.
 
-Match stats:
-- Result: {win}
-- KDA: {kills}/{deaths}/{assists}
-- Champion: {championName}
-- Duration: {gameDuration} minutes
+This is about their HIGHEST-KILL GAME, not overall stats.
+Stats: {kills}/{deaths}/{assists} on {championName}, {gameDuration} min, Result: {win}
 
-Write ONE sarcastic comment (max 30 words) about this match. Use EXACT stats. NO EMOJIS.
+GODLIKE (20+ kills in one game): Sarcastic compliment or "touch grass" roast
+GOOD (10-19 kills): Backhanded compliment
+AVERAGE (5-9 kills): Light mockery
+TERRIBLE (<5 kills): Absolute destruction
 
-Examples:
-if player have high stats ({kills} > 20)
-"Wow, you are a beautiful source of ragebait to your opponents. {Kills} kills in {totalMinutes} minutes? Did you hack the game? "
+Examples by tier:
+GODLIKE: "{kills} kills on {championName}? Okay we see you. The enemy team rage quit."
+GOOD: "{kills} kills in one game. Not bad. Solid pop-off moment."
+AVERAGE: "Your best game ever is {kills}/{deaths}/{assists}? Mid recognizes mid."
+TERRIBLE: "{kills} kills in your BEST GAME EVER? That's not a highlight, that's embarrassing."
 
-if player have average stats ({Kills} is between 10-20)
-"Your best match? {kills} kills in {gameDuration} minutes? What an average Joe moment."
-
-if player has low stats ({kills} < 10)
-"How does one even score this low in their BEST match? {kills} Kills/{deaths} Deaths/{assists} Assists? Did your cat play?"
-"Your best performance was {kills} kills? Even participation trophies look down on you."
-"{gameDuration} minutes and only {kills} kills on {championName}? That's not a best game, that's a cry for help."
-
-Max 30 words. Rate and give sarcastic comments about their performance using actual stats. NO EMOJIS:""",
+Roast THIS SPECIFIC MATCH. Under 30 words. No emojis:""",
     
-    5: """You're roasting someone's KDA stats in their league of legends seasons recap.
+    5: """Roast (or acknowledge) this player's OVERALL SEASON KDA. BE CONTEXT AWARE.
 
-Stats:
-- Total Kills: {totalKills}
-- Average Kills: {avgKills}
-- Average Deaths: {avgDeaths}
-- Average Assists: {avgAssists}
-- KDA Ratio: {kdaRatio}
+This is about their AVERAGE performance across ALL GAMES, not one match.
+Stats: {avgKills}/{avgDeaths}/{avgAssists} per game, {kdaRatio} KDA ratio, {totalKills} total kills all season
 
-Write ONE savage sarcastic sentence (max 30 words) about their KDA. Use EXACT numbers. NO EMOJIS.
+ELITE (4.0+ KDA): Sarcastic respect or jealous roast
+GOOD (2.5-3.9 KDA): Solid acknowledgment with shade
+AVERAGE (1.5-2.4 KDA): Mid-tier mockery  
+TRASH (<1.5 KDA): Nuclear destruction
 
-Examples:
-if KDA is high ({kdaRatio}>4.0)
-"I thought John Wick was the best. Guess he hasn't seen your {totalKills} kills.    "
-"{kdaRatio} KDA ratio? That's not a statistic, that's a war crime. Your enemies have a support group."
-"{avgKills} kills per game average? You're out here playing deathmatch while everyone else plays chess."
+Examples by tier:
+ELITE: "{kdaRatio} KDA ratio? Alright calm down. You're good. We get it."
+GOOD: "{kdaRatio} KDA across all games. Solid. Not cracked, just consistent."
+AVERAGE: "{avgKills}/{avgDeaths}/{avgAssists} average. You're aggressively mid and that's okay."
+TRASH: "{kdaRatio} KDA? You're inting every game. That's the consistency we don't need."
 
-if KDA is average ({kdaRatio} is between 2.0-4.0)
-"{totalKills} kills across hundreds of games? You're the participation trophy of League players."
-"{avgKills} kills, {avgDeaths} deaths? You're trying your best and that's what matters, champ."
-"KDA of {kdaRatio}? You're like that friend who's not bad, just... forgettable."
-
-if KDA is low ({kdaRatio}<2.0)
-"{totalKills} kills total? You're the side character in your own movie, not even a villain."
-"KDA ratio of {kdaRatio}? Even your ward has better statistics than you."
-"{avgDeaths} deaths per game average? You're not playing League, you're speedrunning the fountain respawn timer."
-
-Max 30 words. Be SAVAGE and SARCASTIC with the actual stats. NO EMOJIS:""",
+Roast their SEASON-LONG KDA performance. Under 30 words. No emojis:""",
     
-    6: """You're commenting a player's ranked journey in their league of legends seasons recap.
-
-Ranked stats:
-- Current Rank: {currentRank}
-- LP: {leaguePoints}
-- Win Rate: {winRate}%
-- Total Games: {totalGames}
-
-Write ONE savage sentence (max 30 words) about their rank. Use EXACT rank and stats. NO EMOJIS.
-
-Examples (ranked):
-if high rank (Diamond+)
-"What audacity do I have in the face of {currentRank} summoner? At your command, sire. Teach us mere mortals."
-"{currentRank} at {leaguePoints} LP? You're living the dream we Bronze players only fantasize about."
-"Climbing to {currentRank} with {winRate}% winrate? Even your losses have the smell of superiority."
-
-if medium rank (Gold-Platinum)
-"You're {currentRank} with a {winRate}% winrate? We're basically the same rank, we both suck equally."
-"{currentRank} after {totalGames} games? You're stable mediocrity incarnate. Not bad, just... mid."
-"{leaguePoints} LP away from the next tier? You're the Sisyphus of League, forever pushing that boulder."
-
-if low rank (Silver and below)
-"David killed Goliath, but you... You didn't even pick up the stones. Still stuck in {currentRank}."
-"{currentRank} after {totalGames} games? That's dedication to the struggle I respect but also pity."
-"Your rank? It's giving 'elo hell' when it's actually just you."
-
-Examples (unranked):
-"A knight with no honor is like a summoner with no rank after {totalGames} games."
-"{totalGames} normals but no ranked? You're scared of the truth that you're hardstuck Iron."
-"You've played {totalGames} games but won't touch ranked? Even bots have more conviction."
-
-Max 30 words. Use actual rank and stats. NO EMOJIS:""",
     
-    7: """You're commenting on a summoner's vision score in their league of legends seasons recap.
+    6: """Roast (or respect) this player's rank. BE CONTEXT AWARE.
 
-Stats:
-- Avg Vision Score: {avgVisionScore}
-- Vision Score: {visionScore}
-- Wards Placed: {avgWardsPlaced}
+Stats: {currentRank}, {leaguePoints} LP, {winRate}% winrate, {totalGames} games
 
-Write ONE savage sentence (max 30 words) about their warding. Use EXACT numbers.
+HIGH ELO (Diamond+): Genuine respect or jealous roast
+MID ELO (Gold-Plat): Backhanded compliment, "not bad" energy
+LOW ELO (Silver-Bronze): Harsh reality check
+UNRANKED: Why are you hiding?
 
-Examples:
-if high vision score ({visionScore} > 70 avg)
-"Hope you have 20/20 vision IRL too because {visionScore} is no joke. {avgWardsPlaced} wards per game? You're a utility god."
-"{avgVisionScore} average vision score? You're literally carrying your team's eyeballs. They owe you a drink."
-"You place {avgWardsPlaced} wards per game? That's not support, that's OCD in the best way possible."
+Examples by tier:
+HIGH: "{currentRank}? Actually impressive. Must be nice being better than 95% of us."
+MID: "{currentRank} at {winRate}% WR. You're decent. Barely. Don't let it go to your head."
+LOW: "{currentRank} after {totalGames} games. The climb is real. The struggle is... also real."
+UNRANKED: "Unranked after {totalGames} games? Ranked anxiety or just scared of the truth?"
 
-if average vision score ({visionScore} is between 40-70)
-"I don't know what to say... {avgVisionScore} vision score? You did... okay? Not great, not terrible."
-"Your {visionScore} vision score is respectable. You've heard of warding. Congrats on the bare minimum."
-"{avgWardsPlaced} wards per game? That's the statistical definition of 'trying but forgetting.'"
+Context-aware response. Under 30 words. No emojis:""",
+    7: """Roast (or acknowledge) this player's vision control. BE CONTEXT AWARE.
 
-if low vision score ({visionScore} <40)
-"I'm launching my mini-map goggles at 100% discount! You know what it does?"
-"Your vision score is {visionScore}? Even the enemy jungler has better map awareness at this point."
-"{avgWardsPlaced} wards per game? Did you forget wards heal you or just don't believe in vision?"
+Stats: {avgVisionScore} avg vision score, {avgWardsPlaced} wards/game, {avgControlWardsPurchased} control wards/game
 
-Max 30 words. Comment on the actual vision stats. NO EMOJIS:""",
+EXCELLENT (45+ vision): Sarcastic respect, "support main" jokes
+GOOD (30-44 vision): Solid acknowledgment
+AVERAGE (20-29 vision): Light roasting
+TERRIBLE (<20 vision): Nuclear destruction for no vision
+
+Examples by tier:
+EXCELLENT: "{avgVisionScore} vision score per game? Okay support main, we see you. Your team owes you LP."
+GOOD: "{avgVisionScore} vision score per game. Not bad. You actually know wards exist."
+AVERAGE: "{avgVisionScore} average vision score? You ward sometimes. When you remember. Maybe."
+TERRIBLE: "{avgVisionScore} average vision score? You're playing League with a blindfold. Map awareness who?"
+
+Context-aware response. Under 30 words. No emojis:""",
     
-    8: """You're commenting on a summoner's champion pool diversity in their league of legends seasons recap.
+    8: """Roast (or acknowledge) this player's champion pool. BE CONTEXT AWARE.
 
-Stats:
-- Unique Champions: {uniqueChampions}
-- Total Games: {totalGames}
+Stats: {uniqueChampions} unique champions across {totalGames} games
 
-Write ONE savage sentence (max 30 words) using EXACT numbers. NO EMOJIS.
+ONE-TRICK (1-10 champs): "Dedication or fear?" roasts
+FOCUSED (11-25 champs): Balanced commentary
+DIVERSE (26-50 champs): "Jack of all trades" mockery
+CHAOS (50+ champs): "Master of none" destruction
 
-Examples:
-if {uniqueChampions} > 50
-"Yeah, {uniqueChampions} unique champions is absolutely necessary to solo the rift. Mastery: 0 on all of them probably."
-"{uniqueChampions} champions?   A jack of all trades and master of none"
-if {uniqueChampions} is between 20-50
-"You took {uniqueChampions} soldiers to the battlefield. What was the result? Confusion and mediocrity, probably."
-"{uniqueChampions} champions across {totalGames} games? You're jack of all trades, master of absolute nothing."
-"Playing {uniqueChampions} different champs? That's 'I panic-lock whatever' energy right there."
+Examples by tier:
+ONE-TRICK: "{uniqueChampions} champions in {totalGames} games. You found your main and never looked back. Respect."
+FOCUSED: "{uniqueChampions} champions. Solid roster. Not spam-clicking in champ select."
+DIVERSE: "{uniqueChampions} different champions? That's variety or indecision. Can't tell which."
+CHAOS: "{uniqueChampions} champions played? You're not versatile, you're just lost."
 
-if {uniqueChampions} < 20
-"Only {uniqueChampions} champions? That's either dedication or you're scared of learning anything new."
-"{uniqueChampions} champions in {totalGames} games? You're ACTUALLY a one-trick pony. Own it."
-"Playing just {uniqueChampions} different champions? That's the opposite of having options; that's having a problem."
-
-Max 30 words. Use actual numbers. NO EMOJIS:""",
+Context-aware response. Under 30 words. No emojis:""",
     
-    9: """You're commenting on player duo bonding in their league of legends seasons recap.
+    9: """Roast this duo partnership.
 
-Stats:
+Duo stats:
 - Partner: {partnerName}
-- Games Together: {gamesTogether}
-- Win Rate: {duoWinRate}%
+- Games together: {gamesTogether}
+- Combined winrate: {winRate}%
 
-Write ONE savage sentence (max 30 words) using actual stats. NO EMOJIS.
+Write ONE savage roast about their duo performance. Be brutal. Under 30 words. No emojis.
 
-Examples (with duo):
-if low {gamesTogether} (<20)
-"You only played {gamesTogether} games with {partnerName}? I wouldn't call that bonding, I'd call that a one-night stand."
-"Just {gamesTogether} games together? Your friendship needs experience points to level up."
-"{partnerName} and you: {gamesTogether} games? That's not a duo, that's a trial period."
+Examples:
+"You and {partnerName} played {gamesTogether} games at {winRate}% winrate. Two negatives don't make a positive."
+"{gamesTogether} games with {partnerName}, {winRate}% winrate. You're not a duo, you're a liability multiplier."
+"{partnerName} and you: {gamesTogether} games together. Friendship goals. Winning games? Not so much."
+"{winRate}% winrate across {gamesTogether} games. You two share one brain cell and it's permanently AFK."
+"Playing {gamesTogether} games with {partnerName}. That's not teamwork, that's synchronized inting."
 
-if high {gamesTogether} and high {duoWinRate} (>60%)
-"You and {partnerName} are the real reasons players quit. {duoWinRate}% winrate across {gamesTogether} games? Absolutely cringe."
-"{gamesTogether} games, {duoWinRate}% winrate with {partnerName}? You two are basically the dynamic duo of suffering."
-"Playing {gamesTogether} games with {partnerName} at {duoWinRate}% winrate? Even your enemies' therapy bills are climbing."
-
-if high {gamesTogether} and low {duoWinRate} (<45%)
-"Why even bother playing together, {partnerName}? {duoWinRate}% winrate? You're better off spectating."
-"{gamesTogether} games and {duoWinRate}% winrate? That's not a duo, that's a therapy session."
-"You two have played {gamesTogether} games together but only won {duoWinRate}% of them? Uninstall together too."
-
-Examples (solo):
-"No duo partner? Can't find anyone willing to suffer through your gameplay? Understandable, honestly."
-"Playing solo after {totalGames} games? Your teammates appreciate the break from your existence."
-"No duo? Smart call. Spreading yourself across teams is damage control."
-
-Max 30 words. Roast using real stats. NO EMOJIS:""",
+Destroy their duo. Under 30 words:""",
     
     10: """You're giving a backhanded compliment about the players strengths derived from analysis result from their league of legends seasons recap.
 
@@ -380,7 +304,12 @@ class HumorGenerator:
     
     def __init__(self):
         self.bedrock_client = get_bedrock_client()
-        self.model_id = os.environ.get('BEDROCK_MODEL_ID', 'anthropic.claude-3-sonnet-20240229-v1:0')
+        # Use inference profile ARN for Llama models (required for cross-region inference)
+        # OR use Claude if Llama inference profile not available
+        self.model_id = os.environ.get(
+            'BEDROCK_MODEL_ID', 
+            'us.meta.llama3-1-70b-instruct-v1:0'  # Cross-region inference profile
+        )
     
     def download_analytics(self, session_id: str) -> Dict[str, Any]:
         """
@@ -571,7 +500,7 @@ class HumorGenerator:
     
     def call_bedrock(self, prompt: str) -> str:
         """
-        Call Bedrock to generate humor.
+        Call Bedrock to generate humor using Meta Llama.
         
         Args:
             prompt: Prompt string
@@ -581,18 +510,31 @@ class HumorGenerator:
         """
         print(f"Calling Bedrock with prompt length: {len(prompt)}")
         
-        # Prepare request body - SAVAGE ROAST SETTINGS
+        # Meta Llama 3.1 uses chat template format with special tokens
+        system_prompt = """You are a CONTEXT-AWARE League of Legends roaster analyzing player performance.
+
+GOOD players: Sarcastic respect, backhanded compliments, "touch grass" jokes
+AVERAGE players: Light roasts, modest mockery, "you're trying" energy  
+BAD players: Brutal destruction, savage roasts, "why do you even play" vibes
+
+Read the stats. Match your tone to their skill level. Be funny, not generic.
+NO EMOJIS. Max 30 words."""
+        
+        # Llama chat template format
+        llama_prompt = f"""<|begin_of_text|><|start_header_id|>system<|end_header_id|>
+
+{system_prompt}<|eot_id|><|start_header_id|>user<|end_header_id|>
+
+{prompt}<|eot_id|><|start_header_id|>assistant<|end_header_id|>
+
+"""
+        
+        # Prepare request body for Meta Llama - SAVAGE ROAST SETTINGS
         request_body = {
-            "anthropic_version": "bedrock-2023-05-31",
-            "max_tokens": 100,  # Allow up to 30 words (30 words ≈ 40-50 tokens + buffer)
-            "temperature": 0.95,  # VERY HIGH: Maximum creativity for savage roasts
-            "top_p": 0.9,  # Allow diverse, unexpected vocabulary
-            "messages": [
-                {
-                    "role": "user",
-                    "content": prompt
-                }
-            ]
+            "prompt": llama_prompt,
+            "max_gen_len": 100,  # Llama uses different param name
+            "temperature": 0.9,  # High creativity for spicy roasts
+            "top_p": 0.95  # Wide vocabulary for creative insults
         }
         
         # Invoke Bedrock
@@ -601,9 +543,9 @@ class HumorGenerator:
             body=json.dumps(request_body)
         )
         
-        # Parse response
+        # Parse response (Llama has different response format)
         response_body = json.loads(response['body'].read())
-        humor_text = response_body['content'][0]['text'].strip()
+        humor_text = response_body.get('generation', '').strip()
         
         # Clean up any quotes or extra formatting
         humor_text = humor_text.strip('"').strip("'").strip()

@@ -213,7 +213,8 @@ class LeagueDataFetcher:
                 platform=region,
                 count=batch_size,
                 start=start_index,
-                start_time=start_time
+                start_time=start_time,
+                queue=420  # 420 = Ranked Solo/Duo 5v5 only
             )
             
             if not match_ids:

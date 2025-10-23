@@ -202,12 +202,18 @@ class RiftRewindAPI:
                     humor_json = json.loads(humor_str)
                     humor_data[f"slide{slide_num}_humor"] = humor_json.get('humorText', '')
             
+            # Build profile icon URL
+            from services.riot_api_client import RiotAPIClient
+            profile_icon_id = fetcher.data['summoner']['profileIconId']
+            profile_icon_url = RiotAPIClient.get_profile_icon_url(profile_icon_id)
+            
             player_info = {
                 'gameName': game_name,
                 'tagLine': tag_line,
                 'region': region,
                 'summonerLevel': fetcher.data['summoner']['summonerLevel'],
-                'profileIconId': fetcher.data['summoner']['profileIconId'],
+                'profileIconId': profile_icon_id,
+                'profileIconUrl': profile_icon_url,
                 'rank': analytics.get('slide6_rankedJourney', {}).get('currentRank', 'UNRANKED')
             }
             
@@ -267,7 +273,8 @@ class RiftRewindAPI:
                         'sessionId': cached_session['metadata']['sessionId'],
                         'status': 'complete',
                         'fromCache': True,
-                        'analytics': {**cached_session['analytics'], **cached_session['humor']}
+                        'analytics': {**cached_session['analytics'], **cached_session['humor']},
+                        'player': cached_session.get('player', {})
                     })
             
             # Download analytics from session storage
@@ -291,11 +298,26 @@ class RiftRewindAPI:
             # Merge humor into analytics
             analytics.update(humor_data)
             
+            # Download player info (created during session creation)
+            player_info = {}
+            raw_data_str = download_from_s3(f"sessions/{session_id}/raw_data.json")
+            if raw_data_str:
+                raw_data = json.loads(raw_data_str)
+                summoner = raw_data.get('summoner', {})
+                account = raw_data.get('account', {})
+                player_info = {
+                    'gameName': account.get('gameName', ''),
+                    'tagLine': account.get('tagLine', ''),
+                    'summonerLevel': summoner.get('summonerLevel', 0),
+                    'profileIconId': summoner.get('profileIconId', 0)
+                }
+            
             return self.create_response(200, {
                 'sessionId': session_id,
                 'status': 'complete',
                 'fromCache': False,
-                'analytics': analytics
+                'analytics': analytics,
+                'player': player_info
             })
         
         except Exception as e:

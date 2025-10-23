@@ -35,14 +35,16 @@ export function DuoPartnerSlide({
   playerProfileIconId,
   aiHumor = "You two are like peanut butter and jelly... if jelly could flash-ult and secure pentas!"
 }: DuoPartnerSlideProps) {
-  // Riot Data Dragon URLs for profile icons
-  const DDRAGON_VERSION = '14.23.1'; // Can be updated to latest
+  // Riot Data Dragon URLs
+  const DDRAGON_VERSION = '14.23.1';
+  
+  // Player's actual profile icon from API
   const playerIconUrl = playerProfileIconId 
     ? `https://ddragon.leagueoflegends.com/cdn/${DDRAGON_VERSION}/img/profileicon/${playerProfileIconId}.png`
-    : "https://ddragon.leagueoflegends.com/cdn/14.23.1/img/profileicon/29.png"; // Default icon
+    : `https://ddragon.leagueoflegends.com/cdn/${DDRAGON_VERSION}/img/profileicon/29.png`; // Default icon
   
-  // Partner icon - use default since we don't have their profileIconId
-  const partnerIconUrl = "https://ddragon.leagueoflegends.com/cdn/14.23.1/img/profileicon/588.png"; // Default duo icon
+  // Partner icon - use a popular champion icon (Yasuo - represents duo synergy/teamwork)
+  const partnerIconUrl = `https://ddragon.leagueoflegends.com/cdn/${DDRAGON_VERSION}/img/champion/Yasuo.png`;
   
   return (
     <div className="relative w-full h-full overflow-hidden bg-[#010A13] flex items-center justify-center px-4">

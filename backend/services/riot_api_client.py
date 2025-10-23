@@ -491,3 +491,57 @@ class RiotAPIClient:
         
         logger.info(f"Successfully fetched {len(matches)}/{total} matches in parallel")
         return matches
+    
+    # ==================== DATA DRAGON HELPERS ====================
+    
+    _dd_version_cache = None
+    _dd_version_timestamp = None
+    
+    @classmethod
+    def get_data_dragon_version(cls) -> str:
+        """
+        Get the latest Data Dragon version. Cached for 1 hour.
+        
+        Returns:
+            Version string (e.g., "14.23.1")
+        """
+        from .constants import DATA_DRAGON_VERSION_URL
+        
+        # Check cache (valid for 1 hour)
+        if cls._dd_version_cache and cls._dd_version_timestamp:
+            age = time.time() - cls._dd_version_timestamp
+            if age < 3600:  # 1 hour
+                return cls._dd_version_cache
+        
+        # Fetch latest version
+        try:
+            response = requests.get(DATA_DRAGON_VERSION_URL, timeout=10)
+            response.raise_for_status()
+            versions = response.json()
+            latest_version = versions[0]
+            
+            cls._dd_version_cache = latest_version
+            cls._dd_version_timestamp = time.time()
+            
+            logger.info(f"Data Dragon version: {latest_version}")
+            return latest_version
+        except Exception as e:
+            logger.error(f"Failed to fetch Data Dragon version: {e}")
+            # Fallback to a known recent version
+            return "14.23.1"
+    
+    @classmethod
+    def get_profile_icon_url(cls, profile_icon_id: int) -> str:
+        """
+        Build Data Dragon profile icon URL from profile icon ID.
+        
+        Args:
+            profile_icon_id: Profile icon ID from summoner data
+            
+        Returns:
+            Full URL to profile icon PNG
+        """
+        from .constants import DATA_DRAGON_PROFILE_ICON
+        
+        version = cls.get_data_dragon_version()
+        return DATA_DRAGON_PROFILE_ICON.format(version=version, icon_id=profile_icon_id)

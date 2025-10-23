@@ -136,13 +136,13 @@ class RiftRewindAnalytics:
     # Slide 4: Best Match
     def find_best_match(self) -> Optional[Dict[str, Any]]:
         """
-        Find player's best performing match.
+        Find player's best performing match based on HIGHEST KILLS.
         
         Returns:
             Best match details or None
         """
         best_match = None
-        best_score = -1
+        highest_kills = -1
         
         for match in self.matches:
             stats = self._get_participant_stats(match)
@@ -156,19 +156,16 @@ class RiftRewindAnalytics:
             won = stats.get('win', False)
             
             # Try to get KDA from API challenges, fallback to calculation
-            # Riot API provides pre-calculated KDA in challenges.kda
             kda = stats.get('challenges', {}).get('kda')
             if kda is None:
-                # Fallback: calculate KDA from kills/deaths/assists
                 kda = (kills + assists) / deaths if deaths > 0 else (kills + assists)
             
-            # Enhanced scoring: KDA * (kills + assists/2) + win bonus
-            # This rewards both high KDA AND high kill participation
-            kill_participation = kills + (assists / 2)  # Kills worth more than assists
-            score = (kda * kill_participation) + (20 if won else 0)
+            # PRIORITY: Highest kills (primary), then KDA as tiebreaker
+            # If kills are equal, pick the one with better KDA
+            is_better = (kills > highest_kills) or (kills == highest_kills and best_match and kda > best_match['kda'])
             
-            if score > best_score:
-                best_score = score
+            if is_better:
+                highest_kills = kills
                 best_match = {
                     'matchId': match.get('metadata', {}).get('matchId'),
                     'champion': stats.get('championName'),
@@ -202,15 +199,25 @@ class RiftRewindAnalytics:
             if not stats:
                 continue
             
-            total_kills += stats.get('kills', 0)
-            total_deaths += stats.get('deaths', 0)
-            total_assists += stats.get('assists', 0)
+            kills = stats.get('kills', 0)
+            deaths = stats.get('deaths', 0)
+            assists = stats.get('assists', 0)
+            
+            total_kills += kills
+            total_deaths += deaths
+            total_assists += assists
             games += 1
         
         avg_kills = total_kills / games if games > 0 else 0
         avg_deaths = total_deaths / games if games > 0 else 0
         avg_assists = total_assists / games if games > 0 else 0
         kda_ratio = (avg_kills + avg_assists) / avg_deaths if avg_deaths > 0 else 999
+        
+        # Debug logging
+        logger.info(f"KDA Calculation: {games} games analyzed")
+        logger.info(f"  Total: {total_kills} kills, {total_deaths} deaths, {total_assists} assists")
+        logger.info(f"  Average: {avg_kills:.1f}K / {avg_deaths:.1f}D / {avg_assists:.1f}A")
+        logger.info(f"  KDA Ratio: {kda_ratio:.2f}")
         
         return {
             'avgKills': round(avg_kills, 1),
@@ -225,36 +232,53 @@ class RiftRewindAnalytics:
     # Slide 6: Ranked Journey
     def get_ranked_journey(self) -> Dict[str, Any]:
         """
-        Get ranked progression (simplified - full timeline requires historical data).
+        Get ranked progression using ACTUAL match data from analyzed games.
+        This ensures consistency with other slides (uses same match dataset).
         
         Returns:
-            Current rank info
+            Rank info with wins/losses from analyzed matches
         """
         solo_queue = self.ranked.get('soloQueue')
         
+        # Calculate wins/losses from ACTUAL analyzed matches
+        wins = 0
+        losses = 0
+        
+        for match in self.matches:
+            stats = self._get_participant_stats(match)
+            if not stats:
+                continue
+            
+            if stats.get('win'):
+                wins += 1
+            else:
+                losses += 1
+        
+        total_games = wins + losses
+        win_rate = round((wins / total_games * 100), 1) if total_games > 0 else 0
+        
+        # Get current rank from Riot API (most accurate for rank/tier/LP)
         if not solo_queue:
             return {
                 'currentRank': 'UNRANKED',
                 'tier': 'UNRANKED',
                 'division': '',
                 'lp': 0,
-                'wins': 0,
-                'losses': 0,
-                'winRate': 0
+                'wins': wins,  # Use match data
+                'losses': losses,  # Use match data
+                'winRate': win_rate,  # Use match data
+                'totalGames': total_games
             }
-        
-        wins = solo_queue.get('wins', 0)
-        losses = solo_queue.get('losses', 0)
-        total_games = wins + losses
         
         return {
             'currentRank': f"{solo_queue.get('tier')} {solo_queue.get('rank')}",
             'tier': solo_queue.get('tier'),
             'division': solo_queue.get('rank'),
             'lp': solo_queue.get('leaguePoints', 0),
-            'wins': wins,
-            'losses': losses,
-            'winRate': round((wins / total_games * 100), 1) if total_games > 0 else 0
+            'wins': wins,  # Use match data (consistent with other slides)
+            'losses': losses,  # Use match data
+            'winRate': win_rate,  # Calculated from match data
+            'totalGames': total_games  # Total analyzed games
         }
     
     # Slide 7: Vision Score
@@ -509,21 +533,46 @@ class RiftRewindAnalytics:
         
         # Get base percentile from rank
         tier = ranked_info.get('tier', 'UNRANKED')
+        division = ranked_info.get('division', 'IV')
+        lp = ranked_info.get('lp', 0)
         
-        rank_percentiles = {
-            'IRON': 5,
-            'BRONZE': 20,
-            'SILVER': 40,
-            'GOLD': 60,
-            'PLATINUM': 80,
-            'EMERALD': 90,
-            'DIAMOND': 95,
-            'MASTER': 98,
-            'GRANDMASTER': 99,
-            'CHALLENGER': 99.9
+        # League of Legends rank distribution (based on Riot's official data)
+        # Each tier has 4 divisions (IV, III, II, I)
+        tier_ranges = {
+            'IRON': (0, 5),           # Bottom 5%
+            'BRONZE': (5, 23),        # 5-23% (18% of players)
+            'SILVER': (23, 45),       # 23-45% (22% of players)
+            'GOLD': (45, 67),         # 45-67% (22% of players)
+            'PLATINUM': (67, 84),     # 67-84% (17% of players)
+            'EMERALD': (84, 92),      # 84-92% (8% of players)
+            'DIAMOND': (92, 97),      # 92-97% (5% of players)
+            'MASTER': (97, 98.5),     # 97-98.5% (1.5% of players)
+            'GRANDMASTER': (98.5, 99.5),  # 98.5-99.5% (1% of players)
+            'CHALLENGER': (99.5, 100)     # Top 0.5%
         }
         
-        percentile = rank_percentiles.get(tier, 50)
+        if tier == 'UNRANKED':
+            percentile = 50  # Middle of the pack
+        elif tier in ['MASTER', 'GRANDMASTER', 'CHALLENGER']:
+            # No divisions, use tier range
+            percentile = tier_ranges[tier][0]
+        else:
+            # Calculate percentile within tier based on division
+            tier_min, tier_max = tier_ranges.get(tier, (50, 50))
+            tier_width = tier_max - tier_min
+            
+            # Division progression: IV -> III -> II -> I
+            division_map = {'IV': 0, 'III': 1, 'II': 2, 'I': 3}
+            division_progress = division_map.get(division, 0)
+            
+            # Each division is 25% of the tier (4 divisions total)
+            # Add LP progress within division (0-100 LP = 0-25% of tier)
+            lp_progress = min(lp, 100) / 100  # Normalize LP to 0-1
+            total_progress = (division_progress + lp_progress) / 4  # 0 to 1
+            
+            percentile = tier_min + (tier_width * total_progress)
+        
+        percentile = round(percentile, 1)  # Round to 1 decimal place
         
         # Try to get actual leaderboard position
         summoner_id = self.summoner.get('id')
@@ -556,6 +605,10 @@ class RiftRewindAnalytics:
         tag_line = self.raw_data.get('account', {}).get('tagLine', '')
         summoner_name = f"{game_name}#{tag_line}" if tag_line else game_name
         
+        # Get player's profile icon URL
+        player_icon_id = self.summoner.get('profileIconId', 0)
+        player_profile_icon_url = RiotAPIClient.get_profile_icon_url(player_icon_id)
+        
         win_rate = self._calculate_win_rate()
         total_games = time_stats['totalGames']
         
@@ -564,12 +617,14 @@ class RiftRewindAnalytics:
             'rank': ranked_info.get('currentRank'),
             'kdaRatio': kda_stats['kdaRatio'],
             'comparison': f'Top {100 - percentile}%' if percentile > 50 else f'Bottom {percentile}%',
-            'yourRank': leaderboard_rank or 0,
+            'yourRank': leaderboard_rank,  # None if not available
+            'playerProfileIconUrl': player_profile_icon_url,
             'leaderboard': [{
-                'rank': leaderboard_rank or 0,
+                'rank': leaderboard_rank,  # None if not available
                 'summonerName': summoner_name,
                 'winRate': win_rate,
                 'gamesPlayed': total_games,
+                'profileIconUrl': player_profile_icon_url,
                 'isYou': True
             }]
         }

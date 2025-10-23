@@ -8,6 +8,7 @@ interface PlayerComparison {
   summonerName: string;
   winRate: number;
   gamesPlayed: number;
+  profileIconUrl?: string;
   isYou?: boolean;
 }
 
@@ -108,12 +109,22 @@ export function SocialComparisonSlide({
           >
             <div className="bg-[#0A1428]/60 border border-[#C8AA6E]/40 backdrop-blur-sm p-4 sm:p-5 rounded">
               <div className="flex items-center gap-4">
-                {/* Rank Badge */}
-                <div className="flex-shrink-0 w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-br from-[#C8AA6E] to-[#8B7548] flex items-center justify-center rounded-full border-2 border-[#FFD700]">
-                  <span className="text-xl sm:text-2xl font-bold text-[#0A1428]" style={{ fontFamily: 'Georgia, serif' }}>
-                    #{userEntry.rank > 0 ? userEntry.rank.toLocaleString() : '?'}
-                  </span>
-                </div>
+                {/* Profile Icon or Rank Badge */}
+                {userEntry.profileIconUrl ? (
+                  <div className="flex-shrink-0 w-14 h-14 sm:w-16 sm:h-16 rounded-full border-2 border-[#FFD700] overflow-hidden">
+                    <ImageWithFallback
+                      src={userEntry.profileIconUrl}
+                      alt="Profile Icon"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                ) : (
+                  <div className="flex-shrink-0 w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-br from-[#C8AA6E] to-[#8B7548] flex items-center justify-center rounded-full border-2 border-[#FFD700]">
+                    <span className="text-xl sm:text-2xl font-bold text-[#0A1428]" style={{ fontFamily: 'Georgia, serif' }}>
+                      #{userEntry.rank > 0 ? userEntry.rank.toLocaleString() : '?'}
+                    </span>
+                  </div>
+                )}
 
                 {/* Stats */}
                 <div className="flex-1">
@@ -121,7 +132,7 @@ export function SocialComparisonSlide({
                     {userEntry.summonerName}
                   </div>
                   <div className="text-xs text-[#A09B8C] mb-2">
-                    {userEntry.rank > 0 ? `Rank #${userEntry.rank.toLocaleString()}` : 'Calculating rank...'}
+                    {userEntry.rank ? `Rank #${userEntry.rank.toLocaleString()}` : `Top ${rankPercentile.toFixed(1)}%`}
                   </div>
                   <div className="flex items-center gap-3">
                     <div>

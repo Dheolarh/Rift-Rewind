@@ -17,9 +17,13 @@ interface ProgressSlideProps {
   aiHumor?: string;
 }
 
-function Counter({ value, duration = 2 }: { value: number; duration?: number }) {
+function Counter({ value, duration = 2, isDecimal = false }: { value: number; duration?: number; isDecimal?: boolean }) {
   const count = useMotionValue(0);
-  const rounded = useTransform(count, (latest) => Math.round(latest * 10) / 10);
+  const rounded = useTransform(count, (latest) => {
+    // For integers (games, wins), round to whole numbers
+    // For decimals (win rate), round to 1 decimal place
+    return isDecimal ? Math.round(latest * 10) / 10 : Math.round(latest);
+  });
 
   useEffect(() => {
     const controls = animate(count, value, { duration, delay: 0.6 });
@@ -113,7 +117,7 @@ export function ProgressSlide({
           {/* Win Rate */}
           <div className="text-center">
             <div className="text-5xl sm:text-6xl md:text-7xl text-[#8B5CF6] mb-2 sm:mb-3 tabular-nums" style={{ fontFamily: 'Georgia, serif' }}>
-              <Counter value={winRate} />%
+              <Counter value={winRate} isDecimal={true} />%
             </div>
             <div className="text-xs sm:text-sm text-[#A09B8C] uppercase tracking-wider">
               Win Rate
@@ -126,10 +130,10 @@ export function ProgressSlide({
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 1, duration: 0.6 }}
-          className="w-full max-w-xl px-2"
+          className="w-full max-w-md px-4"
         >
-          <div className="relative p-4 sm:p-5 md:p-6 bg-[#1E2328]/60 backdrop-blur-sm rounded-lg border border-[#C8AA6E]/30">
-            <p className="text-xs sm:text-sm md:text-base text-[#E8E6E3]/80 italic leading-relaxed text-center">
+          <div className="relative p-3 sm:p-4 bg-[#1E2328]/60 backdrop-blur-sm rounded-lg border border-[#C8AA6E]/30">
+            <p className="text-xs sm:text-sm text-[#E8E6E3]/80 italic leading-relaxed text-center">
               {aiHumor}
             </p>
 

@@ -29,7 +29,12 @@ class InsightsGenerator:
     
     def __init__(self):
         self.bedrock_client = get_bedrock_client()
-        self.model_id = os.environ.get('BEDROCK_MODEL_ID', 'anthropic.claude-3-sonnet-20240229-v1:0')
+        # Use inference profile ARN for Llama models (required for cross-region inference)
+        # OR use Claude if Llama inference profile not available
+        self.model_id = os.environ.get(
+            'BEDROCK_MODEL_ID',
+            'us.meta.llama3-1-70b-instruct-v1:0'  # Cross-region inference profile
+        )
     
     def download_analytics(self, session_id: str) -> Dict[str, Any]:
         """
@@ -161,7 +166,7 @@ Respond ONLY with valid JSON - no other text."""
     
     def call_bedrock(self, prompt: str) -> Dict[str, Any]:
         """
-        Call Bedrock to generate insights.
+        Call Bedrock to generate insights using Meta Llama.
         
         Args:
             prompt: Prompt string
@@ -171,16 +176,25 @@ Respond ONLY with valid JSON - no other text."""
         """
         logger.info("Calling Bedrock for insights generation...")
         
+        # Meta Llama 3.1 uses chat template format
+        system_prompt = """You are a no-bullshit League of Legends coach analyzing gameplay. 
+Call out bad plays. If someone's inting, say it. If their vision score is trash, roast it.
+Be brutally honest with data. Don't sugarcoat failures. Constructive but savage.
+Respond ONLY with valid JSON - no other text."""
+        
+        llama_prompt = f"""<|begin_of_text|><|start_header_id|>system<|end_header_id|>
+
+{system_prompt}<|eot_id|><|start_header_id|>user<|end_header_id|>
+
+{prompt}<|eot_id|><|start_header_id|>assistant<|end_header_id|>
+
+"""
+        
         request_body = {
-            "anthropic_version": "bedrock-2023-05-31",
-            "max_tokens": 1000,
-            "temperature": 0.7,  # Balanced creativity
-            "messages": [
-                {
-                    "role": "user",
-                    "content": prompt
-                }
-            ]
+            "prompt": llama_prompt,
+            "max_gen_len": 1500,
+            "temperature": 0.7,
+            "top_p": 0.9
         }
         
         # Invoke Bedrock
@@ -190,7 +204,7 @@ Respond ONLY with valid JSON - no other text."""
         )
         
         response_body = json.loads(response['body'].read())
-        insights_text = response_body['content'][0]['text']
+        insights_text = response_body.get('generation', '').strip()
         
         try:
             # Extract JSON if wrapped in markdown code blocks

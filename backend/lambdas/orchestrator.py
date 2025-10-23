@@ -70,12 +70,26 @@ class ProgressiveOrchestrator:
             logger.error(f"Failed to generate AI insights: {e}")
             # Continue without AI insights - will use placeholder values
         
+        # Generate ALL humor before marking complete (slides 2-15)
+        logger.info(f"Generating humor for all slides (2-15)")
         humor_generator = HumorGenerator()
         
-        if elapsed < self.priority_humor_trigger:
-            humor_generator.generate_priority_slides(session_id)
+        # Generate all slides 2-15 synchronously
+        all_slide_numbers = range(2, 16)  # Slides 2-15 have humor
+        for slide_num in all_slide_numbers:
+            try:
+                logger.info(f"Generating humor for slide {slide_num}")
+                result = humor_generator.generate(session_id, slide_num)
+                if result.get('humor'):
+                    logger.info(f"✓ Slide {slide_num} humor generated")
+                else:
+                    logger.warning(f"⚠ Slide {slide_num} returned no humor")
+            except Exception as e:
+                logger.error(f"✗ Failed to generate humor for slide {slide_num}: {e}")
+                # Continue to next slide even if one fails
         
-        humor_generator.generate_background_slides(session_id)
+        # NOW mark complete - all processing done
+        logger.info(f"All humor generation complete. Marking session as complete.")
         self.session_manager.mark_complete(session_id)
         
         total_time = time.time() - self.start_time
@@ -120,19 +134,31 @@ class ProgressiveOrchestrator:
             except Exception as e:
                 logger.error(f"Failed to generate AI insights on resume: {e}")
         
+        # Generate humor for any missing slides (2-15)
+        logger.info(f"Checking for missing humor in resumed session")
         humor_generator = HumorGenerator()
         existing_humor = existing_session.get('aiHumor', {})
-        missing_slides = [i for i in range(1, 16) if not existing_humor.get(f"slide{i}")]
+        missing_slides = [i for i in range(2, 16) if not existing_humor.get(f"slide{i}")]
         
         if missing_slides:
+            logger.info(f"Generating humor for {len(missing_slides)} missing slides: {missing_slides}")
             for slide_num in missing_slides:
                 try:
+                    logger.info(f"Generating humor for slide {slide_num}")
                     result = humor_generator.generate(session_id, slide_num)
                     if result.get('humor'):
                         self.session_manager.update_humor(session_id, slide_num, result['humor'])
+                        logger.info(f"✓ Slide {slide_num} humor generated")
+                    else:
+                        logger.warning(f"⚠ Slide {slide_num} returned no humor")
                 except Exception as e:
-                    pass
+                    logger.error(f"✗ Failed to generate humor for slide {slide_num}: {e}")
+                    # Continue to next slide
+        else:
+            logger.info("All humor already generated for this session")
         
+        # NOW mark complete - all processing done
+        logger.info(f"Resume complete. Marking session as complete.")
         self.session_manager.mark_complete(session_id)
         total_time = time.time() - self.start_time
         
