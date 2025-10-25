@@ -14,6 +14,7 @@ import { StrengthsSlide } from "./components/slides/StrengthsSlide";
 import { WeaknessesSlide } from "./components/slides/WeaknessesSlide";
 import { ProgressSlide } from "./components/slides/ProgressSlide";
 import { SocialComparisonSlide } from "./components/slides/SocialComparisonSlide";
+import { FarewellSlide } from "./components/slides/FarewellSlide";
 import { FinalRecapSlide } from "./components/slides/FinalRecapSlide";
 import { SlideNavigation } from "./components/SlideNavigation";
 import { ErrorModal } from "./components/ErrorModal";
@@ -245,10 +246,10 @@ export default function App() {
 
   // Auto-advance slides after 10 seconds (but not on welcome, loading or final slide, and when not paused)
   useEffect(() => {
-    if (!hasStarted || currentSlide === 0 || currentSlide === 1 || currentSlide === 14 || isPaused) return;
+    if (!hasStarted || currentSlide === 0 || currentSlide === 1 || currentSlide === 15 || isPaused) return;
     
     const timer = setTimeout(() => {
-      if (currentSlide < 14) {
+      if (currentSlide < 15) {
         setCurrentSlide(prev => prev + 1);
       }
     }, 10000);
@@ -418,7 +419,9 @@ export default function App() {
       { initial: { opacity: 0, x: -50, y: 50 }, animate: { opacity: 1, x: 0, y: 0 }, exit: { opacity: 0, x: 50, y: -50 } },
       // Slide 13 - Social (slide from right)
       { initial: { opacity: 0, x: 100 }, animate: { opacity: 1, x: 0 }, exit: { opacity: 0, x: -100 } },
-      // Slide 14 - Final (fade)
+      // Slide 14 - Farewell (fade with subtle scale)
+      { initial: { opacity: 0, scale: 0.95 }, animate: { opacity: 1, scale: 1 }, exit: { opacity: 0, scale: 1.05 } },
+      // Slide 15 - Final Recap (fade)
       { initial: { opacity: 0 }, animate: { opacity: 1 }, exit: { opacity: 0 } },
     ];
     return animations[slideIndex] || animations[0];
@@ -541,6 +544,15 @@ export default function App() {
             />
           )}
           {currentSlide === 14 && (
+            <FarewellSlide
+              summonerName={displayName}
+              season="2025"
+              gamesPlayed={sessionData.slide2_timeSpent?.totalGames || 0}
+              hoursPlayed={sessionData.slide2_timeSpent?.totalHours || 0}
+              favoriteChampion={sessionData.slide3_favoriteChampions?.[0]?.name || "your favorite champion"}
+            />
+          )}
+          {currentSlide === 15 && (
             <FinalRecapSlide
               summonerName={displayName}
               playerTitle={sessionData.slide10_11_analysis?.personality_title || "The Rising Legend"}
@@ -570,7 +582,7 @@ export default function App() {
       {hasStarted && !isLoading && (
         <SlideNavigation
           currentSlide={currentSlide}
-          totalSlides={15}
+          totalSlides={16}
           onPrevious={previousSlide}
           onNext={nextSlide}
           isPaused={isPaused}
