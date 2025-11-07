@@ -1,10 +1,11 @@
-import { motion } from "motion/react";
+import { motion, AnimatePresence } from "motion/react";
 import { useState, useEffect } from "react";
 import "./LoadingSlide.css";
 
 interface LoadingSlideProps {
   playerName?: string;
   onComplete?: () => void;
+  hasError?: boolean;
 }
 
 // Dynamic loading messages with League of Legends gimmicks
@@ -45,7 +46,7 @@ const loadingMessageSets = {
   ]
 };
 
-export function LoadingSlide({ playerName = "Summoner", onComplete }: LoadingSlideProps) {
+export function LoadingSlide({ playerName = "Summoner", onComplete, hasError = false }: LoadingSlideProps) {
   const [currentMessage, setCurrentMessage] = useState(0);
   const [isComplete, setIsComplete] = useState(false);
   const [messagePhase, setMessagePhase] = useState<'initial' | 'ongoing'>('initial');
@@ -61,6 +62,9 @@ export function LoadingSlide({ playerName = "Summoner", onComplete }: LoadingSli
   }, []);
 
   useEffect(() => {
+    // Stop message rotation if there's an error
+    if (hasError) return;
+    
     const interval = setInterval(() => {
       if (messagePhase === 'initial') {
         setCurrentMessage((prev) => {
@@ -83,7 +87,7 @@ export function LoadingSlide({ playerName = "Summoner", onComplete }: LoadingSli
     }, messagePhase === 'initial' ? 2000 : 3000); // 2s for initial, 3s for ongoing
 
     return () => clearInterval(interval);
-  }, [messagePhase, initialMessages.length, ongoingMessages.length]);
+  }, [messagePhase, initialMessages.length, ongoingMessages.length, hasError]);
 
   // When onComplete callback is provided, mark as complete
   useEffect(() => {
@@ -116,38 +120,37 @@ export function LoadingSlide({ playerName = "Summoner", onComplete }: LoadingSli
 
       {/* Content */}
       <div className="relative z-10 size-full flex flex-col items-center justify-center px-4 sm:px-6 gap-8">
-        {/* Loading Messages */}
-        <motion.div
-          key={`${messagePhase}-${currentMessage}`}
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -10 }}
-          transition={{ duration: 0.5 }}
-          className="text-center max-w-md"
-        >
-          <p className="text-lg sm:text-xl md:text-2xl text-[#E8E6E3] font-semibold">
-            {currentMessageText}
-          </p>
-        </motion.div>
-
-        {/* Continue Button - Shows after all messages */}
-        {isComplete && onComplete && (
-          <motion.button
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.5 }}
-            onClick={onComplete}
-            className="group relative px-8 py-3 sm:px-12 sm:py-4 bg-gradient-to-r from-[#8B7548] to-[#C8AA6E] 
-                     hover:from-[#C8AA6E] hover:to-[#8B7548] transition-all duration-300 
-                     shadow-lg hover:shadow-[#C8AA6E]/50 transform hover:scale-105"
-          >
-            <span className="text-[#0A1428] font-bold text-base sm:text-lg tracking-wide">
-              BEGIN YOUR REWIND
-            </span>
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent 
-                          translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
-          </motion.button>
-        )}
+        {/* Loading Messages or Begin Button */}
+        <AnimatePresence mode="wait">
+          {!isComplete ? (
+            <motion.div
+              key={`${messagePhase}-${currentMessage}`}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.5 }}
+              className="text-center max-w-md"
+            >
+              <p className="text-lg sm:text-xl md:text-2xl text-[#E8E6E3] font-semibold">
+                {currentMessageText}
+              </p>
+            </motion.div>
+          ) : onComplete ? (
+            <motion.button
+              key="begin-button"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+              onClick={onComplete}
+              className="text-center max-w-md"
+            >
+              <p className="text-lg sm:text-xl md:text-2xl text-[#C8AA6E] font-semibold 
+                          hover:text-[#E8C478] transition-colors cursor-pointer">
+                BEGIN YOUR REWIND
+              </p>
+            </motion.button>
+          ) : null}
+        </AnimatePresence>
       </div>
     </div>
   );

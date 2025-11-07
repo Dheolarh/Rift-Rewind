@@ -49,10 +49,12 @@ class InsightsGenerator:
         s3_key = f"sessions/{session_id}/analytics.json"
         logger.info(f"Downloading analytics from S3: {s3_key}")
         
-        analytics = download_from_s3(s3_key)
-        if not analytics:
+        analytics_str = download_from_s3(s3_key)
+        if not analytics_str:
             raise ValueError(f"Analytics not found for session: {session_id}")
         
+        # Parse JSON string to dict
+        analytics = json.loads(analytics_str)
         return analytics
     
     def create_insights_prompt(self, analytics: Dict[str, Any]) -> str:

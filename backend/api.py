@@ -194,13 +194,46 @@ class RiftRewindAPI:
             
             logger.info("✅ All humor generation complete!")
             
+            # Step 4: Generate insights (strengths, weaknesses, personality_title, coaching tips)
+            logger.info("🧠 Generating AI insights...")
+            try:
+                insights_generator = InsightsGenerator()
+                insights_result = insights_generator.generate(session_id)
+                insights = insights_result.get('insights', {})
+                
+                # Update analytics with insights data
+                if 'slide10_11_analysis' in analytics:
+                    analytics['slide10_11_analysis'].update({
+                        'strengths': insights.get('strengths', []),
+                        'weaknesses': insights.get('weaknesses', []),
+                        'coaching_tips': insights.get('coaching_tips', []),
+                        'play_style': insights.get('play_style', ''),
+                        'personality_title': insights.get('personality_title', 'The Rising Summoner')
+                    })
+                    
+                    # Re-upload analytics with insights
+                    upload_to_s3(analytics_key, analytics)
+                    logger.info("✓ Insights integrated into analytics")
+                else:
+                    logger.warning("⚠️ slide10_11_analysis not found in analytics")
+                    
+            except Exception as e:
+                logger.error(f"❌ Insights generation failed: {e}")
+                # Continue without insights - placeholders already in analytics
+            
             # Collect all humor for caching
             humor_data = {}
             for slide_num in range(2, 16):
                 humor_str = download_from_s3(f"sessions/{session_id}/humor/slide_{slide_num}.json")
                 if humor_str:
                     humor_json = json.loads(humor_str)
-                    humor_data[f"slide{slide_num}_humor"] = humor_json.get('humorText', '')
+                    humor_text = humor_json.get('humorText', '')
+                    
+                    # Slide 15 is the farewell message, store it differently
+                    if slide_num == 15:
+                        humor_data['slide15_farewell'] = humor_text
+                    else:
+                        humor_data[f"slide{slide_num}_humor"] = humor_text
             
             # Build profile icon URL
             from services.riot_api_client import RiotAPIClient
@@ -277,15 +310,45 @@ class RiftRewindAPI:
                         'player': cached_session.get('player', {})
                     })
             
-            # Download analytics from session storage
+            # Try to download analytics from session storage
             analytics_str = download_from_s3(f"sessions/{session_id}/analytics.json")
             
             if not analytics_str:
+                # Session files not found - this might be a cached session
+                # Try to find it by searching for session ID in cache metadata
+                logger.warning(f"Session {session_id} not found in sessions storage, checking cache...")
+                cached_session = self.cache_manager.find_session_by_id(session_id)
+                if cached_session:
+                    logger.info(f"📦 Found session in cache")
+                    return self.create_response(200, {
+                        'sessionId': cached_session['metadata']['sessionId'],
+                        'status': 'complete',
+                        'fromCache': True,
+                        'analytics': {**cached_session['analytics'], **cached_session['humor']},
+                        'player': cached_session.get('player', {})
+                    })
+                
                 return self.create_response(404, {
                     'error': 'Session not found'
                 })
             
             analytics = json.loads(analytics_str)
+            
+            # Download insights and merge into analytics
+            insights_str = download_from_s3(f"sessions/{session_id}/insights.json")
+            if insights_str:
+                insights_data = json.loads(insights_str)
+                insights = insights_data.get('insights', {})
+                
+                # Merge insights into slide10_11_analysis
+                if 'slide10_11_analysis' in analytics:
+                    analytics['slide10_11_analysis'].update({
+                        'strengths': insights.get('strengths', []),
+                        'weaknesses': insights.get('weaknesses', []),
+                        'coaching_tips': insights.get('coaching_tips', []),
+                        'play_style': insights.get('play_style', ''),
+                        'personality_title': insights.get('personality_title', 'The Rising Summoner')
+                    })
             
             # Download all humor data
             humor_data = {}
@@ -293,7 +356,13 @@ class RiftRewindAPI:
                 humor_str = download_from_s3(f"sessions/{session_id}/humor/slide_{slide_num}.json")
                 if humor_str:
                     humor_json = json.loads(humor_str)
-                    humor_data[f"slide{slide_num}_humor"] = humor_json.get('humorText', '')
+                    humor_text = humor_json.get('humorText', '')
+                    
+                    # Slide 15 is the farewell message, store it differently
+                    if slide_num == 15:
+                        humor_data['slide15_farewell'] = humor_text
+                    else:
+                        humor_data[f"slide{slide_num}_humor"] = humor_text
             
             # Merge humor into analytics
             analytics.update(humor_data)

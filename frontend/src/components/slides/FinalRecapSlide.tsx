@@ -1,7 +1,8 @@
 import { motion } from "motion/react";
 import { RotateCcw, Share2 } from "lucide-react";
 import { ImageWithFallback } from "../source/ImageWithFallback";
-import logoImage from "../../assets/WelcomeBg.webp";
+import welcomeBg from "../../assets/WelcomeBg.webp";
+import logoImage from "../../assets/logo.webp";
 import { useState } from "react";
 import { ShareCard } from "../ShareCard";
 
@@ -16,7 +17,11 @@ interface FinalRecapSlideProps {
     favoriteChampion: string;
     kdaRatio: number;
     winRate: number;
+    totalKills: number;
+    uniqueChampions: number;
+    playerLevel: number;
   };
+  profileIconId?: number;
   onRestart: () => void;
 }
 
@@ -25,9 +30,15 @@ export function FinalRecapSlide({
   playerTitle,
   year,
   highlightStats,
+  profileIconId,
   onRestart,
 }: FinalRecapSlideProps) {
   const [showShareCard, setShowShareCard] = useState(false);
+  
+  // Get summoner icon URL
+  const summonerIconUrl = profileIconId 
+    ? `https://ddragon.leagueoflegends.com/cdn/14.23.1/img/profileicon/${profileIconId}.png`
+    : null;
 
   const handleShare = () => {
     setShowShareCard(true);
@@ -48,84 +59,151 @@ export function FinalRecapSlide({
           favoriteChampion: highlightStats.favoriteChampion,
           kdaRatio: highlightStats.kdaRatio,
           winRate: highlightStats.winRate,
+          totalKills: highlightStats.totalKills,
+          uniqueChampions: highlightStats.uniqueChampions,
+          playerLevel: highlightStats.playerLevel,
         }}
       />
       
       <div className="relative w-full h-full overflow-hidden bg-[#010A13] flex items-center justify-center">
-        {/* Simple Background Image */}
-        <div className="absolute inset-0">
-          <ImageWithFallback 
-            src="https://images.unsplash.com/photo-1759049080700-78aa9460c364?w=1920"
-            alt="Background"
-            className="w-full h-full object-cover opacity-10"
-          />
-          <div className="absolute inset-0 bg-gradient-to-b from-[#010A13]/80 via-[#010A13]/60 to-[#010A13]" />
-        </div>
+        {/* Background Image - Same as Welcome Slide */}
+        <div className="absolute inset-0 bg-gradient-to-br from-[#010A13] via-[#0A1428] to-[#010A13]" />
+        
+        <ImageWithFallback 
+          src={welcomeBg}
+          alt="Background"
+          className="absolute inset-0 size-full object-cover opacity-20"
+        />
+        
+        {/* Glowing orbs */}
+        <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-[#C8AA6E] rounded-full blur-[120px] opacity-20 animate-pulse" />
+        <div className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-[#0AC8B9] rounded-full blur-[120px] opacity-20 animate-pulse" style={{ animationDelay: '1s' }} />
 
         {/* Content - Centered and Simplified */}
-        <div className="relative z-10 flex flex-col items-center justify-center px-4 sm:px-6 gap-6">
+        <div className="relative z-10 flex flex-col items-center justify-center px-4 sm:px-6 gap-4 sm:gap-5">
           
           {/* Logo */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.8 }}
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            className="mb-2"
           >
             <ImageWithFallback 
               src={logoImage}
-              alt="Rift Rewind"
-              className="w-24 sm:w-32 md:w-36 mx-auto"
+              alt="Rift Rewind Logo"
+              className="w-48 sm:w-56 md:w-64 mx-auto"
             />
           </motion.div>
+          
+          {/* Summoner Icon */}
+          {summonerIconUrl && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.6, delay: 0.1 }}
+              className="w-20 h-20 sm:w-24 sm:h-24 rounded-full border-4 border-[#C8AA6E] overflow-hidden bg-[#0A1428] shadow-lg shadow-[#C8AA6E]/30"
+            >
+              <ImageWithFallback 
+                src={summonerIconUrl}
+                alt="Summoner Icon"
+                className="w-full h-full object-cover"
+              />
+            </motion.div>
+          )}
 
           {/* Title */}
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3, duration: 0.6 }}
+            transition={{ delay: 0.2, duration: 0.6 }}
             className="text-center"
           >
             <h2 className="text-xl sm:text-2xl md:text-3xl text-white mb-1" style={{ fontFamily: 'Georgia, serif' }}>
               {summonerName}
             </h2>
-            <div className="text-sm sm:text-base text-[#C8AA6E]" style={{ fontFamily: 'Georgia, serif' }}>
+            <div className="text-sm sm:text-base md:text-lg text-[#C8AA6E] italic" style={{ fontFamily: 'Georgia, serif' }}>
               {playerTitle}
             </div>
           </motion.div>
 
-          {/* Stats Grid - Simplified */}
+          {/* Stats Grid - Expanded with more boxes */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5 }}
-            className="grid grid-cols-2 gap-3 w-full max-w-sm"
+            transition={{ delay: 0.4 }}
+            className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3 w-full max-w-4xl"
           >
-            <div className="bg-[#0A1428]/50 border border-[#C8AA6E]/20 p-3 text-center">
-              <div className="text-xl sm:text-2xl text-[#C8AA6E] mb-0.5 tabular-nums" style={{ fontFamily: 'Georgia, serif' }}>
-                {highlightStats.gamesPlayed}
-              </div>
-              <div className="text-xs text-[#A09B8C] uppercase">Games</div>
-            </div>
-
-            <div className="bg-[#0A1428]/50 border border-[#0AC8B9]/20 p-3 text-center">
-              <div className="text-xl sm:text-2xl text-[#0AC8B9] mb-0.5 tabular-nums" style={{ fontFamily: 'Georgia, serif' }}>
+            {/* Hours Played */}
+            <div className="bg-[#0A1428]/60 backdrop-blur-sm border border-[#0AC8B9]/30 p-3 sm:p-4 text-center rounded-sm">
+              <div className="text-2xl sm:text-3xl text-[#0AC8B9] mb-1 tabular-nums" style={{ fontFamily: 'Georgia, serif' }}>
                 {highlightStats.hoursPlayed}
               </div>
-              <div className="text-xs text-[#A09B8C] uppercase">Hours</div>
+              <div className="text-xs text-[#A09B8C] uppercase tracking-wider">Hours</div>
             </div>
 
-            <div className="bg-[#0A1428]/50 border border-[#C8AA6E]/20 p-3 text-center">
-              <div className="text-sm sm:text-base text-[#C8AA6E] mb-0.5" style={{ fontFamily: 'Georgia, serif' }}>
-                {highlightStats.peakRank}
+            {/* Games Played */}
+            <div className="bg-[#0A1428]/60 backdrop-blur-sm border border-[#C8AA6E]/30 p-3 sm:p-4 text-center rounded-sm">
+              <div className="text-2xl sm:text-3xl text-[#C8AA6E] mb-1 tabular-nums" style={{ fontFamily: 'Georgia, serif' }}>
+                {highlightStats.gamesPlayed}
               </div>
-              <div className="text-xs text-[#A09B8C] uppercase">Peak Rank</div>
+              <div className="text-xs text-[#A09B8C] uppercase tracking-wider">Games</div>
             </div>
 
-            <div className="bg-[#0A1428]/50 border border-[#C8AA6E]/20 p-3 text-center">
-              <div className="text-sm sm:text-base text-white mb-0.5" style={{ fontFamily: 'Georgia, serif' }}>
+            {/* Win Rate */}
+            <div className="bg-[#0A1428]/60 backdrop-blur-sm border border-[#0AC8B9]/30 p-3 sm:p-4 text-center rounded-sm">
+              <div className="text-2xl sm:text-3xl text-[#0AC8B9] mb-1 tabular-nums" style={{ fontFamily: 'Georgia, serif' }}>
+                {highlightStats.winRate.toFixed(1)}%
+              </div>
+              <div className="text-xs text-[#A09B8C] uppercase tracking-wider">Win Rate</div>
+            </div>
+
+            {/* Total Kills */}
+            <div className="bg-[#0A1428]/60 backdrop-blur-sm border border-[#FF4444]/30 p-3 sm:p-4 text-center rounded-sm">
+              <div className="text-2xl sm:text-3xl text-[#FF4444] mb-1 tabular-nums" style={{ fontFamily: 'Georgia, serif' }}>
+                {highlightStats.totalKills}
+              </div>
+              <div className="text-xs text-[#A09B8C] uppercase tracking-wider">Kills</div>
+            </div>
+
+            {/* KDA Ratio */}
+            <div className="bg-[#0A1428]/60 backdrop-blur-sm border border-[#C8AA6E]/30 p-3 sm:p-4 text-center rounded-sm">
+              <div className="text-2xl sm:text-3xl text-[#FFD700] mb-1 tabular-nums" style={{ fontFamily: 'Georgia, serif' }}>
+                {highlightStats.kdaRatio.toFixed(2)}
+              </div>
+              <div className="text-xs text-[#A09B8C] uppercase tracking-wider">KDA</div>
+            </div>
+
+            {/* Favorite Champion */}
+            <div className="bg-[#0A1428]/60 backdrop-blur-sm border border-[#8B5CF6]/30 p-3 sm:p-4 text-center rounded-sm">
+              <div className="text-base sm:text-lg text-white mb-1 truncate" style={{ fontFamily: 'Georgia, serif' }}>
                 {highlightStats.favoriteChampion}
               </div>
-              <div className="text-xs text-[#A09B8C] uppercase">Main</div>
+              <div className="text-xs text-[#A09B8C] uppercase tracking-wider">Main</div>
+            </div>
+
+            {/* Peak Rank */}
+            <div className="bg-[#0A1428]/60 backdrop-blur-sm border border-[#C8AA6E]/30 p-3 sm:p-4 text-center rounded-sm">
+              <div className="text-base sm:text-lg text-[#C8AA6E] mb-1" style={{ fontFamily: 'Georgia, serif' }}>
+                {highlightStats.peakRank}
+              </div>
+              <div className="text-xs text-[#A09B8C] uppercase tracking-wider">Peak Rank</div>
+            </div>
+
+            {/* Unique Champions */}
+            <div className="bg-[#0A1428]/60 backdrop-blur-sm border border-[#8B5CF6]/30 p-3 sm:p-4 text-center rounded-sm">
+              <div className="text-2xl sm:text-3xl text-[#8B5CF6] mb-1 tabular-nums" style={{ fontFamily: 'Georgia, serif' }}>
+                {highlightStats.uniqueChampions}
+              </div>
+              <div className="text-xs text-[#A09B8C] uppercase tracking-wider">Champions</div>
+            </div>
+
+            {/* Player Level */}
+            <div className="bg-[#0A1428]/60 backdrop-blur-sm border border-[#C8AA6E]/30 p-3 sm:p-4 text-center rounded-sm">
+              <div className="text-2xl sm:text-3xl text-[#C8AA6E] mb-1 tabular-nums" style={{ fontFamily: 'Georgia, serif' }}>
+                {highlightStats.playerLevel}
+              </div>
+              <div className="text-xs text-[#A09B8C] uppercase tracking-wider">Level</div>
             </div>
           </motion.div>
 

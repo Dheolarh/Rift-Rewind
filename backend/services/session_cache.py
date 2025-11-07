@@ -283,3 +283,60 @@ class SessionCacheManager:
         except Exception as e:
             logger.error(f"Error getting cache stats: {e}")
             return None
+    
+    def find_session_by_id(self, session_id: str) -> Optional[Dict[str, Any]]:
+        """
+        Find a cached session by its session ID.
+        This searches through cache metadata to find a matching session.
+        
+        Args:
+            session_id: Session ID to search for
+        
+        Returns:
+            Complete session data or None if not found
+        """
+        try:
+            from services.aws_clients import get_s3_client
+            from services.constants import S3_BUCKET_NAME
+            
+            s3_client = get_s3_client()
+            
+            # List all cache metadata files
+            response = s3_client.list_objects_v2(
+                Bucket=S3_BUCKET_NAME,
+                Prefix='cache/users/',
+                Delimiter='/'
+            )
+            
+            if 'CommonPrefixes' not in response:
+                return None
+            
+            # Search through each user's cache
+            for prefix in response['CommonPrefixes']:
+                user_prefix = prefix['Prefix']
+                metadata_key = f"{user_prefix}metadata.json"
+                
+                try:
+                    metadata_str = download_from_s3(metadata_key)
+                    if not metadata_str:
+                        continue
+                    
+                    metadata = json.loads(metadata_str)
+                    if metadata.get('sessionId') == session_id:
+                        # Found it! Now get the complete session
+                        cache_key = f"{user_prefix}complete_session.json"
+                        cache_str = download_from_s3(cache_key)
+                        if cache_str:
+                            logger.info(f"📦 Found session {session_id} in cache at {user_prefix}")
+                            return json.loads(cache_str)
+                except Exception as e:
+                    # Skip this user if there's an error
+                    logger.debug(f"Error checking cache at {user_prefix}: {e}")
+                    continue
+            
+            logger.warning(f"Session {session_id} not found in any cache")
+            return None
+        
+        except Exception as e:
+            logger.error(f"Error searching for session by ID: {e}")
+            return None

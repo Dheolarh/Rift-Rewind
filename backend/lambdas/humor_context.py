@@ -21,257 +21,194 @@ logger.setLevel(logging.INFO)
 from services.aws_clients import get_bedrock_client, download_from_s3, upload_to_s3
 
 SLIDE_PROMPTS = {
-    1: None,
-    
-    2: """Roast this League player's time commitment. BE CONTEXT AWARE.
+
+    2: """Create a short, funny one-liner about how much time this player spent on League. 
+Compare their total hours to any real-world activity (watching a show, working a job, running a marathon, etc.).
+It should sound playful and slightly concerned — like the game can’t believe their dedication.
 
 Stats: {totalGames} games, {totalHours} hours, {avgGameLength} min/game
 
-HARDCORE (500+ hours): Sarcastic compliment or "get a life" roast
-AVERAGE (100-500 hours): Light roast, modest mockery  
-CASUAL (<100 hours): "Why even bother" energy
-
-Examples by tier:
-HARDCORE: "{totalHours} hours? At this point League IS your job. Unpaid, but still."
-HARDCORE: "Touch grass? You played {totalGames} games. Grass is a myth to you now."
-AVERAGE: "{totalHours} hours of ranked. Not casual, not addicted. Just... sad."
-CASUAL: "{totalGames} games? {totalHours} hours? You barely even tried to ruin your life."
-
-Context-aware roast. Under 30 words. No emojis:""",
-    
-    
-    4: """Roast (or compliment) this player's BEST SINGLE MATCH performance. BE CONTEXT AWARE.
-
-This is about their HIGHEST-KILL GAME, not overall stats.
-Stats: {kills}/{deaths}/{assists} on {championName}, {gameDuration} min, Result: {win}
-
-GODLIKE (20+ kills in one game): Sarcastic compliment or "touch grass" roast
-GOOD (10-19 kills): Backhanded compliment
-AVERAGE (5-9 kills): Light mockery
-TERRIBLE (<5 kills): Absolute destruction
-
-Examples by tier:
-GODLIKE: "{kills} kills on {championName}? Okay we see you. The enemy team rage quit."
-GOOD: "{kills} kills in one game. Not bad. Solid pop-off moment."
-AVERAGE: "Your best game ever is {kills}/{deaths}/{assists}? Mid recognizes mid."
-TERRIBLE: "{kills} kills in your BEST GAME EVER? That's not a highlight, that's embarrassing."
-
-Roast THIS SPECIFIC MATCH. Under 30 words. No emojis:""",
-    
-    5: """Roast (or acknowledge) this player's OVERALL SEASON KDA. BE CONTEXT AWARE.
-
-This is about their AVERAGE performance across ALL GAMES, not one match.
-Stats: {avgKills}/{avgDeaths}/{avgAssists} per game, {kdaRatio} KDA ratio, {totalKills} total kills all season
-
-ELITE (4.0+ KDA): Sarcastic respect or jealous roast
-GOOD (2.5-3.9 KDA): Solid acknowledgment with shade
-AVERAGE (1.5-2.4 KDA): Mid-tier mockery  
-TRASH (<1.5 KDA): Nuclear destruction
-
-Examples by tier:
-ELITE: "{kdaRatio} KDA ratio? Alright calm down. You're good. We get it."
-GOOD: "{kdaRatio} KDA across all games. Solid. Not cracked, just consistent."
-AVERAGE: "{avgKills}/{avgDeaths}/{avgAssists} average. You're aggressively mid and that's okay."
-TRASH: "{kdaRatio} KDA? You're inting every game. That's the consistency we don't need."
-
-Roast their SEASON-LONG KDA performance. Under 30 words. No emojis:""",
-    
-    
-    6: """Roast (or respect) this player's rank. BE CONTEXT AWARE.
-
-Stats: {currentRank}, {leaguePoints} LP, {winRate}% winrate, {totalGames} games
-
-HIGH ELO (Diamond+): Genuine respect or jealous roast
-MID ELO (Gold-Plat): Backhanded compliment, "not bad" energy
-LOW ELO (Silver-Bronze): Harsh reality check
-UNRANKED: Why are you hiding?
-
-Examples by tier:
-HIGH: "{currentRank}? Actually impressive. Must be nice being better than 95% of us."
-MID: "{currentRank} at {winRate}% WR. You're decent. Barely. Don't let it go to your head."
-LOW: "{currentRank} after {totalGames} games. The climb is real. The struggle is... also real."
-UNRANKED: "Unranked after {totalGames} games? Ranked anxiety or just scared of the truth?"
-
-Context-aware response. Under 30 words. No emojis:""",
-    7: """Roast (or acknowledge) this player's vision control. BE CONTEXT AWARE.
-
-Stats: {avgVisionScore} avg vision score, {avgWardsPlaced} wards/game, {avgControlWardsPurchased} control wards/game
-
-EXCELLENT (45+ vision): Sarcastic respect, "support main" jokes
-GOOD (30-44 vision): Solid acknowledgment
-AVERAGE (20-29 vision): Light roasting
-TERRIBLE (<20 vision): Nuclear destruction for no vision
-
-Examples by tier:
-EXCELLENT: "{avgVisionScore} vision score per game? Okay support main, we see you. Your team owes you LP."
-GOOD: "{avgVisionScore} vision score per game. Not bad. You actually know wards exist."
-AVERAGE: "{avgVisionScore} average vision score? You ward sometimes. When you remember. Maybe."
-TERRIBLE: "{avgVisionScore} average vision score? You're playing League with a blindfold. Map awareness who?"
-
-Context-aware response. Under 30 words. No emojis:""",
-    
-    8: """Roast (or acknowledge) this player's champion pool. BE CONTEXT AWARE.
-
-Stats: {uniqueChampions} unique champions across {totalGames} games
-
-ONE-TRICK (1-10 champs): "Dedication or fear?" roasts
-FOCUSED (11-25 champs): Balanced commentary
-DIVERSE (26-50 champs): "Jack of all trades" mockery
-CHAOS (50+ champs): "Master of none" destruction
-
-Examples by tier:
-ONE-TRICK: "{uniqueChampions} champions in {totalGames} games. You found your main and never looked back. Respect."
-FOCUSED: "{uniqueChampions} champions. Solid roster. Not spam-clicking in champ select."
-DIVERSE: "{uniqueChampions} different champions? That's variety or indecision. Can't tell which."
-CHAOS: "{uniqueChampions} champions played? You're not versatile, you're just lost."
-
-Context-aware response. Under 30 words. No emojis:""",
-    
-    9: """Roast this duo partnership.
-
-Duo stats:
-- Partner: {partnerName}
-- Games together: {gamesTogether}
-- Combined winrate: {winRate}%
-
-Write ONE savage roast about their duo performance. Be brutal. Under 30 words. No emojis.
+TONE GUIDE:
+- 500+ hours → Legendary obsession
+- 100–500 hours → Balanced addiction
+- <100 hours → Barely played
 
 Examples:
-"You and {partnerName} played {gamesTogether} games at {winRate}% winrate. Two negatives don't make a positive."
-"{gamesTogether} games with {partnerName}, {winRate}% winrate. You're not a duo, you're a liability multiplier."
-"{partnerName} and you: {gamesTogether} games together. Friendship goals. Winning games? Not so much."
-"{winRate}% winrate across {gamesTogether} games. You two share one brain cell and it's permanently AFK."
-"Playing {gamesTogether} games with {partnerName}. That's not teamwork, that's synchronized inting."
+"That’s enough time to master piano, but you chose tilt instead."
+"You’ve clocked in like League pays salary."
+"You played just enough to remember how painful it is."
 
-Destroy their duo. Under 30 words:""",
+Keep under 20 words, use humor + exaggeration:""",
     
-    10: """You're giving a backhanded compliment about the players strengths derived from analysis result from their league of legends seasons recap.
+
+    4: """Write a short, dramatic reaction to this player's best match — as if the system is shocked, proud, or disappointed.
+Focus on emotion, not stats.
+
+Stats: {kills}/{deaths}/{assists} on {championName}, {gameDuration} min, Result: {win}
+
+PERFORMANCE GUIDE:
+- 20+ kills → Overpowered energy
+- 10–19 kills → Strong but human
+- 5–9 kills → Mid-tier flex
+- <5 kills → Comic relief
+
+Examples:
+"That match was pure chaos — beautiful chaos."
+"You peaked there, admit it."
+"Painful to watch, but at least memorable."
+
+Under 15 words, cinematic or mocking tone:""",
+    
+
+    5: """Write a short reaction to the player's season KDA. 
+Be direct — compliment or mock their skill level without listing numbers.
+
+Stats: {avgKills}/{avgDeaths}/{avgAssists}, {kdaRatio}, {totalKills}
+
+TONE GUIDE:
+- 4.0+ → Overlord energy
+- 2.5–3.9 → Solid
+- 1.5–2.4 → Mid
+- <1.5 → Disaster
+
+Examples:
+"All hail the dark summoner."
+"Still dying like it’s a hobby."
+"You’re a horror to watch."
+"After all this time, still a noob."
+
+Under 15 words, confident and punchy:""",
+    
+
+    6: """Describe their rank in a funny, personal way — like the system knows them too well.
+Avoid stats, just attitude.
+
+Stats: {currentRank}, {leaguePoints}, {winRate}%, {totalGames}
+
+TONE GUIDE:
+- Diamond+ → Quiet admiration
+- Gold–Plat → Endless grind
+- Silver–Bronze → Tragic comedy
+- Unranked → Confused soul
+
+Examples:
+"You breathe ranked air. Respect."
+"Gold again? Eternal purgatory."
+"Bronze is a lifestyle, not a rank."
+"Still unranked? That’s a talent."
+
+Under 15 words, witty and personal:""",
+    
+
+    7: """Make a funny comment about how well this player uses vision — like judging their eyesight.
+Use jokes about seeing, blindness, or map awareness.
+
+Stats: {avgVisionScore}, {avgWardsPlaced}, {avgControlWardsPurchased}
+
+TONE GUIDE:
+- 45+ → Eagle vision
+- 30–44 → Average awareness
+- 20–29 → Fog dweller
+- <20 → Blind adventurer
+
+Examples:
+"You see everything. Creepy."
+"You ward for decoration."
+"Did you uninstall your eyes?"
+"You play like you’ve never seen a minimap."
+
+Under 15 words, pun-based humor preferred:""",
+    
+
+    8: """Write a quick, funny line about their champion pool — like you’re judging their identity crisis or loyalty.
+
+Stats: {uniqueChampions}, {totalGames}
+
+TONE GUIDE:
+- 1–10 → One-trick devotion
+- 11–25 → Consistent but obsessed
+- 26–50 → Lost identity
+- 50+ → Chaos incarnate
+
+Examples:
+"Restraining order from that champ pending."
+"One nerf away from existential dread."
+"You’re loyal, maybe too loyal."
+"That’s not a pool — it’s an ocean of confusion."
+
+Under 15 words, short and character-driven:""",
+    
+
+    9: """Write a short, funny line about this player and their duo partner — like you’re narrating a chaotic relationship.
+
+Stats: {partnerName}, {gamesTogether}, {winRate}%
+
+Examples:
+"You and {partnerName}? A romantic disaster."
+"{partnerName} carried your trauma, not your LP."
+"Together, you two redefine throwing."
+"Dynamic duo? More like dynamic disaster."
+
+Under 15 words, playful duo energy:""",
+    
+
+    10: """You are a professional coach giving a short, specific praise for their best strength.
 
 Top Strength: {strengths}
 
-Write ONE sarcastic and witty sentence (max 30 words) that sounds like praise but is actually a roast. NO EMOJIS.
-
 Examples:
-if strength is map awareness
-"Your map awareness is {strengths}? Wow, you occasionally glance at the minimap. Revolutionary gameplay right here."
-"Your strength is map awareness? That's not a strength, that's just playing the game correctly."
+"Excellent map control — you move like you own the Rift."
+"Perfect positioning — chaos fears you."
+"Teamfights are your stage. Keep performing."
 
-if strength is teamfighting
-"Wow, your {strengths} in teamfights is admirable. Finally, someone who shows up and presses buttons with intent!"
-"Your strength is teamfighting? Congratulations on doing the bare minimum and actually participating."
-
-if strength is mechanics
-"Your mechanical skill is {strengths}? That's great, shame the mental game doesn't exist."
-"Strong mechanics you say? Now if only your decision-making caught up."
-
-if strength is farming/CS
-"Your {strengths} CS per minute is incredible. You're basically a creep farming simulator with legs."
-"Excellent farming stats! Too bad you die immediately after."
-
-if strength is engaging
-"Your strength is engaging? You sure are engaging... the enemy team and losing fights."
-
-Max 30 words. Compliment that's secretly a roast. NO EMOJIS:""",
+Under 25 words, professional and encouraging:""",
     
-    11: """You're pointing out a weakness with 'helpful' advice from analysis result from their league of legends seasons recap.
+
+    11: """You are a professional coach giving quick, actionable advice for their biggest weakness.
 
 Top Weakness: {weaknesses}
 
-Write ONE savage and sarcastic sentence (max 30 words) that sounds helpful but is actually canny. NO EMOJIS.
-
 Examples:
-if weakness is CS/farming
-"Your CS needs work. Minions don't last-hit themselves. Maybe watch a YouTube tutorial? Or three? Or all of them?"
-"Farm more, you say? Revolutionary advice. Minions are free gold, but apparently so is gold for you."
+"Too aggressive early. Learn patience, win late."
+"Low vision — start warding like you mean it."
+"Bad CS. Farm gold, not death timers."
 
-if weakness is map awareness
-"Map awareness: critical failure. Good news: vision is free! Bad news: you still won't look at the minimap anyway."
-"Can't see the jungler? That's what the minimap is for. Try opening your eyes? Just a thought!"
-
-if weakness is positioning
-"Positioning in teamfights? Flash is for escaping danger, not running solo 1v5. Just a helpful tip!"
-"Your positioning is rough. Try staying behind your team instead of in the enemy fountain."
-
-if weakness is warding
-"You don't ward? Wards are literally free gold sense at minute 3. Even support understands this concept."
-"Vision score too low? Buy wards. It's cheaper than therapy for your teammates."
-
-if weakness is mechanics
-"Your mechanics need work. Practice in Practice Tool for once instead of bleeding LP in ranked."
-"Clunky mechanics? That's okay, start with a 2-button champion and work your way up."
-
-if weakness is decision making
-"Decision-making? Rough. Pro tip: not everything needs to be a fight. Sometimes running away is winning."
-"Your macro is atrocious. Here's a wild thought: don't fight when down 5k gold."
-
-Max 30 words. Savage advice disguised as help. NO EMOJIS:""",
-
-    12: """You're commenting on year overview from analysis result from their league of legends seasons recap.
-
-Stats:
-- Total Games: {totalGames}
-- Current KDA: {kdaRatio}
-
-Write ONE savage sentence (max 30 words) about their journey using actual numbers. NO EMOJIS.
-
-Examples (with improvement):
-"After {totalGames} games, your KDA is {kdaRatio}? That's not a journey, that's a hostage situation."
-"A pitiful {kdaRatio} KDA after {totalGames} games? At this rate, you'll hit average in 2030."
-"{totalGames} games later and your KDA is still {kdaRatio}? Even your
-
-Max 30 words. Progress roast with real stats. NO EMOJIS:""",
+Under 25 words, clear and constructive:""",
     
-    14: """You're commenting on their rank percentile and their position on the leaderboard from analysis result from their league of legends seasons recap.
 
-Stats:
-- Rank: {currentRank}
-- Percentile: Top {percentile}%
+    12: """Write a short, darkly funny line about their overall season progress — like an anime arc gone wrong.
 
-Write ONE savage sentence (max 30 words) using EXACT percentile. NO EMOJIS.
+Stats: {totalGames}, {kdaRatio}
 
 Examples:
-if percentile is high (Top 1-5%)
-"Top {percentile}%? You're basically royalty. Everyone else is peasants. Enjoy the view from up there."
-"Only top {percentile}% of players reached your rank? That's elite. That's also unreachable for the 99.9% watching."
+"{totalGames} games later, still no enlightenment."
+"Your journey was 90% filler episodes."
+"Growth? Just trauma with stats."
 
-if percentile is medium (Top 10-30%)
-"Top {percentile}% players? Congrats, you beat the casuals. Now beat the actual players."
-"In the top {percentile}%? You're better than average, which isn't saying much."
-"Top {percentile}% rank? You're basically a middle manager of League."
-
-if percentile is low (Top 50%+)
-"Top {percentile}%? Buddy, that's not an achievement, that's an average Tuesday."
-"Top {percentile}%? You and roughly half the server are equally mid."
-"Congratulations on being better than exactly half of everyone. You're median."
-
-Max 30 words. Use actual percentile. NO EMOJIS:""",
+Under 15 words, existential humor tone:""",
     
-    15: """You're writing a final season wrap-up roast.
 
-Stats:
-- Total Games: {totalGames}
-- Final Rank: {currentRank}
-- Top Champion: {topChampion}
+    14: """Write a short, mock-serious comment about their global percentile, as if it’s from a documentary narrator.
 
-Write ONE memorable closing line (max 30 words) using actual stats. Make it savage but funny. NO EMOJIS.
+Stats: {currentRank}, {percentile}%
 
 Examples:
-if positive conclusion
-"That's {totalGames} games, {currentRank} rank, and one {topChampion} one-trick away from actual competence. Until next season!"
-"What a year: {totalGames} games, {currentRank} rank, and a {topChampion} obsession. Same time next year?"
-"Here's to {totalGames} games of trying. You reached {currentRank}. Growth is growth, even if it's microscopic."
+"Top {percentile}% — the chosen few."
+"Top {percentile}% — respectable mediocrity."
+"Top {percentile}% — humanity’s middle child."
 
-if neutral/average conclusion
-"{totalGames} games. {currentRank} rank. {topChampion} addiction. That's your legacy this season. Thrilling stuff."
-"Final verdict: {totalGames} games didn't change much. You're still you, just more tired and slightly older."
-"Year summary: {totalGames} grinding sessions = {currentRank}. Mathematically concerning but emotionally relatable."
+Under 15 words, dramatic or deadpan tone:""",
+    
 
-if hard roast conclusion
-"{totalGames} games and you're still {currentRank}? The only thing grinding harder than you are your enemies' teeth."
-"After {totalGames} games spamming {topChampion}, you reached {currentRank}? That's not a season, that's a cry for help."
-"Wrap up: {totalGames} games, {currentRank} rank, zero self-respect. See you next season for round two!"
+    15: """Write a short farewell for their season wrap-up. 
+It should sound warm, proud, and a little nostalgic — like the system saying goodbye to a friend.
 
-Max 30 words. Epic savage farewell using real stats. NO EMOJIS:"""
+Stats: {totalGames} games, {totalHours} hours, {currentRank} rank, {topChampion}, {kdaRatio} KDA, {winRate}% win rate
+
+Examples:
+"What a season.\n{totalGames} games, countless moments.\n{topChampion} carried your story.\nSee you next season, summoner."
+
+3–5 sentences max, under 100 words:"""
 }
 
 class HumorGenerator:

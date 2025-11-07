@@ -2,7 +2,9 @@ import { motion, AnimatePresence } from "motion/react";
 import { X, Download } from "lucide-react";
 import { ImageWithFallback } from "./source/ImageWithFallback";
 import logoImage from "../assets/logo.webp";
+import lolLogo from "../assets/LeagueOfLegends.webp";
 import { useRef } from "react";
+import { getChampionSplashUrl } from "../utils/championImages";
 
 interface ShareCardProps {
   isOpen: boolean;
@@ -17,11 +19,17 @@ interface ShareCardProps {
     favoriteChampion: string;
     kdaRatio: number;
     winRate: number;
+    totalKills: number;
+    uniqueChampions: number;
+    playerLevel: number;
   };
 }
 
 export function ShareCard({ isOpen, onClose, summonerName, playerTitle, year, stats }: ShareCardProps) {
   const cardRef = useRef<HTMLDivElement>(null);
+
+  // Get champion splash art URL
+  const championSplashUrl = getChampionSplashUrl(stats.favoriteChampion);
 
   const handleDownload = async () => {
     if (!cardRef.current) return;
@@ -71,134 +79,143 @@ export function ShareCard({ isOpen, onClose, summonerName, playerTitle, year, st
 
             {/* Container for card and download button */}
             <div className="flex flex-col items-center gap-4" onClick={(e) => e.stopPropagation()}>
-              {/* Simplified Beautiful Card */}
+              {/* Wide Landscape Card with Champion Background - 16:9 */}
               <motion.div
                 initial={{ scale: 0.8, opacity: 0, y: 30 }}
                 animate={{ scale: 1, opacity: 1, y: 0 }}
                 exit={{ scale: 0.8, opacity: 0, y: 30 }}
                 transition={{ type: "spring", damping: 25, stiffness: 200 }}
                 ref={cardRef}
-                className="relative w-[min(90vw,400px)] sm:w-[400px]"
-                style={{
-                  aspectRatio: "3/4"
-                }}
+                className="relative border-4 border-[#C8AA6E] overflow-hidden"
+                style={{width: "400px", height: "200px"}}
               >
-                {/* Card Background - Clean gradient */}
-                <div className="absolute inset-0 bg-gradient-to-br from-[#0a1929] via-[#010A13] to-[#0a0515]">
-                  {/* Subtle pattern overlay */}
-                  <div className="absolute inset-0 opacity-5" style={{
-                    backgroundImage: 'radial-gradient(circle at 2px 2px, rgba(200,170,110,0.3) 1px, transparent 0)',
-                    backgroundSize: '32px 32px'
-                  }} />
+                {/* Champion Splash Background with Dark Dim */}
+                <div className="absolute inset-0">
+                  <ImageWithFallback
+                    src={championSplashUrl}
+                    alt={stats.favoriteChampion}
+                    className="w-full h-full object-cover"
+                    style={{ filter: 'brightness(0.25) saturate(0.8)' }}
+                  />
                 </div>
 
-                {/* Top Gold Accent Bar */}
-                <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-[#C8AA6E] to-transparent" />
-
-                {/* Content Container */}
-                <div className="relative w-full h-full flex flex-col p-6">
-                  
-                  {/* Header - Year Badge */}
-                  <div className="flex justify-between items-start mb-4">
-                    <div className="px-3 py-1 bg-[#C8AA6E]/20 border border-[#C8AA6E]/40">
-                      <span className="text-xs text-[#C8AA6E] uppercase tracking-widest">{year}</span>
+                {/* Content Container with Padding from Edges */}
+                <div className="relative w-full h-full flex" style={{ padding: '12px' }}>
+                  {/* Left Side - Stats */}
+                  <div className="flex flex-col justify-between" style={{ width: '65%', paddingRight: '8px' }}>
+                    {/* Player Name & Title */}
+                    <div style={{ marginBottom: '6px' }}>
+                      <h2 className="text-[#C8AA6E] uppercase tracking-wide" style={{ fontFamily: 'Georgia, serif', fontSize: '12px', fontWeight: 'bold', marginBottom: '2px', lineHeight: '1.2' }}>
+                        {summonerName}
+                      </h2>
+                      <p className="text-[#A09B8C] italic" style={{ fontSize: '8px' }}>{playerTitle}</p>
                     </div>
-                    
-                    {/* Win Rate Badge */}
-                    <div className="text-right">
-                      <div className="text-3xl text-[#C8AA6E] tabular-nums" style={{ fontFamily: 'Georgia, serif' }}>
-                        {stats.winRate}%
+
+                    {/* Stats Grid - 3 columns, compact - ALL 8 STATS */}
+                    <div className="grid grid-cols-3" style={{ gap: '3px', flex: '1' }}>
+                      {/* Hours - Teal border like Final Recap */}
+                      <div className="bg-black/70 backdrop-blur-sm border border-[#0AC8B9]/30 text-center flex flex-col justify-center" style={{ padding: '3px' }}>
+                        <div className="text-[#0AC8B9] tabular-nums" style={{ fontFamily: 'Georgia, serif', fontSize: '11px', fontWeight: 'bold' }}>
+                          {stats.hoursPlayed}
+                        </div>
+                        <div className="text-[#A09B8C] uppercase tracking-widest" style={{ fontSize: '6px', marginTop: '1px' }}>Hours</div>
                       </div>
-                      <div className="text-xs text-[#A09B8C] uppercase tracking-wider">Win Rate</div>
+
+                      {/* Games - Gold border like Final Recap */}
+                      <div className="bg-black/70 backdrop-blur-sm border border-[#C8AA6E]/30 text-center flex flex-col justify-center" style={{ padding: '3px' }}>
+                        <div className="text-[#C8AA6E] tabular-nums" style={{ fontFamily: 'Georgia, serif', fontSize: '11px', fontWeight: 'bold' }}>
+                          {stats.gamesPlayed}
+                        </div>
+                        <div className="text-[#A09B8C] uppercase tracking-widest" style={{ fontSize: '6px', marginTop: '1px' }}>Games</div>
+                      </div>
+
+                      {/* Win Rate - Teal border like Final Recap */}
+                      <div className="bg-black/70 backdrop-blur-sm border border-[#0AC8B9]/30 text-center flex flex-col justify-center" style={{ padding: '3px' }}>
+                        <div className="text-[#0AC8B9] tabular-nums" style={{ fontFamily: 'Georgia, serif', fontSize: '11px', fontWeight: 'bold' }}>
+                          {stats.winRate.toFixed(1)}%
+                        </div>
+                        <div className="text-[#A09B8C] uppercase tracking-widest" style={{ fontSize: '6px', marginTop: '1px' }}>Win Rate</div>
+                      </div>
+
+                      {/* Kills - Red border like Final Recap */}
+                      <div className="bg-black/70 backdrop-blur-sm border border-[#FF4444]/30 text-center flex flex-col justify-center" style={{ padding: '3px' }}>
+                        <div className="text-[#FF4444] tabular-nums" style={{ fontFamily: 'Georgia, serif', fontSize: '11px', fontWeight: 'bold' }}>
+                          {stats.totalKills}
+                        </div>
+                        <div className="text-[#A09B8C] uppercase tracking-widest" style={{ fontSize: '6px', marginTop: '1px' }}>Kills</div>
+                      </div>
+
+                      {/* KDA - Gold border with gold text like Final Recap */}
+                      <div className="bg-black/70 backdrop-blur-sm border border-[#C8AA6E]/30 text-center flex flex-col justify-center" style={{ padding: '3px' }}>
+                        <div className="text-[#FFD700] tabular-nums" style={{ fontFamily: 'Georgia, serif', fontSize: '11px', fontWeight: 'bold' }}>
+                          {stats.kdaRatio.toFixed(2)}
+                        </div>
+                        <div className="text-[#A09B8C] uppercase tracking-widest" style={{ fontSize: '6px', marginTop: '1px' }}>KDA</div>
+                      </div>
+
+                      {/* Main Champion - Purple border like Final Recap */}
+                      <div className="bg-black/70 backdrop-blur-sm border border-[#8B5CF6]/30 text-center flex flex-col justify-center" style={{ padding: '3px' }}>
+                        <div className="text-white truncate" style={{ fontFamily: 'Georgia, serif', fontSize: '9px', fontWeight: 'bold' }}>
+                          {stats.favoriteChampion}
+                        </div>
+                        <div className="text-[#A09B8C] uppercase tracking-widest" style={{ fontSize: '6px', marginTop: '1px' }}>Main</div>
+                      </div>
+
+                      {/* Peak Rank - Gold border like Final Recap */}
+                      <div className="bg-black/70 backdrop-blur-sm border border-[#C8AA6E]/30 text-center flex flex-col justify-center" style={{ padding: '3px' }}>
+                        <div className="text-[#C8AA6E]" style={{ fontFamily: 'Georgia, serif', fontSize: '8px', fontWeight: 'bold' }}>
+                          {stats.peakRank}
+                        </div>
+                        <div className="text-[#A09B8C] uppercase tracking-widest" style={{ fontSize: '6px', marginTop: '1px' }}>Peak Rank</div>
+                      </div>
+
+                      {/* Unique Champions - Purple border like Final Recap */}
+                      <div className="bg-black/70 backdrop-blur-sm border border-[#8B5CF6]/30 text-center flex flex-col justify-center" style={{ padding: '3px' }}>
+                        <div className="text-[#8B5CF6] tabular-nums" style={{ fontFamily: 'Georgia, serif', fontSize: '11px', fontWeight: 'bold' }}>
+                          {stats.uniqueChampions}
+                        </div>
+                        <div className="text-[#A09B8C] uppercase tracking-widest" style={{ fontSize: '6px', marginTop: '1px' }}>Champions</div>
+                      </div>
+
+                      {/* Player Level - Gold border like Final Recap */}
+                      <div className="bg-black/70 backdrop-blur-sm border border-[#C8AA6E]/30 text-center flex flex-col justify-center" style={{ padding: '3px' }}>
+                        <div className="text-[#C8AA6E] tabular-nums" style={{ fontFamily: 'Georgia, serif', fontSize: '11px', fontWeight: 'bold' }}>
+                          {stats.playerLevel}
+                        </div>
+                        <div className="text-[#A09B8C] uppercase tracking-widest" style={{ fontSize: '6px', marginTop: '1px' }}>Level</div>
+                      </div>
                     </div>
                   </div>
 
-                  {/* Champion Image - Centered */}
-                  <div className="flex-1 flex items-center justify-center my-4">
-                    <div className="relative w-44 h-52">
-                      {/* Glow effect */}
-                      <div className="absolute inset-0 bg-gradient-radial from-[#C8AA6E]/30 to-transparent blur-3xl" />
-                      
-                      {/* Image with gold border */}
-                      <div className="relative w-full h-full border-2 border-[#C8AA6E]/40 p-1">
-                        <ImageWithFallback
-                          src="https://images.unsplash.com/photo-1614294148960-9aa740632a87?w=400"
-                          alt={summonerName}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
+                  {/* Right Side - See you next season text */}
+                  <div className="flex-1 flex items-center justify-center">
+                    <div className="text-center">
+                      <p className="text-[#C8AA6E] italic tracking-wide" style={{ fontFamily: 'Georgia, serif', fontSize: '12px', whiteSpace: 'nowrap' }}>
+                        See You Next Season
+                      </p>
                     </div>
-                  </div>
-
-                  {/* Player Info */}
-                  <div className="text-center mb-4">
-                    <h2 className="text-2xl text-white mb-1 truncate" style={{ fontFamily: 'Georgia, serif' }}>
-                      {summonerName}
-                    </h2>
-                    <p className="text-sm text-[#C8AA6E] italic">{playerTitle}</p>
-                  </div>
-
-                  {/* Stats Grid - Clean and Aligned */}
-                  <div className="grid grid-cols-4 gap-2 mb-4">
-                    {/* Games */}
-                    <div className="text-center p-2 bg-[#0A1428]/40 border border-[#C8AA6E]/10">
-                      <div className="text-base text-white tabular-nums" style={{ fontFamily: 'Georgia, serif' }}>
-                        {stats.gamesPlayed}
-                      </div>
-                      <div className="text-[10px] text-[#A09B8C] uppercase mt-0.5">Games</div>
-                    </div>
-
-                    {/* Hours */}
-                    <div className="text-center p-2 bg-[#0A1428]/40 border border-[#0AC8B9]/10">
-                      <div className="text-base text-[#0AC8B9] tabular-nums" style={{ fontFamily: 'Georgia, serif' }}>
-                        {stats.hoursPlayed}
-                      </div>
-                      <div className="text-[10px] text-[#A09B8C] uppercase mt-0.5">Hours</div>
-                    </div>
-
-                    {/* KDA */}
-                    <div className="text-center p-2 bg-[#0A1428]/40 border border-[#0AC8B9]/10">
-                      <div className="text-base text-[#0AC8B9] tabular-nums" style={{ fontFamily: 'Georgia, serif' }}>
-                        {stats.kdaRatio}
-                      </div>
-                      <div className="text-[10px] text-[#A09B8C] uppercase mt-0.5">KDA</div>
-                    </div>
-
-                    {/* Main */}
-                    <div className="text-center p-2 bg-[#0A1428]/40 border border-[#C8AA6E]/10">
-                      <div className="text-xs text-[#FFD700] truncate" style={{ fontFamily: 'Georgia, serif' }}>
-                        {stats.favoriteChampion}
-                      </div>
-                      <div className="text-[10px] text-[#A09B8C] uppercase mt-0.5">Main</div>
-                    </div>
-                  </div>
-
-                  {/* Peak Rank - Full Width */}
-                  <div className="text-center p-2 bg-[#0A1428]/40 border border-[#C8AA6E]/20">
-                    <div className="text-sm text-[#C8AA6E]" style={{ fontFamily: 'Georgia, serif' }}>
-                      {stats.peakRank}
-                    </div>
-                    <div className="text-[10px] text-[#A09B8C] uppercase mt-0.5">Peak Rank</div>
-                  </div>
-
-                  {/* Logo Watermark - Bottom Left */}
-                  <div className="absolute bottom-4 left-4">
-                    <ImageWithFallback 
-                      src={logoImage}
-                      alt="Rift Rewind"
-                      className="w-16 opacity-40"
-                    />
                   </div>
                 </div>
 
-                {/* Bottom Gold Accent Bar */}
-                <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-[#C8AA6E] to-transparent" />
+                {/* Logo at Bottom Right of Frame */}
+                <div className="absolute" style={{ bottom: '12px', right: '12px' }}>
+                  <ImageWithFallback 
+                    src={logoImage}
+                    alt="Rift Rewind"
+                    className="opacity-80"
+                    style={{ height: '20px', width: 'auto' }}
+                  />
+                </div>
 
-                {/* Corner Accents - Minimal */}
-                <div className="absolute top-0 left-0 w-12 h-12 border-t border-l border-[#C8AA6E]/40" />
-                <div className="absolute top-0 right-0 w-12 h-12 border-t border-r border-[#C8AA6E]/40" />
-                <div className="absolute bottom-0 left-0 w-12 h-12 border-b border-l border-[#C8AA6E]/40" />
-                <div className="absolute bottom-0 right-0 w-12 h-12 border-b border-r border-[#C8AA6E]/40" />
+                {/* League of Legends Logo at Top Right */}
+                <div className="absolute" style={{ top: '12px', right: '12px' }}>
+                  <ImageWithFallback 
+                    src={lolLogo}
+                    alt="League of Legends"
+                    className="opacity-80"
+                    style={{ height: '24px', width: 'auto' }}
+                  />
+                </div>
               </motion.div>
 
               {/* Download Button */}

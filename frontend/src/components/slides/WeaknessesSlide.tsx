@@ -4,16 +4,15 @@ import growthBg from "../../assets/growth.webp";
 
 interface WeaknessesSlideProps {
   weaknesses: string[]; // Array of weakness descriptions from backend
-  aiHumor?: string;
+  aiAnalysis?: string; // AI-generated coaching advice
 }
 
 export function WeaknessesSlide({ 
   weaknesses,
-  aiHumor = "Every legend has room to grow - even the greats started somewhere! 💪"
+  aiAnalysis = "Analyzing areas for improvement..."
 }: WeaknessesSlideProps) {
   // Get the first weakness as the main one to display
   const mainWeakness = weaknesses[0] || "No significant weaknesses detected";
-  const additionalWeaknesses = weaknesses.slice(1);
 
   return (
     <div className="relative w-full h-full overflow-hidden bg-[#010A13] flex items-center justify-center">
@@ -104,7 +103,7 @@ export function WeaknessesSlide({
           </motion.h1>
         </motion.div>
 
-        {/* Main Weakness - HUGE with animation */}
+        {/* Main Weakness - Smaller size */}
         <motion.div
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -112,7 +111,7 @@ export function WeaknessesSlide({
           className="text-center"
         >
           <motion.h2 
-            className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl text-white mb-3 sm:mb-4 leading-tight px-4" 
+            className="text-xl sm:text-2xl md:text-3xl text-[#0AC8B9] mb-3 sm:mb-4 leading-tight px-4" 
             style={{ fontFamily: 'Georgia, serif' }}
             animate={{
               opacity: [0.9, 1, 0.9],
@@ -122,7 +121,7 @@ export function WeaknessesSlide({
               repeat: Infinity,
             }}
           >
-            {mainWeakness}
+            {mainWeakness.replace(/\.\d+%/g, '%').replace(/(\d+)\.\d+/g, '$1')}
           </motion.h2>
         </motion.div>
 
@@ -134,42 +133,41 @@ export function WeaknessesSlide({
           className="w-24 sm:w-32 h-px bg-gradient-to-r from-transparent via-[#0AC8B9] to-transparent"
         />
 
-        {/* Additional Weaknesses and AI Humor */}
+        {/* AI Analysis Content */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 1, duration: 0.6 }}
-          className="text-center max-w-2xl mx-auto space-y-4 px-4"
+          className="text-center max-w-3xl mx-auto space-y-3 px-4"
         >
-          {/* Additional Weaknesses List */}
-          {additionalWeaknesses.length > 0 && (
-            <div className="space-y-2">
-              {additionalWeaknesses.map((weakness, index) => (
-                <motion.div
-                  key={index}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 1.2 + index * 0.1, duration: 0.5 }}
-                  className="text-sm sm:text-base text-[#E8E6E3]/90 leading-relaxed flex items-start justify-center gap-2"
-                  style={{ fontFamily: 'Georgia, serif' }}
-                >
-                  <span className="text-[#0AC8B9] mt-0.5">•</span>
-                  <span>{weakness}</span>
-                </motion.div>
-              ))}
-            </div>
-          )}
-          
-          {/* AI Humor */}
-          {aiHumor && (
-            <motion.p 
-              className="text-xs sm:text-sm text-[#0AC8B9] italic leading-relaxed pt-2"
+          {/* Display AI analysis content as white text without bullet points */}
+          {aiAnalysis && (
+            <motion.div 
+              className="space-y-2"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ delay: 1.6, duration: 0.8 }}
+              transition={{ delay: 1.2, duration: 0.8 }}
             >
-              {aiHumor}
-            </motion.p>
+              {aiAnalysis.split('\n').filter(line => line.trim()).map((line, index) => {
+                // Remove bullet points and clean up the text
+                const cleanedLine = line.replace(/^[•\-*]\s*/, '').trim();
+                // Remove decimals from percentages and numbers
+                const noDecimals = cleanedLine.replace(/(\d+)\.\d+%/g, '$1%').replace(/(\d+)\.\d+(?!\d)/g, '$1');
+                
+                return cleanedLine ? (
+                  <motion.p
+                    key={index}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 1.3 + index * 0.1, duration: 0.5 }}
+                    className="text-sm sm:text-base text-white/90 leading-relaxed"
+                    style={{ fontFamily: 'Georgia, serif' }}
+                  >
+                    {noDecimals}
+                  </motion.p>
+                ) : null;
+              })}
+            </motion.div>
           )}
         </motion.div>
       </div>

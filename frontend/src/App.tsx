@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { WelcomeSlide } from "./components/slides/WelcomeSlide";
 import { LoadingSlide } from "./components/slides/LoadingSlide";
@@ -12,13 +12,13 @@ import { ChampionPoolSlide } from "./components/slides/ChampionPoolSlide";
 import { DuoPartnerSlide } from "./components/slides/DuoPartnerSlide";
 import { StrengthsSlide } from "./components/slides/StrengthsSlide";
 import { WeaknessesSlide } from "./components/slides/WeaknessesSlide";
-import { ProgressSlide } from "./components/slides/ProgressSlide";
 import { SocialComparisonSlide } from "./components/slides/SocialComparisonSlide";
 import { FarewellSlide } from "./components/slides/FarewellSlide";
 import { FinalRecapSlide } from "./components/slides/FinalRecapSlide";
 import { SlideNavigation } from "./components/SlideNavigation";
 import { ErrorModal } from "./components/ErrorModal";
 import api, { APIError } from "./services/api";
+import backgroundMusic from "./assets/sound/League of Legends Season 5.mp3";
 
 // Mock data with AI humor for each slide
 const mockData = {
@@ -244,25 +244,56 @@ export default function App() {
   const [isAnalysisComplete, setIsAnalysisComplete] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
 
+  // Sub-slide (humor phase) state
+  const [showHumorPhase, setShowHumorPhase] = useState(false);
+  
+  // Audio ref for background music
+  const audioRef = useRef<HTMLAudioElement>(null);
+  
+  // Handle music playback
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    if (isMusicPlaying) {
+      audio.play().catch(error => {
+        console.error("Error playing audio:", error);
+      });
+    } else {
+      audio.pause();
+    }
+  }, [isMusicPlaying]);
+  
+  // Define which slides have humor phases (slides 4, 6, 8)
+  const slidesWithHumor = [4, 6, 8];
+  const currentSlideHasHumor = slidesWithHumor.includes(currentSlide);
+
   // Auto-advance slides after 10 seconds (but not on welcome, loading or final slide, and when not paused)
   useEffect(() => {
-    if (!hasStarted || currentSlide === 0 || currentSlide === 1 || currentSlide === 15 || isPaused) return;
+    if (!hasStarted || currentSlide === 0 || currentSlide === 1 || currentSlide === 14 || isPaused) return;
     
     const timer = setTimeout(() => {
-      if (currentSlide < 15) {
-        setCurrentSlide(prev => prev + 1);
+      if (currentSlide < 14) {
+        // If current slide has humor and we're showing stats, switch to humor
+        if (currentSlideHasHumor && !showHumorPhase) {
+          setShowHumorPhase(true);
+        } else {
+          // Move to next slide and reset humor phase
+          setCurrentSlide(prev => prev + 1);
+          setShowHumorPhase(false);
+        }
       }
     }, 10000);
 
     return () => clearTimeout(timer);
-  }, [hasStarted, currentSlide, isPaused]);
+  }, [hasStarted, currentSlide, isPaused, showHumorPhase, currentSlideHasHumor]);
 
   // Keyboard navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (!hasStarted || isLoading) return;
       
-      if (e.key === "ArrowRight" && currentSlide < 14) {
+      if (e.key === "ArrowRight" && currentSlide < 17) {
         setCurrentSlide(prev => prev + 1);
       } else if (e.key === "ArrowLeft" && currentSlide > 1) {
         setCurrentSlide(prev => prev - 1);
@@ -309,7 +340,7 @@ export default function App() {
       } else {
         setLoadingError('Failed to connect to server. Please try again.');
       }
-      setIsAnalysisComplete(true); // Show button even on error
+      // Don't set isAnalysisComplete to true on error - this prevents "BEGIN REWIND" from showing
       setShowErrorModal(true); // Show error modal
     }
   };
@@ -318,9 +349,6 @@ export default function App() {
     if (sessionData) {
       setIsLoading(false);
       setCurrentSlide(2); // Move to Time Spent slide
-    } else if (loadingError) {
-      // Error modal will be shown, just go back
-      handleRestart();
     }
   };
 
@@ -330,7 +358,13 @@ export default function App() {
   };
 
   const handleRetryAfterError = () => {
+    // Reset error states
     setShowErrorModal(false);
+    setLoadingError("");
+    setIsAnalysisComplete(false);
+    setSessionData(null);
+    
+    // Restart the process
     handleStart();
   };
 
@@ -342,6 +376,11 @@ export default function App() {
     setHasStarted(false);
     setIsLoading(false);
     setIsPaused(false);
+    setLoadingError("");
+    setShowErrorModal(false);
+    setIsAnalysisComplete(false);
+    setSessionData(null);
+    setIsMusicPlaying(false); // Stop music on restart
   };
 
   const togglePause = () => {
@@ -349,20 +388,35 @@ export default function App() {
   };
 
   const nextSlide = () => {
-    if (currentSlide < 14) {
-      setCurrentSlide(prev => prev + 1);
+    // If current slide has humor and we're showing stats, switch to humor
+    if (currentSlideHasHumor && !showHumorPhase) {
+      setShowHumorPhase(true);
+    } else {
+      // Move to next slide and reset humor phase
+      if (currentSlide < 14) {
+        setCurrentSlide(prev => prev + 1);
+        setShowHumorPhase(false);
+      }
     }
   };
 
   const previousSlide = () => {
-    if (currentSlide > 0) {
-      setCurrentSlide(prev => prev - 1);
+    // If current slide has humor and we're showing humor, switch back to stats
+    if (currentSlideHasHumor && showHumorPhase) {
+      setShowHumorPhase(false);
+    } else {
+      // Move to previous slide and always reset to stats phase (not humor)
+      if (currentSlide > 0) {
+        setCurrentSlide(prev => prev - 1);
+        setShowHumorPhase(false);
+      }
     }
   };
 
   const goToSlide = (index: number) => {
     if (hasStarted || index === 0) {
       setCurrentSlide(index);
+      setShowHumorPhase(false);
     }
   };
 
@@ -399,29 +453,35 @@ export default function App() {
       { initial: { opacity: 0, scale: 0.95 }, animate: { opacity: 1, scale: 1 }, exit: { opacity: 0, scale: 1.05 } },
       // Slide 3 - Best Match (slide from right)
       { initial: { opacity: 0, scale: 0.8 }, animate: { opacity: 1, scale: 1 }, exit: { opacity: 0, scale: 1.1 } },
-      // Slide 4 - KDA (slide from bottom)
+      // Slide 4 - Best Match Stats
+      { initial: { opacity: 0, x: 50 }, animate: { opacity: 1, x: 0 }, exit: { opacity: 0, x: -50 } },
+      // Slide 5 - Best Match Humor (fade with glow)
+      { initial: { opacity: 0, scale: 0.9 }, animate: { opacity: 1, scale: 1 }, exit: { opacity: 0, scale: 1.1 } },
+      // Slide 6 - KDA (slide from bottom)
       { initial: { opacity: 0, y: 100 }, animate: { opacity: 1, y: 0 }, exit: { opacity: 0, y: -100 } },
-      // Slide 5 - Ranked (slide from left)
+      // Slide 7 - Ranked Stats
       { initial: { opacity: 0, scale: 0.8 }, animate: { opacity: 1, scale: 1 }, exit: { opacity: 0, scale: 1.1 } },
-      // Slide 6 - Vision (scale with rotate)
+      // Slide 8 - Ranked Humor (fade with glow)
+      { initial: { opacity: 0, scale: 0.9 }, animate: { opacity: 1, scale: 1 }, exit: { opacity: 0, scale: 1.1 } },
+      // Slide 9 - Vision (scale with rotate)
       { initial: { opacity: 0, scale: 0.8 }, animate: { opacity: 1, scale: 1 }, exit: { opacity: 0, scale: 1.1 } },
-      // Slide 7 - Champion Pool (flip)
+      // Slide 10 - Champion Pool Stats
       { initial: { opacity: 0, scale: 0.8 }, animate: { opacity: 1, scale: 1 }, exit: { opacity: 0, scale: 1.1 } },
-      // Slide 8 - Duo (slide from sides)
+      // Slide 11 - Champion Pool Humor (fade with glow)
+      { initial: { opacity: 0, scale: 0.9 }, animate: { opacity: 1, scale: 1 }, exit: { opacity: 0, scale: 1.1 } },
+      // Slide 12 - Duo (slide from sides)
       { initial: { opacity: 0, x: -50, y: 50 }, animate: { opacity: 1, x: 0, y: 0 }, exit: { opacity: 0, x: 50, y: -50 } },
-      // Slide 9 - Strengths (slide from top)
+      // Slide 13 - Strengths (slide from top)
       { initial: { opacity: 0, y: -100 }, animate: { opacity: 1, y: 0 }, exit: { opacity: 0, y: 100 } },
-      // Slide 10 - Weaknesses (fade with slight scale)
+      // Slide 14 - Weaknesses (fade with slight scale)
       { initial: { opacity: 0, scale: 1.1 }, animate: { opacity: 1, scale: 1 }, exit: { opacity: 0, scale: 0.9 } },
-      // Slide 11 - Progress (slide from bottom)
+      // Slide 15 - Progress (slide from bottom)
       { initial: { opacity: 0, x: -50, y: 50 }, animate: { opacity: 1, x: 0, y: 0 }, exit: { opacity: 0, x: 50, y: -50 } },
-      // Slide 12 - Achievements (rotate in)
-      { initial: { opacity: 0, x: -50, y: 50 }, animate: { opacity: 1, x: 0, y: 0 }, exit: { opacity: 0, x: 50, y: -50 } },
-      // Slide 13 - Social (slide from right)
+      // Slide 16 - Social (slide from right)
       { initial: { opacity: 0, x: 100 }, animate: { opacity: 1, x: 0 }, exit: { opacity: 0, x: -100 } },
-      // Slide 14 - Farewell (fade with subtle scale)
+      // Slide 17 - Farewell (fade with subtle scale)
       { initial: { opacity: 0, scale: 0.95 }, animate: { opacity: 1, scale: 1 }, exit: { opacity: 0, scale: 1.05 } },
-      // Slide 15 - Final Recap (fade)
+      // Slide 18 - Final Recap (fade)
       { initial: { opacity: 0 }, animate: { opacity: 1 }, exit: { opacity: 0 } },
     ];
     return animations[slideIndex] || animations[0];
@@ -431,6 +491,14 @@ export default function App() {
 
   return (
     <div className="size-full bg-[#010A13] overflow-hidden">
+      {/* Background Music */}
+      <audio 
+        ref={audioRef} 
+        src={backgroundMusic} 
+        loop 
+        preload="auto"
+      />
+      
       <AnimatePresence mode="wait">
         <motion.div
           key={currentSlide}
@@ -457,6 +525,7 @@ export default function App() {
             <LoadingSlide 
               playerName={summonerName || "Summoner"} 
               onComplete={isAnalysisComplete ? handleLoadingComplete : undefined}
+              hasError={!!loadingError}
             />
           )}
           {currentSlide === 2 && sessionData && (
@@ -479,6 +548,7 @@ export default function App() {
             <BestMatchSlide 
               {...sessionData.slide4_bestMatch}
               aiHumor={sessionData.slide4_humor || "This match was so epic, even the enemy team was probably cheering for you! 🎭"}
+              showHumor={showHumorPhase}
             />
           )}
           {currentSlide === 5 && sessionData && sessionData.slide5_kda && (
@@ -494,6 +564,7 @@ export default function App() {
             <RankedJourneySlide 
               {...sessionData.slide6_rankedJourney}
               aiHumor={sessionData.slide6_humor || "You climbed more ranks than a chess grandmaster... but with way more rage quits! ♟️😤"}
+              showHumor={showHumorPhase}
             />
           )}
           {currentSlide === 7 && sessionData && sessionData.slide7_visionScore && (
@@ -506,6 +577,7 @@ export default function App() {
             <ChampionPoolSlide 
               {...sessionData.slide8_championPool}
               aiHumor={sessionData.slide8_humor || "Talk about champion diversity! You're basically a one-person champion ocean. 🌊"}
+              showHumor={showHumorPhase}
             />
           )}
           {currentSlide === 9 && sessionData && sessionData.slide9_duoPartner && (
@@ -519,40 +591,34 @@ export default function App() {
           {currentSlide === 10 && (
             <StrengthsSlide 
               strengths={sessionData.slide10_11_analysis?.strengths || []} 
-              aiHumor={sessionData.slide10_humor || "Your gameplay is so clean, you must have a mental checklist longer than a patch notes document! 📋✨"}
+              aiAnalysis={sessionData.slide10_humor || "Analyzing your gameplay strengths..."}
             />
           )}
           {currentSlide === 11 && (
             <WeaknessesSlide 
               weaknesses={sessionData.slide10_11_analysis?.weaknesses || []} 
-              aiHumor={sessionData.slide11_humor || "Remember: even Faker started as a Bronze player. You've got this! 💪✨"}
+              aiAnalysis={sessionData.slide11_humor || "Analyzing areas for improvement..."}
             />
           )}
           {currentSlide === 12 && (
-            <ProgressSlide 
-              message={sessionData.slide12_progress?.message}
-              currentSeason={sessionData.slide12_progress?.currentSeason}
-              aiHumor={sessionData.slide12_humor || "Every match is another chapter in your legend! 📖✨"}
-            />
-          )}
-          {currentSlide === 13 && (
             <SocialComparisonSlide 
               yourRank={sessionData.slide14_percentile?.yourRank || 0}
               rankPercentile={sessionData.slide14_percentile?.rankPercentile || 50}
               leaderboard={sessionData.slide14_percentile?.leaderboard || []}
-              aiHumor={sessionData.slide14_humor || "You're rubbing shoulders with the elite! 🎮✨"}
+              aiHumor={sessionData.slide14_humor || "You're in the top ranks! Keep climbing! 🎮✨"}
             />
           )}
-          {currentSlide === 14 && (
+          {currentSlide === 13 && (
             <FarewellSlide
               summonerName={displayName}
               season="2025"
               gamesPlayed={sessionData.slide2_timeSpent?.totalGames || 0}
               hoursPlayed={sessionData.slide2_timeSpent?.totalHours || 0}
               favoriteChampion={sessionData.slide3_favoriteChampions?.[0]?.name || "your favorite champion"}
+              aiFarewell={sessionData.slide15_farewell || undefined}
             />
           )}
-          {currentSlide === 15 && (
+          {currentSlide === 14 && (
             <FinalRecapSlide
               summonerName={displayName}
               playerTitle={sessionData.slide10_11_analysis?.personality_title || "The Rising Legend"}
@@ -564,7 +630,11 @@ export default function App() {
                 favoriteChampion: sessionData.slide3_favoriteChampions?.[0]?.name || "Unknown",
                 kdaRatio: sessionData.slide5_kda?.kdaRatio || 0,
                 winRate: sessionData.slide6_rankedJourney?.winRate || 0,
+                totalKills: sessionData.slide5_kda?.totalKills || 0,
+                uniqueChampions: sessionData.slide8_championPool?.uniqueChampions || 0,
+                playerLevel: playerInfo?.summonerLevel || 0,
               }}
+              profileIconId={playerInfo?.profileIconId}
               onRestart={handleRestart}
             />
           )}
@@ -582,7 +652,7 @@ export default function App() {
       {hasStarted && !isLoading && (
         <SlideNavigation
           currentSlide={currentSlide}
-          totalSlides={16}
+          totalSlides={15}
           onPrevious={previousSlide}
           onNext={nextSlide}
           isPaused={isPaused}

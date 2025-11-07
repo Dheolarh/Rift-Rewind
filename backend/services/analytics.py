@@ -609,21 +609,31 @@ class RiftRewindAnalytics:
         player_icon_id = self.summoner.get('profileIconId', 0)
         player_profile_icon_url = RiotAPIClient.get_profile_icon_url(player_icon_id)
         
+        # Get summoner level
+        summoner_level = self.summoner.get('summonerLevel', 0)
+        
         win_rate = self._calculate_win_rate()
         total_games = time_stats['totalGames']
+        total_wins = int(total_games * (win_rate / 100)) if win_rate > 0 else 0
         
         return {
             'rankPercentile': percentile,
             'rank': ranked_info.get('currentRank'),
+            'tier': ranked_info.get('tier', 'UNRANKED'),
+            'division': ranked_info.get('division', ''),
             'kdaRatio': kda_stats['kdaRatio'],
             'comparison': f'Top {100 - percentile}%' if percentile > 50 else f'Bottom {percentile}%',
             'yourRank': leaderboard_rank,  # None if not available
             'playerProfileIconUrl': player_profile_icon_url,
+            'summonerLevel': summoner_level,
             'leaderboard': [{
                 'rank': leaderboard_rank,  # None if not available
                 'summonerName': summoner_name,
+                'summonerLevel': summoner_level,
                 'winRate': win_rate,
+                'wins': total_wins,
                 'gamesPlayed': total_games,
+                'rankTier': ranked_info.get('currentRank'),
                 'profileIconUrl': player_profile_icon_url,
                 'isYou': True
             }]

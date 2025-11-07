@@ -1,83 +1,47 @@
 import { motion } from "motion/react";
 import { ImageWithFallback } from "../source/ImageWithFallback";
-import strengthBg from "../../assets/strength.webp";
+import progressBg from "../../assets/progress.webp";
 
 interface StrengthsSlideProps {
   strengths: string[]; // Array of strength descriptions from backend
-  aiHumor?: string;
+  aiAnalysis?: string; // AI-generated coaching analysis
 }
 
 export function StrengthsSlide({ 
   strengths,
-  aiHumor = "These are the skills that separate the good from the legendary! ⚡"
+  aiAnalysis = "Analyzing your gameplay strengths..."
 }: StrengthsSlideProps) {
   // Get the first strength as the main one to display
   const mainStrength = strengths[0] || "No strengths detected";
-  const additionalStrengths = strengths.slice(1);
 
   return (
-    <div className="relative w-full h-full overflow-hidden bg-[#010A13] flex items-center justify-center">
+    <div className="relative w-full h-full overflow-hidden bg-[#010A13]">
       {/* Background Image */}
       <div className="absolute inset-0">
         <ImageWithFallback
-          src={strengthBg}
-          alt="Strength Background"
+          src={progressBg}
+          alt="Progress Background"
           className="w-full h-full object-cover opacity-15"
         />
-        <div className="absolute inset-0 bg-gradient-to-br from-[#1a0b2e]/90 via-[#0a0515]/95 to-[#010A13]/98" />
+        <div className="absolute inset-0 bg-gradient-to-br from-[#1a0b2e]/90 via-[#010A13]/95 to-[#2d0a4e]/98" />
       </div>
 
-      {/* Animated gradient orbs */}
+      {/* Animated upward gradient */}
       <motion.div
         animate={{
-          scale: [1, 1.2, 1],
+          y: [0, -50, 0],
           opacity: [0.3, 0.5, 0.3],
         }}
         transition={{
-          duration: 8,
+          duration: 6,
           repeat: Infinity,
           ease: "easeInOut"
         }}
-        className="absolute top-1/4 right-1/4 w-96 h-96 bg-[#C8AA6E] rounded-full blur-[120px]"
-      />
-      <motion.div
-        animate={{
-          scale: [1, 1.3, 1],
-          opacity: [0.2, 0.4, 0.2],
-        }}
-        transition={{
-          duration: 10,
-          repeat: Infinity,
-          ease: "easeInOut",
-          delay: 1
-        }}
-        className="absolute bottom-1/4 left-1/4 w-96 h-96 bg-[#0AC8B9] rounded-full blur-[120px]"
+        className="absolute bottom-0 left-1/2 -translate-x-1/2 w-full h-1/2 bg-gradient-to-t from-[#0AC8B9]/30 to-transparent"
       />
 
-      {/* Floating particles for animation */}
-      {[...Array(12)].map((_, i) => (
-        <motion.div
-          key={i}
-          className="absolute w-1 h-1 rounded-full bg-[#FFD700]"
-          style={{
-            left: `${Math.random() * 100}%`,
-            top: `${Math.random() * 100}%`,
-          }}
-          animate={{
-            y: [0, -30, 0],
-            opacity: [0, 1, 0],
-            scale: [0, 1.5, 0],
-          }}
-          transition={{
-            duration: 3 + Math.random() * 2,
-            repeat: Infinity,
-            delay: i * 0.3,
-          }}
-        />
-      ))}
-
-      {/* Centered Content Container */}
-      <div className="relative z-10 flex flex-col items-center justify-center gap-4 sm:gap-6 px-4 sm:px-6 max-w-xl">
+      {/* Content */}
+      <div className="relative z-10 w-full h-full flex flex-col items-center justify-center px-4 sm:px-6 md:px-8 py-8 sm:py-10 gap-6 sm:gap-8 md:gap-10">
         {/* Title with animation */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
@@ -104,7 +68,7 @@ export function StrengthsSlide({
           </motion.h1>
         </motion.div>
 
-        {/* Main Strength - HUGE with animation */}
+        {/* Main Strength - Smaller size */}
         <motion.div
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -112,7 +76,7 @@ export function StrengthsSlide({
           className="text-center"
         >
           <motion.h2 
-            className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl bg-gradient-to-br from-[#FFD700] via-[#C8AA6E] to-[#8B7548] bg-clip-text text-transparent mb-3 sm:mb-4 leading-tight px-4" 
+            className="text-xl sm:text-2xl md:text-3xl bg-gradient-to-br from-[#FFD700] via-[#C8AA6E] to-[#8B7548] bg-clip-text text-transparent mb-3 sm:mb-4 leading-tight px-4" 
             style={{ fontFamily: 'Georgia, serif' }}
             animate={{
               backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'],
@@ -123,7 +87,7 @@ export function StrengthsSlide({
               ease: "linear"
             }}
           >
-            {mainStrength}
+            {mainStrength.replace(/\.\d+%/g, '%').replace(/(\d+)\.\d+/g, '$1')}
           </motion.h2>
         </motion.div>
 
@@ -135,42 +99,41 @@ export function StrengthsSlide({
           className="w-24 sm:w-32 h-px bg-gradient-to-r from-transparent via-[#C8AA6E] to-transparent"
         />
 
-        {/* Additional Strengths and AI Humor */}
+        {/* AI Analysis Content */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 1, duration: 0.6 }}
-          className="text-center max-w-2xl mx-auto space-y-4 px-4"
+          className="text-center max-w-3xl mx-auto space-y-3 px-4"
         >
-          {/* Additional Strengths List */}
-          {additionalStrengths.length > 0 && (
-            <div className="space-y-2">
-              {additionalStrengths.map((strength, index) => (
-                <motion.div
-                  key={index}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 1.2 + index * 0.1, duration: 0.5 }}
-                  className="text-sm sm:text-base text-[#A09B8C] leading-relaxed flex items-start justify-center gap-2"
-                  style={{ fontFamily: 'Georgia, serif' }}
-                >
-                  <span className="text-[#C8AA6E] mt-0.5">•</span>
-                  <span>{strength}</span>
-                </motion.div>
-              ))}
-            </div>
-          )}
-          
-          {/* AI Humor */}
-          {aiHumor && (
-            <motion.p 
-              className="text-xs sm:text-sm text-[#FFD700] italic leading-relaxed pt-2"
+          {/* Display AI analysis content as white text without bullet points */}
+          {aiAnalysis && (
+            <motion.div 
+              className="space-y-2"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ delay: 1.6, duration: 0.8 }}
+              transition={{ delay: 1.2, duration: 0.8 }}
             >
-              {aiHumor}
-            </motion.p>
+              {aiAnalysis.split('\n').filter(line => line.trim()).map((line, index) => {
+                // Remove bullet points and clean up the text
+                const cleanedLine = line.replace(/^[•\-*]\s*/, '').trim();
+                // Remove decimals from percentages and numbers
+                const noDecimals = cleanedLine.replace(/(\d+)\.\d+%/g, '$1%').replace(/(\d+)\.\d+(?!\d)/g, '$1');
+                
+                return cleanedLine ? (
+                  <motion.p
+                    key={index}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 1.3 + index * 0.1, duration: 0.5 }}
+                    className="text-sm sm:text-base text-white/90 leading-relaxed"
+                    style={{ fontFamily: 'Georgia, serif' }}
+                  >
+                    {noDecimals}
+                  </motion.p>
+                ) : null;
+              })}
+            </motion.div>
           )}
         </motion.div>
       </div>
