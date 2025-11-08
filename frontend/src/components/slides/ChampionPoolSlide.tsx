@@ -89,7 +89,7 @@ export function ChampionPoolSlide({
       />
 
       {/* Fixed Content Container */}
-      <div className="relative z-10 size-full flex flex-col items-center w-full max-w-6xl mx-auto px-4 sm:px-6 md:px-8 py-6 sm:py-8">
+      <div className="relative z-10 size-full flex flex-col items-center w-full max-w-6xl mx-auto px-4 sm:px-6 md:px-8 py-12 sm:py-16">
         <AnimatePresence mode="wait">
           {!showHumor ? (
             // Stats Phase
@@ -105,7 +105,8 @@ export function ChampionPoolSlide({
                 initial={{ opacity: 0, x: -100 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.2, duration: 0.8 }}
-                className="text-center mb-4 sm:mb-6 flex-shrink-0"
+                className="text-center mb-6 sm:mb-8 flex-shrink-0"
+                style={{ marginTop: '10%'}}
               >
                 <p className="text-sm sm:text-base md:text-lg text-[#A09B8C] uppercase tracking-[0.2em] sm:tracking-[0.3em] mb-2 sm:mb-3">
                   You mastered
@@ -163,7 +164,7 @@ export function ChampionPoolSlide({
               transition={{ duration: 0.6 }}
               className="size-full flex items-center justify-center w-full max-w-2xl px-6"
             >
-              <p className="text-sm sm:text-base md:text-lg text-[#C8AA6E] leading-relaxed text-center">
+              <p className="text-base sm:text-lg md:text-xl lg:text-2xl xl:text-3xl text-[#C8AA6E] leading-relaxed text-center">
                 {aiHumor}
               </p>
             </motion.div>

@@ -76,7 +76,7 @@ export function WeaknessesSlide({
       ))}
 
       {/* Centered Content Container */}
-      <div className="relative z-10 flex flex-col items-center justify-center gap-4 sm:gap-6 px-4 sm:px-6 max-w-xl">
+      <div className="relative z-10 flex flex-col items-center justify-center gap-2 sm:gap-3 px-4 sm:px-6 max-w-xl">
         {/* Title with animation */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}

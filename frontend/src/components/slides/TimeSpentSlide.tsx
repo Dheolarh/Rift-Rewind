@@ -37,9 +37,9 @@ export function TimeSpentSlide({
         <ImageWithFallback
           src={zileanTime}
           alt="Background"
-          className="size-full object-cover opacity-20"
+          className="size-full object-cover opacity-10"
         />
-        <div className="absolute inset-0 bg-gradient-to-br from-[#1a0b2e]/70 via-[#0a0515]/70 to-[#010A13]/70" />
+        <div className="absolute inset-0 bg-gradient-to-br from-[#1a0b2e]/95 via-[#0a0515]/98 to-[#010A13]/99" />
       </div>
 
       {/* Animated gradient orbs */}
@@ -78,7 +78,7 @@ export function TimeSpentSlide({
           transition={{ delay: 0.2, duration: 0.6 }}
           className="text-center mb-6 sm:mb-8"
         >
-          <p className="text-sm sm:text-base md:text-lg text-[#A09B8C] uppercase tracking-[0.3em]">
+          <p className="text-lg sm:text-xl md:text-2xl lg:text-3xl xl:text-4xl text-[#A09B8C] uppercase tracking-[0.3em]">
             In 2025, you spent
           </p>
         </motion.div>
@@ -90,7 +90,10 @@ export function TimeSpentSlide({
           transition={{ delay: 0.4, duration: 1, type: "spring", bounce: 0.4 }}
           className="mb-4 sm:mb-6 md:mb-8"
         >
-          <div className="text-[80px] sm:text-[120px] md:text-[160px] lg:text-[200px] leading-none bg-gradient-to-br from-[#FFD700] via-[#C8AA6E] to-[#0AC8B9] bg-clip-text text-transparent tabular-nums" style={{ fontFamily: 'Georgia, serif', paddingBottom: '5px' }}>
+          <div 
+            className="leading-none bg-gradient-to-br from-[#FFD700] via-[#C8AA6E] to-[#0AC8B9] bg-clip-text text-transparent tabular-nums" 
+            style={{ fontFamily: 'Georgia, serif', fontSize: 'clamp(100px, 20vw, 320px)', paddingBottom: '5px' }}
+          >
             <Counter value={hoursPlayed} />
           </div>
         </motion.div>
@@ -102,10 +105,10 @@ export function TimeSpentSlide({
           transition={{ delay: 0.8, duration: 0.6 }}
           className="text-center mb-6 sm:mb-8 md:mb-10"
         >
-          <p className="text-xl sm:text-2xl md:text-3xl lg:text-4xl text-white mb-2 sm:mb-3" style={{ fontFamily: 'Georgia, serif' }}>
+          <p className="text-2xl sm:text-3xl md:text-4xl lg:text-6xl xl:text-7xl text-white mb-3 sm:mb-4" style={{ fontFamily: 'Georgia, serif' }}>
             hours on the Rift
           </p>
-          <p className="text-sm sm:text-base md:text-lg text-[#A09B8C]">
+          <p className="text-base sm:text-lg md:text-xl lg:text-2xl xl:text-3xl text-[#A09B8C]">
             {minutesPlayed} minutes played? That's about <span className="text-[#0AC8B9]">{days} days</span> of pure League
           </p>
         </motion.div>
@@ -117,7 +120,7 @@ export function TimeSpentSlide({
           transition={{ delay: 1.2, duration: 0.6 }}
           className="max-w-2xl text-center"
         >
-          <p className="text-xs sm:text-sm md:text-base lg:text-lg text-[#E8E6E3]/80 italic leading-relaxed">
+          <p className="text-sm sm:text-base md:text-lg lg:text-xl text-[#E8E6E3]/80 italic leading-relaxed">
             {aiHumor}
           </p>
         </motion.div>

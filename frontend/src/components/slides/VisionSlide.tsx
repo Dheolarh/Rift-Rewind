@@ -53,7 +53,7 @@ export function VisionSlide({
             transition={{ delay: 0.4, duration: 0.6 }}
             className="text-center mb-6 sm:mb-8"
           >
-            <p className="text-sm sm:text-base md:text-lg text-[#A09B8C] uppercase tracking-[0.2em] sm:tracking-[0.3em]">
+            <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-[#A09B8C] uppercase tracking-[0.2em] sm:tracking-[0.3em]">
               Your Vision Score
             </p>
           </motion.div>
@@ -65,7 +65,10 @@ export function VisionSlide({
             transition={{ delay: 0.7, duration: 0.8, type: "spring" }}
             className="mb-4 sm:mb-6"
           >
-            <div className="text-6xl sm:text-7xl md:text-8xl lg:text-9xl leading-none bg-gradient-to-br from-[#0AC8B9] via-[#5DADE2] to-[#3498DB] bg-clip-text text-transparent tabular-nums" style={{ fontFamily: 'Georgia, serif' }}>
+            <div 
+              className="leading-none bg-gradient-to-br from-[#0AC8B9] via-[#5DADE2] to-[#3498DB] bg-clip-text text-transparent tabular-nums" 
+              style={{ fontFamily: 'Georgia, serif', fontSize: 'clamp(7rem, 15vw, 14rem)', paddingBottom: '5px' }}
+            >
               {avgVisionScore.toFixed(1)}
             </div>
           </motion.div>
@@ -77,10 +80,10 @@ export function VisionSlide({
             transition={{ delay: 1, duration: 0.6 }}
             className="text-center mb-6 sm:mb-8"
           >
-            <p className="text-2xl sm:text-3xl md:text-4xl text-white mb-2 sm:mb-3" style={{ fontFamily: 'Georgia, serif' }}>
-              per game
+            <p className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl text-white mb-3 sm:mb-4" style={{ fontFamily: 'Georgia, serif' }}>
+              Average per game
             </p>
-            <p className="text-sm sm:text-base md:text-lg text-[#A09B8C]">
+            <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-[#A09B8C]">
               <span className="text-[#C8AA6E]">{avgWardsPlaced.toFixed(1)}</span> wards placed
               <span className="text-[#A09B8C]"> • </span>
               <span className="text-[#0AC8B9]">{avgControlWards.toFixed(1)}</span> control wards
@@ -94,7 +97,7 @@ export function VisionSlide({
             transition={{ delay: 1.3, duration: 0.6 }}
             className="max-w-xl text-center px-4"
           >
-            <p className="text-xs sm:text-sm md:text-base text-[#E8E6E3]/80 italic leading-relaxed">
+            <p className="text-sm sm:text-base md:text-lg lg:text-xl text-[#E8E6E3]/80 italic leading-relaxed">
               {aiHumor}
             </p>
           </motion.div>

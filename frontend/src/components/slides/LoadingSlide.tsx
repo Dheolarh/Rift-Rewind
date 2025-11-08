@@ -1,11 +1,14 @@
 import { motion, AnimatePresence } from "motion/react";
 import { useState, useEffect } from "react";
+import { Music } from "lucide-react";
 import "./LoadingSlide.css";
 
 interface LoadingSlideProps {
   playerName?: string;
   onComplete?: () => void;
   hasError?: boolean;
+  isMusicPlaying?: boolean;
+  onMusicToggle?: () => void;
 }
 
 // Dynamic loading messages with League of Legends gimmicks
@@ -46,14 +49,20 @@ const loadingMessageSets = {
   ]
 };
 
-export function LoadingSlide({ playerName = "Summoner", onComplete, hasError = false }: LoadingSlideProps) {
+export function LoadingSlide({ 
+  playerName = "Summoner", 
+  onComplete, 
+  hasError = false,
+  isMusicPlaying = false,
+  onMusicToggle 
+}: LoadingSlideProps) {
   const [currentMessage, setCurrentMessage] = useState(0);
   const [isComplete, setIsComplete] = useState(false);
   const [messagePhase, setMessagePhase] = useState<'initial' | 'ongoing'>('initial');
   const [ongoingMessages, setOngoingMessages] = useState<string[]>([]);
 
   const initialMessages = loadingMessageSets.initial.map(msg => 
-    msg.replace('{playerName}', playerName)
+    msg.replace('{playerName}', playerName.split('#')[0])
   );
 
   useEffect(() => {
@@ -102,6 +111,30 @@ export function LoadingSlide({ playerName = "Summoner", onComplete, hasError = f
 
   return (
     <div className="relative size-full overflow-hidden bg-gradient-to-br from-[#010A13] via-[#0A1428] to-[#1a0b2e]">
+      {/* Music Toggle Button - Top Left */}
+      {onMusicToggle && (
+        <motion.button
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          onClick={onMusicToggle}
+          className="fixed top-4 left-4 z-50 w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center bg-gradient-to-br from-[#8B7548]/20 to-[#078378]/20 border border-[#8B7548]/50 backdrop-blur-md hover:border-[#C8AA6E] hover:shadow-lg hover:shadow-[#C8AA6E]/30 transition-all group"
+          aria-label={isMusicPlaying ? "Mute music" : "Play music"}
+        >
+          <Music 
+            className={`w-5 h-5 sm:w-6 sm:h-6 transition-colors ${
+              isMusicPlaying ? 'text-[#C8AA6E]' : 'text-[#8B7548]'
+            } group-hover:text-[#C8AA6E]`}
+          />
+          {isMusicPlaying && (
+            <motion.div 
+              className="absolute inset-0 border-2 border-[#C8AA6E]"
+              animate={{ scale: [1, 1.2, 1], opacity: [0.5, 0, 0.5] }}
+              transition={{ duration: 2, repeat: Infinity }}
+            />
+          )}
+        </motion.button>
+      )}
+      
       {/* Ripple Loader */}
       <div className="ripple-container">
         <div className="hole">

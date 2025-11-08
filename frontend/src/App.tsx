@@ -250,10 +250,13 @@ export default function App() {
   // Audio ref for background music
   const audioRef = useRef<HTMLAudioElement>(null);
   
-  // Handle music playback
+  // Handle music playback and volume
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
+
+    // Set volume to 0.3
+    audio.volume = 0.3;
 
     if (isMusicPlaying) {
       audio.play().catch(error => {
@@ -310,6 +313,14 @@ export default function App() {
     setCurrentSlide(1); // Show loading slide
     setLoadingError("");
     setIsAnalysisComplete(false);
+    
+    // Start music when beginning the rewind
+    setIsMusicPlaying(true);
+    if (audioRef.current) {
+      audioRef.current.play().catch(error => {
+        console.error("Error starting music:", error);
+      });
+    }
     
     try {
       // Call backend API to start rewind
@@ -517,8 +528,6 @@ export default function App() {
               onSummonerTagChange={setSummonerTag}
               onRegionChange={setRegion}
               onStart={handleStart}
-              isMusicPlaying={isMusicPlaying}
-              onMusicToggle={() => setIsMusicPlaying(!isMusicPlaying)}
             />
           )}
           {currentSlide === 1 && (
@@ -526,6 +535,8 @@ export default function App() {
               playerName={summonerName || "Summoner"} 
               onComplete={isAnalysisComplete ? handleLoadingComplete : undefined}
               hasError={!!loadingError}
+              isMusicPlaying={isMusicPlaying}
+              onMusicToggle={() => setIsMusicPlaying(!isMusicPlaying)}
             />
           )}
           {currentSlide === 2 && sessionData && (
@@ -584,7 +595,6 @@ export default function App() {
             <DuoPartnerSlide 
               {...sessionData.slide9_duoPartner}
               playerName={displayName}
-              playerProfileIconId={playerInfo?.profileIconId}
               aiHumor={sessionData.slide9_humor || "You two are like peanut butter and jelly... if jelly could flash-ult and secure pentas! 🥜✨"}
             />
           )}
@@ -657,6 +667,8 @@ export default function App() {
           onNext={nextSlide}
           isPaused={isPaused}
           onTogglePause={togglePause}
+          isMusicPlaying={isMusicPlaying}
+          onMusicToggle={() => setIsMusicPlaying(!isMusicPlaying)}
         />
       )}
     </div>

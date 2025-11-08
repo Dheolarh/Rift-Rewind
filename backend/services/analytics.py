@@ -371,11 +371,17 @@ class RiftRewindAnalytics:
         best_duo = max(duo_stats.items(), key=lambda x: x[1]['games'])
         partner_name, stats = best_duo
         
+        # Get player's profile icon URL
+        from services.riot_api_client import RiotAPIClient
+        profile_icon_id = self.summoner_data.get('profileIconId')
+        player_profile_icon_url = RiotAPIClient.get_profile_icon_url(profile_icon_id) if profile_icon_id else None
+        
         return {
             'partnerName': partner_name,
             'gamesTogether': stats['games'],
             'wins': stats['wins'],
-            'winRate': round((stats['wins'] / stats['games'] * 100), 1) if stats['games'] > 0 else 0
+            'winRate': round((stats['wins'] / stats['games'] * 100), 1) if stats['games'] > 0 else 0,
+            'playerProfileIconUrl': player_profile_icon_url
         }
     
     # Slide 10-11: Strengths & Weaknesses (prepared for AI analysis)

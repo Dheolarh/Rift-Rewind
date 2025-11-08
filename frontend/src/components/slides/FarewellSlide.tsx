@@ -1,5 +1,7 @@
 import { motion } from "motion/react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
+import { ImageWithFallback } from "../source/ImageWithFallback";
+import farewellBg from "../../assets/farewell.webp";
 
 interface FarewellSlideProps {
   summonerName?: string;
@@ -10,51 +12,6 @@ interface FarewellSlideProps {
   aiFarewell?: string;
 }
 
-// Typing animation component
-function TypingText({ text, delay = 0, onComplete, highlightName }: { text: string; delay?: number; onComplete?: () => void; highlightName?: string }) {
-  const [displayedText, setDisplayedText] = useState("");
-  const [currentIndex, setCurrentIndex] = useState(0);
-
-  useEffect(() => {
-    const startDelay = setTimeout(() => {
-      if (currentIndex < text.length) {
-        const timer = setTimeout(() => {
-          setDisplayedText(prev => prev + text[currentIndex]);
-          setCurrentIndex(prev => prev + 1);
-        }, 30); // 30ms per character for smooth typing
-
-        return () => clearTimeout(timer);
-      } else if (onComplete && currentIndex === text.length) {
-        onComplete();
-      }
-    }, delay);
-
-    return () => clearTimeout(startDelay);
-  }, [currentIndex, text, delay, onComplete]);
-
-  // If we need to highlight a name, split and render character by character with proper styling
-  if (highlightName && text.includes(highlightName)) {
-    const nameIndex = text.indexOf(highlightName);
-    const beforeName = text.substring(0, nameIndex);
-    const nameText = highlightName;
-    const afterName = text.substring(nameIndex + highlightName.length);
-
-    const displayedBefore = displayedText.substring(0, Math.min(displayedText.length, nameIndex));
-    const displayedNamePart = displayedText.substring(nameIndex, Math.min(displayedText.length, nameIndex + nameText.length));
-    const displayedAfter = displayedText.substring(nameIndex + nameText.length);
-
-    return (
-      <span>
-        {displayedBefore}
-        {displayedNamePart && <span className="text-[#0AC8B9] font-semibold">{displayedNamePart}</span>}
-        {displayedAfter}
-      </span>
-    );
-  }
-
-  return <span>{displayedText}</span>;
-}
-
 export function FarewellSlide({
   summonerName = "Summoner",
   season = "2025",
@@ -63,27 +20,42 @@ export function FarewellSlide({
   favoriteChampion = "your favorite champion",
   aiFarewell
 }: FarewellSlideProps) {
-  const [currentLine, setCurrentLine] = useState(0);
+  const [visibleLines, setVisibleLines] = useState(0);
 
-  // Use AI-generated farewell if available, otherwise use default
   const farewellText = aiFarewell || `Well, what a season.\n\n${gamesPlayed} games, ${hoursPlayed} hours, and countless memories with ${favoriteChampion}.\n\nYou sure did quite a lot out there, ${summonerName}.\n\nThrough the wins and the losses,\nThe clutch plays and the questionable recalls,\nYou showed up and gave it your all.\n\nEvery game was another chapter in your legend.\n\nSee you on the Rift, Champion.`;
 
-  // Split AI text into lines (split by newlines)
-  const farewellLines = farewellText.split('\n').map((line, index, array) => ({
-    text: line,
-    highlight: index === array.length - 1 && line.trim() !== '' // Highlight last non-empty line
-  }));
+  const farewellLines = farewellText.split('\n');
 
-  const handleLineComplete = (index: number) => {
-    if (index < farewellLines.length - 1) {
-      setTimeout(() => {
-        setCurrentLine(index + 1);
-      }, 100); // Small delay between lines
-    }
-  };
+  useEffect(() => {
+    // Reset animation when text changes
+    setVisibleLines(0);
+    
+    // Animate lines appearing one by one
+    const timer = setInterval(() => {
+      setVisibleLines(prev => {
+        if (prev >= farewellLines.length) {
+          clearInterval(timer);
+          return prev;
+        }
+        return prev + 1;
+      });
+    }, 400); // Each line appears every 400ms
+
+    return () => clearInterval(timer);
+  }, [farewellText, farewellLines.length]);
 
   return (
     <div className="relative size-full overflow-hidden bg-gradient-to-br from-[#2d0a4e] via-[#010A13] to-[#0a1929]">
+      {/* Background Image */}
+      <div className="absolute inset-0">
+        <ImageWithFallback
+          src={farewellBg}
+          alt="Farewell Background"
+          className="w-full h-full object-cover opacity-15"
+        />
+        <div className="absolute inset-0 bg-gradient-to-br from-[#2d0a4e]/90 via-[#010A13]/95 to-[#0a1929]/98" />
+      </div>
+
       {/* Animated gradient - same as champion pool */}
       <motion.div
         animate={{
@@ -100,76 +72,94 @@ export function FarewellSlide({
 
       {/* Content */}
       <div className="relative z-10 size-full flex flex-col items-center justify-center px-6 sm:px-8 md:px-12">
-        <div className="max-w-3xl w-full space-y-2 sm:space-y-3">
-          {farewellLines.map((lineObj, index) => (
-            <motion.div
-              key={index}
-              initial={{ opacity: 0 }}
-              animate={{
-                opacity: index <= currentLine ? 1 : 0,
-              }}
-              transition={{
-                duration: 0.3,
-                ease: "easeOut"
-              }}
-              className="text-center"
-            >
-              {lineObj.text === "" ? (
-                <div className="h-2" />
-              ) : (
-                <p className={`text-sm sm:text-base md:text-lg leading-relaxed ${lineObj.highlight ? 'text-[#C8AA6E] font-semibold' : 'text-[#C8AA6E]'}`}>
-                  {index <= currentLine && (
-                    <TypingText 
-                      text={lineObj.text} 
-                      delay={0}
-                      onComplete={() => handleLineComplete(index)}
-                      highlightName={lineObj.text.includes(summonerName) ? summonerName : undefined}
-                    />
-                  )}
-                </p>
-              )}
-            </motion.div>
-          ))}
-
-          {/* Final fade-in emphasis on last line */}
-          {currentLine >= farewellLines.length - 1 && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.5, duration: 0.8 }}
-              className="pt-4 sm:pt-6"
-            >
-              <div className="w-32 h-px bg-gradient-to-r from-transparent via-[#C8AA6E] to-transparent mx-auto mb-4" />
-              <p className="text-xl sm:text-2xl md:text-3xl text-[#C8AA6E] text-center font-serif tracking-wide">
-                Until Next Season
-              </p>
-            </motion.div>
-          )}
+        <div className="max-w-3xl w-full">
+          {farewellLines.map((line, index) => {
+            const isVisible = index < visibleLines;
+            const isEmptyLine = line.trim() === "";
+            const isLastLine = index === farewellLines.length - 1;
+            
+            // Highlight summoner name if present in the line
+            const hasSummonerName = line.includes(summonerName);
+            
+            return (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{
+                  opacity: isVisible ? 1 : 0,
+                  y: isVisible ? 0 : 10
+                }}
+                transition={{
+                  duration: 0.5,
+                  ease: "easeOut"
+                }}
+                className="text-center"
+                style={{ minHeight: isEmptyLine ? '1.5rem' : 'auto' }}
+              >
+                {!isEmptyLine && (
+                  <p
+                    className={`text-lg sm:text-xl md:text-2xl lg:text-3xl leading-relaxed italic tracking-wide ${
+                      isLastLine ? 'text-[#C8AA6E] font-semibold' : 'text-[#C8AA6E]/90'
+                    }`}
+                    style={{ fontFamily: 'Georgia, serif' }}
+                  >
+                    {hasSummonerName ? (
+                      <>
+                        {line.split(summonerName).map((part, i, arr) => (
+                          <span key={i}>
+                            {part}
+                            {i < arr.length - 1 && (
+                              <span className="text-[#0AC8B9] font-semibold not-italic">
+                                {summonerName}
+                              </span>
+                            )}
+                          </span>
+                        ))}
+                      </>
+                    ) : (
+                      line
+                    )}
+                  </p>
+                )}
+              </motion.div>
+            );
+          })}
         </div>
       </div>
 
       {/* Subtle particles effect */}
       <div className="absolute inset-0 pointer-events-none">
-        {[...Array(20)].map((_, i) => (
-          <motion.div
-            key={i}
-            className="absolute w-1 h-1 bg-[#8B5CF6] rounded-full opacity-30"
-            style={{
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-            }}
-            animate={{
-              y: [0, -30, 0],
-              opacity: [0.1, 0.4, 0.1],
-            }}
-            transition={{
-              duration: 3 + Math.random() * 2,
-              repeat: Infinity,
-              delay: Math.random() * 2,
-              ease: "easeInOut"
-            }}
-          />
-        ))}
+        {
+          // Precompute particle positions so they don't jump on re-render
+          // Use vw/vh so they are positioned relative to the viewport and
+          // won't collapse to a single edge due to layout quirks.
+        }
+        {useMemo(() => {
+          const particles = Array.from({ length: 20 }).map(() => ({
+            left: Math.random() * 100,
+            top: Math.random() * 100,
+            duration: 3 + Math.random() * 2,
+            delay: Math.random() * 2
+          }));
+
+          return particles.map((p, i) => (
+            <motion.div
+              key={i}
+              className="absolute w-1 h-1 bg-[#8B5CF6] rounded-full opacity-30"
+              style={{ left: `${p.left}vw`, top: `${p.top}vh` }}
+              animate={{
+                y: [0, -30, 0],
+                opacity: [0.1, 0.4, 0.1],
+              }}
+              transition={{
+                duration: p.duration,
+                repeat: Infinity,
+                delay: p.delay,
+                ease: "easeInOut"
+              }}
+            />
+          ));
+        }, [])}
       </div>
     </div>
   );

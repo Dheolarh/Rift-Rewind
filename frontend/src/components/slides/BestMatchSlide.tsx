@@ -106,7 +106,7 @@ export function BestMatchSlide({
                 transition={{ delay: 0.2, duration: 0.6 }}
                 className="text-center"
               >
-                <h1 className="text-lg sm:text-xl md:text-2xl text-[#A09B8C] uppercase tracking-[0.3em]" style={{ fontFamily: 'Georgia, serif' }}>
+                <h1 className="text-lg sm:text-xl md:text-2xl lg:text-3xl xl:text-4xl text-[#A09B8C] uppercase tracking-[0.3em]" style={{ fontFamily: 'Georgia, serif' }}>
                   Most Legendary Game
                 </h1>
               </motion.div>
@@ -116,7 +116,7 @@ export function BestMatchSlide({
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 0.4, duration: 0.6 }}
-                className="w-40 h-40 border-2 border-[#C8AA6E] rounded-sm overflow-hidden bg-[#0A0E15]"
+                className="w-40 h-40 lg:w-56 lg:h-56 xl:w-64 xl:h-64 border-2 lg:border-3 border-[#C8AA6E] rounded-sm overflow-hidden bg-[#0A0E15]"
               >
                 {!loading ? (
                   <ImageWithFallback
@@ -126,7 +126,7 @@ export function BestMatchSlide({
                   />
                 ) : (
                   <div className="w-full h-full bg-[#1a1f2e] animate-pulse flex items-center justify-center">
-                    <div className="text-[#C8AA6E] text-sm">Loading...</div>
+                    <div className="text-[#C8AA6E] text-sm lg:text-base">Loading...</div>
                   </div>
                 )}
               </motion.div>
@@ -138,12 +138,12 @@ export function BestMatchSlide({
                 transition={{ delay: 0.6, duration: 0.6 }}
                 className="text-center"
               >
-                <h2 className="text-2xl sm:text-3xl md:text-4xl text-white mb-1" style={{ fontFamily: 'Georgia, serif' }}>
+                <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl text-white mb-2" style={{ fontFamily: 'Georgia, serif' }}>
                   {champion}
                 </h2>
-                <p className="text-xs text-[#A09B8C]">{formatDate(timestamp)}</p>
+                <p className="text-sm sm:text-base lg:text-lg xl:text-xl text-[#A09B8C]">{formatDate(timestamp)}</p>
                 {result && (
-                  <p className={`text-sm mt-1 ${result === 'Victory' ? 'text-[#0AC8B9]' : 'text-[#C75050]'}`}>
+                  <p className={`text-base sm:text-lg lg:text-xl xl:text-2xl mt-2 ${result === 'Victory' ? 'text-[#0AC8B9]' : 'text-[#C75050]'}`}>
                     {result}
                   </p>
                 )}
@@ -154,29 +154,29 @@ export function BestMatchSlide({
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.8, duration: 0.6 }}
-                className="flex items-center justify-center gap-3 sm:gap-4 md:gap-6"
+                className="flex items-center justify-center gap-4 sm:gap-6 md:gap-8 lg:gap-10"
               >
                 <div className="text-center">
-                  <div className="text-xs text-[#A09B8C] uppercase tracking-wider mb-1">K</div>
-                  <div className="text-2xl sm:text-3xl text-[#0AC8B9] tabular-nums" style={{ fontFamily: 'Georgia, serif' }}>
+                  <div className="text-sm sm:text-base lg:text-lg xl:text-xl text-[#A09B8C] uppercase tracking-wider mb-1">K</div>
+                  <div className="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl text-[#0AC8B9] tabular-nums" style={{ fontFamily: 'Georgia, serif' }}>
                     <Counter value={kills} duration={1.5} delay={0.9} />
                   </div>
                 </div>
 
-                <div className="w-px h-8 sm:h-10 bg-[#C8AA6E]/30" />
+                <div className="w-px h-10 sm:h-12 lg:h-16 xl:h-20 bg-[#C8AA6E]/30" />
 
                 <div className="text-center">
-                  <div className="text-xs text-[#A09B8C] uppercase tracking-wider mb-1">D</div>
-                  <div className="text-2xl sm:text-3xl text-white tabular-nums" style={{ fontFamily: 'Georgia, serif' }}>
+                  <div className="text-sm sm:text-base lg:text-lg xl:text-xl text-[#A09B8C] uppercase tracking-wider mb-1">D</div>
+                  <div className="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl text-white tabular-nums" style={{ fontFamily: 'Georgia, serif' }}>
                     <Counter value={deaths} duration={1.5} delay={1.0} />
                   </div>
                 </div>
 
-                <div className="w-px h-8 sm:h-10 bg-[#C8AA6E]/30" />
+                <div className="w-px h-10 sm:h-12 lg:h-16 xl:h-20 bg-[#C8AA6E]/30" />
 
                 <div className="text-center">
-                  <div className="text-xs text-[#A09B8C] uppercase tracking-wider mb-1">A</div>
-                  <div className="text-2xl sm:text-3xl text-[#C8AA6E] tabular-nums" style={{ fontFamily: 'Georgia, serif' }}>
+                  <div className="text-sm sm:text-base lg:text-lg xl:text-xl text-[#A09B8C] uppercase tracking-wider mb-1">A</div>
+                  <div className="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl text-[#C8AA6E] tabular-nums" style={{ fontFamily: 'Georgia, serif' }}>
                     <Counter value={assists} duration={1.5} delay={1.1} />
                   </div>
                 </div>
@@ -189,10 +189,10 @@ export function BestMatchSlide({
                 transition={{ delay: 1.2, duration: 0.6 }}
                 className="text-center"
               >
-                <div className="text-3xl sm:text-4xl md:text-5xl bg-gradient-to-r from-[#FFD700] via-[#C8AA6E] to-[#0AC8B9] bg-clip-text text-transparent tabular-nums mb-1" style={{ fontFamily: 'Georgia, serif' }}>
+                <div className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl bg-gradient-to-r from-[#FFD700] via-[#C8AA6E] to-[#0AC8B9] bg-clip-text text-transparent tabular-nums mb-2" style={{ fontFamily: 'Georgia, serif' }}>
                   {kda.toFixed(1)}
                 </div>
-                <div className="text-xs text-[#A09B8C] uppercase tracking-[0.3em]">KDA</div>
+                <div className="text-sm sm:text-base lg:text-lg xl:text-xl text-[#A09B8C] uppercase tracking-[0.3em]">KDA</div>
               </motion.div>
             </motion.div>
           ) : (
@@ -205,7 +205,7 @@ export function BestMatchSlide({
               transition={{ duration: 0.6 }}
               className="flex flex-col items-center justify-center w-full max-w-2xl px-6"
             >
-              <p className="text-sm sm:text-base md:text-lg text-[#C8AA6E] leading-relaxed text-center">
+              <p className="text-base sm:text-lg md:text-xl lg:text-2xl xl:text-3xl text-[#C8AA6E] leading-relaxed text-center">
                 {aiHumor}
               </p>
             </motion.div>

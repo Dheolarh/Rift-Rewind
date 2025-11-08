@@ -71,7 +71,7 @@ export function KDAOverviewSlide({
           transition={{ delay: 0.4, duration: 0.6 }}
           className="text-center mb-6 sm:mb-8"
         >
-          <p className="text-base sm:text-lg md:text-xl text-[#A09B8C] uppercase tracking-[0.3em]">
+          <p className="text-base sm:text-lg md:text-xl lg:text-2xl xl:text-3xl text-[#A09B8C] uppercase tracking-[0.3em]">
             You eliminated
           </p>
         </motion.div>
@@ -83,7 +83,7 @@ export function KDAOverviewSlide({
           transition={{ delay: 0.6, duration: 0.8 }}
           className="mb-4 sm:mb-6"
         >
-          <div className="text-[80px] sm:text-[100px] md:text-[120px] lg:text-[140px] leading-none bg-gradient-to-br from-[#0AC8B9] via-[#5DADE2] to-[#3498DB] bg-clip-text text-transparent tabular-nums" style={{ fontFamily: 'Georgia, serif', paddingBottom: '5px' }}>
+          <div className="text-[80px] sm:text-[100px] md:text-[120px] lg:text-[160px] xl:text-[200px] leading-none bg-gradient-to-br from-[#0AC8B9] via-[#5DADE2] to-[#3498DB] bg-clip-text text-transparent tabular-nums" style={{ fontFamily: 'Georgia, serif', paddingBottom: '5px' }}>
             <Counter value={totalKills} />{totalKills >= 1000 ? 'K' : ''}
           </div>
         </motion.div>
@@ -95,7 +95,7 @@ export function KDAOverviewSlide({
           transition={{ delay: 1.2, duration: 0.6 }}
           className="text-center mb-8 sm:mb-10"
         >
-          <p className="text-2xl sm:text-3xl md:text-4xl text-white" style={{ fontFamily: 'Georgia, serif' }}>
+          <p className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl text-white" style={{ fontFamily: 'Georgia, serif' }}>
             champions
           </p>
         </motion.div>

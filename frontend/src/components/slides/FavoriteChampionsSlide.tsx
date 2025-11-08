@@ -108,13 +108,13 @@ export function FavoriteChampionsSlide({
           transition={{ duration: 0.6 }}
           className="mb-6 sm:mb-8"
         >
-          <h1 className="text-2xl sm:text-2xl md:text-3xl bg-gradient-to-r from-[#FFD700] via-[#C8AA6E] to-[#FFD700] bg-clip-text text-transparent" style={{ fontFamily: 'Georgia, serif' }}>
+          <h1 className="text-2xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl bg-gradient-to-r from-[#FFD700] via-[#C8AA6E] to-[#FFD700] bg-clip-text text-transparent" style={{ fontFamily: 'Georgia, serif' }}>
             Your Top Champions
           </h1>
         </motion.div>
 
         {/* Champions List */}
-        <div className="w-full max-w-md space-y-5 sm:space-y-6">
+        <div className="w-full max-w-md lg:max-w-2xl space-y-5 sm:space-y-6">
           {topFive.map((champion, index) => (
             <motion.div
               key={champion.name}
@@ -125,17 +125,17 @@ export function FavoriteChampionsSlide({
                 duration: 0.5,
                 ease: [0.4, 0, 0.2, 1]
               }}
-              className="flex items-center gap-4 sm:gap-5"
+              className="flex items-center gap-4 sm:gap-5 lg:gap-6"
             >
               {/* Number - LoL Gold */}
-              <div className="text-2xl sm:text-2xl md:text-3xl text-[#C8AA6E] w-7 sm:w-8 flex-shrink-0 tabular-nums" style={{ fontFamily: 'Georgia, serif' }}>
+              <div className="text-2xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl text-[#C8AA6E] w-7 sm:w-8 lg:w-12 xl:w-16 flex-shrink-0 tabular-nums" style={{ fontFamily: 'Georgia, serif' }}>
                 {index + 1}
               </div>
 
               {/* Champion Image with Gold Frame */}
-              <div className="relative w-16 h-16 sm:w-16 sm:h-16 md:w-18 md:h-18 flex-shrink-0" style={{marginTop: '2px', marginBottom: '2px'}}>
+              <div className="relative w-16 h-16 sm:w-16 sm:h-16 md:w-18 md:h-18 lg:w-24 lg:h-24 xl:w-28 xl:h-28 flex-shrink-0" style={{marginTop: '2px', marginBottom: '2px'}}>
                 {/* Gold Border Frame */}
-                <div className="relative w-full h-full border-2 border-[#C8AA6E] rounded-sm overflow-hidden bg-[#0A0E15]">
+                <div className="relative w-full h-full border-2 lg:border-3 border-[#C8AA6E] rounded-sm overflow-hidden bg-[#0A0E15]">
                   {!loading ? (
                     <ChampionIcon championName={champion.name} />
                   ) : (
@@ -144,21 +144,21 @@ export function FavoriteChampionsSlide({
                 </div>
                 
                 {/* Corner Accents - Small gold corners */}
-                <div className="absolute top-0 left-0 w-2 h-2 border-t-2 border-l-2 border-[#FFD700]"></div>
-                <div className="absolute top-0 right-0 w-2 h-2 border-t-2 border-r-2 border-[#FFD700]"></div>
-                <div className="absolute bottom-0 left-0 w-2 h-2 border-b-2 border-l-2 border-[#FFD700]"></div>
-                <div className="absolute bottom-0 right-0 w-2 h-2 border-b-2 border-r-2 border-[#FFD700]"></div>
+                <div className="absolute top-0 left-0 w-2 h-2 lg:w-3 lg:h-3 border-t-2 border-l-2 border-[#FFD700]"></div>
+                <div className="absolute top-0 right-0 w-2 h-2 lg:w-3 lg:h-3 border-t-2 border-r-2 border-[#FFD700]"></div>
+                <div className="absolute bottom-0 left-0 w-2 h-2 lg:w-3 lg:h-3 border-b-2 border-l-2 border-[#FFD700]"></div>
+                <div className="absolute bottom-0 right-0 w-2 h-2 lg:w-3 lg:h-3 border-b-2 border-r-2 border-[#FFD700]"></div>
               </div>
 
               {/* Champion Info */}
               <div className="flex-1 min-w-0">
                 {/* Champion Name - BIG, White */}
-                <h2 className="text-lg sm:text-lg md:text-xl text-white truncate mb-0.5" style={{ fontFamily: 'Georgia, serif' }}>
+                <h2 className="text-lg sm:text-lg md:text-xl lg:text-2xl xl:text-3xl text-white truncate mb-0.5" style={{ fontFamily: 'Georgia, serif' }}>
                   {champion.name}
                 </h2>
                 
                 {/* Stats - LoL Theme Colors */}
-                <p className="text-xs sm:text-xs">
+                <p className="text-xs sm:text-xs lg:text-sm xl:text-base">
                   <span className="text-[#0AC8B9]">{champion.games} games</span>
                   <span className="text-[#A09B8C]"> • </span>
                   <span className="text-[#C8AA6E]">{champion.winRate}% WR</span>

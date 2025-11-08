@@ -35,25 +35,27 @@ export function ShareCard({ isOpen, onClose, summonerName, playerTitle, year, st
     if (!cardRef.current) return;
 
     try {
-      const html2canvas = (await import('html2canvas')).default;
+      const domtoimage = (await import('dom-to-image')).default;
       
-      const canvas = await html2canvas(cardRef.current, {
-        backgroundColor: null,
-        scale: 2,
-        logging: false,
+      const dataUrl = await domtoimage.toPng(cardRef.current, {
+        quality: 1,
+        width: 400 * 2,
+        height: 200 * 2,
+        style: {
+          transform: 'scale(2)',
+          transformOrigin: 'top left',
+          width: '400px',
+          height: '200px'
+        }
       });
 
-      canvas.toBlob((blob) => {
-        if (!blob) return;
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.download = `${summonerName}-RiftRewind-${year}.png`;
-        link.href = url;
-        link.click();
-        URL.revokeObjectURL(url);
-      });
+      const link = document.createElement('a');
+      link.download = `${summonerName}-RiftRewind-${year}.png`;
+      link.href = dataUrl;
+      link.click();
     } catch (error) {
       console.error('Failed to generate image:', error);
+      alert('Failed to download image. Please try again.');
     }
   };
 
@@ -95,7 +97,7 @@ export function ShareCard({ isOpen, onClose, summonerName, playerTitle, year, st
                     src={championSplashUrl}
                     alt={stats.favoriteChampion}
                     className="w-full h-full object-cover"
-                    style={{ filter: 'brightness(0.25) saturate(0.8)' }}
+                    style={{ filter: 'brightness(0.35) saturate(0.8)' }}
                   />
                 </div>
 

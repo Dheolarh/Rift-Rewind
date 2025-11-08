@@ -1,5 +1,5 @@
 import { motion } from "motion/react";
-import { Pause, Play } from "lucide-react";
+import { Pause, Play, Music } from "lucide-react";
 
 interface SlideNavigationProps {
   currentSlide: number;
@@ -8,6 +8,8 @@ interface SlideNavigationProps {
   onNext: () => void;
   isPaused?: boolean;
   onTogglePause?: () => void;
+  isMusicPlaying?: boolean;
+  onMusicToggle?: () => void;
 }
 
 export function SlideNavigation({
@@ -17,6 +19,8 @@ export function SlideNavigation({
   onNext,
   isPaused = false,
   onTogglePause,
+  isMusicPlaying = false,
+  onMusicToggle,
 }: SlideNavigationProps) {
   // Disable previous on Welcome (0) and Loading (1) slides
   // Disable previous on the slide after Loading (slide 2)
@@ -30,6 +34,31 @@ export function SlideNavigation({
 
   return (
     <>
+      {/* Music Toggle Button - Top Left */}
+      {onMusicToggle && (
+        <motion.button
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          onClick={onMusicToggle}
+          className="fixed top-4 z-50 w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center bg-gradient-to-br from-[#8B7548]/20 to-[#078378]/20 border border-[#8B7548]/50 backdrop-blur-md hover:border-[#C8AA6E] hover:shadow-lg hover:shadow-[#C8AA6E]/30 transition-all group"
+          aria-label={isMusicPlaying ? "Mute music" : "Play music"}
+          style={{marginLeft: '15px'}}
+        >
+          <Music 
+            className={`w-5 h-5 sm:w-6 sm:h-6 transition-colors ${
+              isMusicPlaying ? 'text-[#C8AA6E]' : 'text-[#8B7548]'
+            } group-hover:text-[#C8AA6E]`}
+          />
+          {isMusicPlaying && (
+            <motion.div 
+              className="absolute inset-0 border-2 border-[#C8AA6E]"
+              animate={{ scale: [1, 1.2, 1], opacity: [0.5, 0, 0.5] }}
+              transition={{ duration: 2, repeat: Infinity }}
+            />
+          )}
+        </motion.button>
+      )}
+      
       {/* Pause/Play Button - Top Right */}
       {onTogglePause && showPausePlay && (
         <motion.button

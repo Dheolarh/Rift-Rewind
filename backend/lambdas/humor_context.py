@@ -375,11 +375,22 @@ class HumorGenerator:
                 }
             
             elif slide_number == 14:  # Social Comparison
-                percentile = analytics.get('slide14_percentile', {})
+                percentile_block = analytics.get('slide14_percentile', {})
+                # backend stores a percentile rank (e.g. 99.5 meaning 99.5th percentile)
+                # the human-facing wording used in prompts should show "Top X%" where
+                # X = 100 - percentile_rank when the player is above median. Convert
+                # the raw percentile into a display percent to avoid phrasing like
+                # "Top 99.5%" when the player is actually in the top 0.5%.
+                raw_percentile = percentile_block.get('rankPercentile', 50)
+                # Always convert to "Top X%" (distance from top). This means
+                # Top = 100 - raw_percentile (so a raw 99.5 -> Top 0.5%). This
+                # guarantees the AI prompt will always use Top X% phrasing.
+                display_percent = round(100 - raw_percentile, 1)
+
                 template_data = {
-                    'percentile': percentile.get('rankPercentile', 50),
-                    'currentRank': percentile.get('rank', 'Unranked'),
-                    'kdaRatio': round(percentile.get('kdaRatio', 0), 2)
+                    'percentile': display_percent,
+                    'currentRank': percentile_block.get('rank', 'Unranked'),
+                    'kdaRatio': round(percentile_block.get('kdaRatio', 0), 2)
                 }
             
             elif slide_number == 15:  # Final Recap
@@ -388,10 +399,35 @@ class HumorGenerator:
                 champions = analytics.get('slide3_favoriteChampions', [])
                 top_champ = champions[0]['name'] if champions else 'None'
                 
+                # Provide all variables used by the slide 15 template so formatting
+                # doesn't fall back to the raw template (which leaves placeholders).
+                total_hours = time_data.get('totalHours')
+                if total_hours is None:
+                    total_minutes = time_data.get('totalMinutes')
+                    total_hours = round((total_minutes or 0) / 60, 1)
+
+                kda = analytics.get('slide5_kda', {})
+                kda_ratio = round(kda.get('kdaRatio', 0), 2)
+
+                # Win rate may be in ranked journey or in a separate percentile block
+                win_rate = ranked.get('winRate') if ranked.get('winRate') is not None else analytics.get('slide14_percentile', {}).get('yourWinRate')
+                try:
+                    win_rate = round(float(win_rate), 1) if win_rate is not None else 0.0
+                except Exception:
+                    win_rate = 0.0
+
+                # Include duo partner name if available so templates can reference it
+                duo = analytics.get('slide9_duoPartner', {})
+                partner_name = duo.get('partnerName') if duo else None
+
                 template_data = {
                     'totalGames': time_data.get('totalGames', 0),
+                    'totalHours': total_hours or 0,
                     'currentRank': ranked.get('currentRank', 'Unranked'),
-                    'topChampion': top_champ
+                    'topChampion': top_champ,
+                    'kdaRatio': kda_ratio,
+                    'winRate': win_rate,
+                    'partnerName': partner_name or 'your duo'
                 }
             
             formatted_prompt = template.format(**template_data)
@@ -419,12 +455,20 @@ class HumorGenerator:
         # Meta Llama 3.1 uses chat template format with special tokens
         system_prompt = """You are a CONTEXT-AWARE League of Legends roaster analyzing player performance.
 
-GOOD players: Sarcastic respect, backhanded compliments, "touch grass" jokes
+GOOD players: Sarcastic respect, backhanded compliments, "sarcastic" jokes
 AVERAGE players: Light roasts, modest mockery, "you're trying" energy  
 BAD players: Brutal destruction, savage roasts, "why do you even play" vibes
 
 Read the stats. Match your tone to their skill level. Be funny, not generic.
-NO EMOJIS. Max 30 words."""
+
+WRITING STYLE:
+Write in a conversational, human voice with a friendly tone that isn't colloquial. 
+Use short sentences and simple words. 
+Remove academic language, transition phrases, and corporate jargon. 
+Make it sound like someone talking to a friend in simple terms. 
+Keep the key points but strip away any unnecessary words.
+
+NO EMOJIS. NO EM DASHES (—). Use commas instead and hyphens (-) if necessary. Max 30 words."""
         
         # Llama chat template format
         llama_prompt = f"""<|begin_of_text|><|start_header_id|>system<|end_header_id|>

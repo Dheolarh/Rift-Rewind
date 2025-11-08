@@ -95,7 +95,7 @@ export function RankedJourneySlide({
                 transition={{ delay: 0.2, duration: 0.6 }}
                 className="text-center"
               >
-                <h1 className="text-xl sm:text-2xl md:text-3xl text-[#A09B8C] uppercase tracking-[0.3em]" style={{ fontFamily: 'Georgia, serif' }}>
+                <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl text-[#A09B8C] uppercase tracking-[0.3em]" style={{ fontFamily: 'Georgia, serif' }}>
                   Highest Rank Achieved
                 </h1>
               </motion.div>
@@ -124,17 +124,17 @@ export function RankedJourneySlide({
                 transition={{ delay: 0.6, duration: 0.6 }}
                 className="text-center"
               >
-                <div className="text-5xl sm:text-6xl md:text-7xl text-[#C8AA6E] mb-2" style={{ fontFamily: 'Georgia, serif' }}>
+                <div className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl xl:text-9xl text-[#C8AA6E] mb-2" style={{ fontFamily: 'Georgia, serif' }}>
                   {tier} {division}
                 </div>
-                <div className="flex items-center justify-center gap-4 text-base sm:text-lg text-[#A09B8C]">
+                <div className="flex items-center justify-center gap-4 text-base sm:text-lg lg:text-xl xl:text-2xl text-[#A09B8C]">
                   <span>{lp} LP</span>
                   <span>•</span>
                   <span className="text-[#0AC8B9]">{wins}W</span>
                   <span>•</span>
                   <span className="text-[#C75050]">{losses}L</span>
                 </div>
-                <div className="text-sm text-[#C8AA6E] mt-1">
+                <div className="text-sm lg:text-base xl:text-lg text-[#C8AA6E] mt-1">
                   {winRate.toFixed(1)}% Win Rate
                 </div>
               </motion.div>
@@ -149,7 +149,7 @@ export function RankedJourneySlide({
               transition={{ duration: 0.6 }}
               className="flex flex-col items-center justify-center w-full max-w-2xl px-6"
             >
-              <p className="text-sm sm:text-base md:text-lg text-[#C8AA6E] leading-relaxed text-center">
+              <p className="text-base sm:text-lg md:text-xl lg:text-2xl xl:text-3xl text-[#C8AA6E] leading-relaxed text-center">
                 {aiHumor}
               </p>
             </motion.div>

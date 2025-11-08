@@ -41,7 +41,7 @@ export function StrengthsSlide({
       />
 
       {/* Content */}
-      <div className="relative z-10 w-full h-full flex flex-col items-center justify-center px-4 sm:px-6 md:px-8 py-8 sm:py-10 gap-6 sm:gap-8 md:gap-10">
+      <div className="relative z-10 w-full h-full flex flex-col items-center justify-center px-4 sm:px-6 md:px-8 py-8 sm:py-10 gap-2 sm:gap-3 md:gap-4">
         {/* Title with animation */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}

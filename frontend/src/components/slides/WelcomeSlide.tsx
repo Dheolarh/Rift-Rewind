@@ -1,5 +1,5 @@
 import { motion } from "motion/react";
-import { Swords, ChevronDown, Music } from "lucide-react";
+import { Swords, ChevronDown } from "lucide-react";
 import { ImageWithFallback } from "../source/ImageWithFallback";
 import logoImage from "../../assets/logo.webp";
 import welcomeBg from "../../assets/WelcomeBg.webp";
@@ -14,8 +14,6 @@ interface WelcomeSlideProps {
   onSummonerTagChange: (value: string) => void;
   onRegionChange: (value: string) => void;
   onStart: () => void;
-  isMusicPlaying: boolean;
-  onMusicToggle: () => void;
 }
 
 export function WelcomeSlide({
@@ -26,8 +24,6 @@ export function WelcomeSlide({
   onSummonerTagChange,
   onRegionChange,
   onStart,
-  isMusicPlaying,
-  onMusicToggle,
 }: WelcomeSlideProps) {
   const [regions, setRegions] = useState<Region[]>([]);
   const [loadingRegions, setLoadingRegions] = useState(true);
@@ -54,27 +50,6 @@ export function WelcomeSlide({
 
   return (
     <div className="relative size-full flex items-center justify-center overflow-hidden">
-      {/* Music Toggle Button */}
-      <motion.button
-        initial={{ opacity: 0, scale: 0.8 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ delay: 0.5 }}
-        onClick={onMusicToggle}
-        className="fixed top-4 right-4 z-50 w-12 h-12 flex items-center justify-center bg-[#0A1428]/80 backdrop-blur-sm border-2 border-[#C8AA6E]/40 rounded-full hover:border-[#C8AA6E] transition-all group"
-      >
-        <div className="w-6 h-6 flex items-center justify-center">
-          {/* Placeholder for future music icon image */}
-          <Music className={`w-6 h-6 transition-all ${isMusicPlaying ? 'text-[#C8AA6E]' : 'text-[#A09B8C]'}`} />
-        </div>
-        {isMusicPlaying && (
-          <motion.div
-            className="absolute inset-0 rounded-full border-2 border-[#C8AA6E]"
-            animate={{ scale: [1, 1.2, 1], opacity: [0.5, 0, 0.5] }}
-            transition={{ duration: 1.5, repeat: Infinity }}
-          />
-        )}
-      </motion.button>
-      
       {/* Background */}
       <div className="absolute inset-0 bg-gradient-to-br from-[#010A13] via-[#0A1428] to-[#010A13]" />
       
