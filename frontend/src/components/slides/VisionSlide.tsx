@@ -14,7 +14,6 @@ export function VisionSlide({
   avgVisionScore,
   avgWardsPlaced,
   avgControlWards,
-  totalVisionScore,
   aiHumor = "You've placed more wards than a hospital has patients! 🏥 Your map awareness is legendary!"
 }: VisionSlideProps) {
   return (
@@ -97,7 +96,7 @@ export function VisionSlide({
             transition={{ delay: 1.3, duration: 0.6 }}
             className="max-w-xl text-center px-4"
           >
-            <p className="text-sm sm:text-base md:text-lg lg:text-xl text-[#E8E6E3]/80 italic leading-relaxed">
+            <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-[#E8E6E3]/80 italic leading-relaxed">
               {aiHumor}
             </p>
           </motion.div>

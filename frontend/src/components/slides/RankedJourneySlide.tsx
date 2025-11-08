@@ -96,7 +96,7 @@ export function RankedJourneySlide({
                 className="text-center"
               >
                 <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl text-[#A09B8C] uppercase tracking-[0.3em]" style={{ fontFamily: 'Georgia, serif' }}>
-                  Highest Rank Achieved
+                  Current Rank
                 </h1>
               </motion.div>
 

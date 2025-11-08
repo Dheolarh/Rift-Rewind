@@ -92,7 +92,7 @@ export function TimeSpentSlide({
         >
           <div 
             className="leading-none bg-gradient-to-br from-[#FFD700] via-[#C8AA6E] to-[#0AC8B9] bg-clip-text text-transparent tabular-nums" 
-            style={{ fontFamily: 'Georgia, serif', fontSize: 'clamp(100px, 20vw, 320px)', paddingBottom: '5px' }}
+            style={{ fontFamily: 'Georgia, serif', fontSize: 'clamp(100px, 20vw, 320px)', paddingBottom: '10px' }}
           >
             <Counter value={hoursPlayed} />
           </div>
@@ -120,7 +120,7 @@ export function TimeSpentSlide({
           transition={{ delay: 1.2, duration: 0.6 }}
           className="max-w-2xl text-center"
         >
-          <p className="text-sm sm:text-base md:text-lg lg:text-xl text-[#E8E6E3]/80 italic leading-relaxed">
+          <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-[#E8E6E3]/80 italic leading-relaxed">
             {aiHumor}
           </p>
         </motion.div>

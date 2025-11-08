@@ -373,7 +373,7 @@ class RiftRewindAnalytics:
         
         # Get player's profile icon URL
         from services.riot_api_client import RiotAPIClient
-        profile_icon_id = self.summoner_data.get('profileIconId')
+        profile_icon_id = self.summoner.get('profileIconId')
         player_profile_icon_url = RiotAPIClient.get_profile_icon_url(profile_icon_id) if profile_icon_id else None
         
         return {

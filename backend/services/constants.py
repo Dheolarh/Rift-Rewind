@@ -113,6 +113,10 @@ SAGEMAKER_ENDPOINT_NAME = os.getenv("SAGEMAKER_ENDPOINT_NAME", "rift-rewind-insi
 SESSION_EXPIRY_HOURS = 24
 MAX_MATCHES_TO_FETCH = 100
 
+# Season 14 start date (January 10, 2024) - Fixed timestamp for consistent data
+# Using a fixed date ensures same player lookups return same match counts
+SEASON_14_START_TIMESTAMP = 1704844800  # January 10, 2024, 00:00:00 UTC
+
 # Rank percentiles (approximate global distribution)
 RANK_PERCENTILES = {
     "IRON": {"IV": 0, "III": 1, "II": 2, "I": 3},

@@ -63,17 +63,17 @@ Under 15 words, cinematic or mocking tone:""",
     5: """Write a short reaction to the player's season KDA. 
 Be direct — compliment or mock their skill level without listing numbers.
 
-Stats: {avgKills}/{avgDeaths}/{avgAssists}, {kdaRatio}, {totalKills}
+Stats: {totalKills}
 
 TONE GUIDE:
-- 4.0+ → Overlord energy
-- 2.5–3.9 → Solid
-- 1.5–2.4 → Mid
-- <1.5 → Disaster
+- 1000+ → Overlord energy
+- 500–999 → Solid
+- 100–499 → Mid
+- <100 → Disaster
 
 Examples:
 "All hail the dark summoner."
-"Still dying like it’s a hobby."
+"Well that's good I'll say, you prefer a diplomatic solution"
 "You’re a horror to watch."
 "After all this time, still a noob."
 
@@ -218,8 +218,6 @@ class HumorGenerator:
     
     def __init__(self):
         self.bedrock_client = get_bedrock_client()
-        # Use inference profile ARN for Llama models (required for cross-region inference)
-        # OR use Claude if Llama inference profile not available
         self.model_id = os.environ.get(
             'BEDROCK_MODEL_ID', 
             'us.meta.llama3-1-70b-instruct-v1:0'  # Cross-region inference profile
@@ -270,7 +268,6 @@ class HumorGenerator:
             if slide_number == 2:  # Time Spent
                 data = analytics.get('slide2_timeSpent', {})
                 total_minutes = data.get('totalMinutes')
-                # Calculate totalMinutes if not present (for old cached data)
                 if total_minutes is None:
                     total_hours = data.get('totalHours', 0)
                     total_minutes = int(total_hours * 60)
@@ -365,7 +362,6 @@ class HumorGenerator:
                 template_data = {'weaknesses': weaknesses_text}
             
             elif slide_number == 12:  # Progress
-                # If no historical data, use current stats as baseline
                 time_data = analytics.get('slide2_timeSpent', {})
                 kda = analytics.get('slide5_kda', {})
                 
@@ -376,15 +372,7 @@ class HumorGenerator:
             
             elif slide_number == 14:  # Social Comparison
                 percentile_block = analytics.get('slide14_percentile', {})
-                # backend stores a percentile rank (e.g. 99.5 meaning 99.5th percentile)
-                # the human-facing wording used in prompts should show "Top X%" where
-                # X = 100 - percentile_rank when the player is above median. Convert
-                # the raw percentile into a display percent to avoid phrasing like
-                # "Top 99.5%" when the player is actually in the top 0.5%.
                 raw_percentile = percentile_block.get('rankPercentile', 50)
-                # Always convert to "Top X%" (distance from top). This means
-                # Top = 100 - raw_percentile (so a raw 99.5 -> Top 0.5%). This
-                # guarantees the AI prompt will always use Top X% phrasing.
                 display_percent = round(100 - raw_percentile, 1)
 
                 template_data = {
@@ -399,8 +387,6 @@ class HumorGenerator:
                 champions = analytics.get('slide3_favoriteChampions', [])
                 top_champ = champions[0]['name'] if champions else 'None'
                 
-                # Provide all variables used by the slide 15 template so formatting
-                # doesn't fall back to the raw template (which leaves placeholders).
                 total_hours = time_data.get('totalHours')
                 if total_hours is None:
                     total_minutes = time_data.get('totalMinutes')
@@ -409,14 +395,12 @@ class HumorGenerator:
                 kda = analytics.get('slide5_kda', {})
                 kda_ratio = round(kda.get('kdaRatio', 0), 2)
 
-                # Win rate may be in ranked journey or in a separate percentile block
                 win_rate = ranked.get('winRate') if ranked.get('winRate') is not None else analytics.get('slide14_percentile', {}).get('yourWinRate')
                 try:
                     win_rate = round(float(win_rate), 1) if win_rate is not None else 0.0
                 except Exception:
                     win_rate = 0.0
 
-                # Include duo partner name if available so templates can reference it
                 duo = analytics.get('slide9_duoPartner', {})
                 partner_name = duo.get('partnerName') if duo else None
 
@@ -452,7 +436,7 @@ class HumorGenerator:
         """
         print(f"Calling Bedrock with prompt length: {len(prompt)}")
         
-        # Meta Llama 3.1 uses chat template format with special tokens
+        # Meta Llama 3.1 chat template
         system_prompt = """You are a CONTEXT-AWARE League of Legends roaster analyzing player performance.
 
 GOOD players: Sarcastic respect, backhanded compliments, "sarcastic" jokes
@@ -479,12 +463,11 @@ NO EMOJIS. NO EM DASHES (—). Use commas instead and hyphens (-) if necessary. 
 
 """
         
-        # Prepare request body for Meta Llama - SAVAGE ROAST SETTINGS
         request_body = {
             "prompt": llama_prompt,
-            "max_gen_len": 100,  # Llama uses different param name
-            "temperature": 0.9,  # High creativity for spicy roasts
-            "top_p": 0.95  # Wide vocabulary for creative insults
+            "max_gen_len": 100,  
+            "temperature": 0.9,  
+            "top_p": 0.95  
         }
         
         # Invoke Bedrock
@@ -493,7 +476,7 @@ NO EMOJIS. NO EM DASHES (—). Use commas instead and hyphens (-) if necessary. 
             body=json.dumps(request_body)
         )
         
-        # Parse response (Llama has different response format)
+        # Parse response
         response_body = json.loads(response['body'].read())
         humor_text = response_body.get('generation', '').strip()
         
@@ -502,16 +485,15 @@ NO EMOJIS. NO EM DASHES (—). Use commas instead and hyphens (-) if necessary. 
         
         # Remove any emojis that might have been generated
         import re
-        # Remove emoji characters (comprehensive regex pattern)
         emoji_pattern = re.compile("["
-            u"\U0001F600-\U0001F64F"  # emoticons
-            u"\U0001F300-\U0001F5FF"  # symbols & pictographs
-            u"\U0001F680-\U0001F6FF"  # transport & map symbols
-            u"\U0001F1E0-\U0001F1FF"  # flags (iOS)
+            u"\U0001F600-\U0001F64F"  
+            u"\U0001F300-\U0001F5FF"  
+            u"\U0001F680-\U0001F6FF"  
+            u"\U0001F1E0-\U0001F1FF"  
             u"\U00002702-\U000027B0"
             u"\U000024C2-\U0001F251"
-            u"\U0001F900-\U0001F9FF"  # supplemental symbols
-            u"\U0001FA00-\U0001FAFF"  # more symbols
+            u"\U0001F900-\U0001F9FF"  
+            u"\U0001FA00-\U0001FAFF"  
             "]+", flags=re.UNICODE)
         humor_text = emoji_pattern.sub('', humor_text).strip()
         
@@ -533,7 +515,7 @@ NO EMOJIS. NO EM DASHES (—). Use commas instead and hyphens (-) if necessary. 
             'sessionId': session_id,
             'slideNumber': slide_number,
             'humorText': humor_text,
-            'generatedAt': json.dumps({"timestamp": "now"})  # Will be replaced with actual timestamp
+            'generatedAt': json.dumps({"timestamp": "now"}) 
         }
         
         print(f"Storing humor to S3: {s3_key}")
@@ -604,7 +586,7 @@ NO EMOJIS. NO EM DASHES (—). Use commas instead and hyphens (-) if necessary. 
         """
         from services.session_manager import SessionManager
         
-        print(f"🚀 PRIORITY GENERATION: Slides 1-5 for session {session_id}")
+        print(f"PRIORITY GENERATION: Slides 1-5 for session {session_id}")
         
         priority_slides = [1, 2, 3, 4, 5]
         results = {}
@@ -646,7 +628,7 @@ NO EMOJIS. NO EM DASHES (—). Use commas instead and hyphens (-) if necessary. 
         """
         from services.session_manager import SessionManager
         
-        print(f"🔄 BACKGROUND GENERATION: Slides 6-15 for session {session_id}")
+        print(f"BACKGROUND GENERATION: Slides 6-15 for session {session_id}")
         
         background_slides = [6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
         results = {}
@@ -687,7 +669,7 @@ NO EMOJIS. NO EM DASHES (—). Use commas instead and hyphens (-) if necessary. 
         """
         from services.session_manager import SessionManager
         
-        print(f"🔁 FULL REGENERATION: All slides with complete data for session {session_id}")
+        print(f"FULL REGENERATION: All slides with complete data for session {session_id}")
         
         all_slides = range(1, 16)  # Slides 1-15
         results = {}
@@ -716,10 +698,7 @@ NO EMOJIS. NO EM DASHES (—). Use commas instead and hyphens (-) if necessary. 
         
         # Notify that regeneration is complete
         print(f"\n{'='*60}")
-        print(f"🔥 REGENERATION COMPLETE!")
-        print(f"Frontend should show popup:")
-        print(f"'We finally caught up to you! Let's see how much")
-        print(f" chaos you ACTUALLY caused 🔥'")
+        print(f"GENERATION COMPLETE!")
         print(f"{'='*60}\n")
         
         return results
@@ -786,7 +765,6 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         
         # Route to appropriate generation method
         if mode == 'priority':
-            # Generate slides 1-5 rapidly (before loading screen ends)
             results = generator.generate_priority_slides(session_id)
             return {
                 'statusCode': 200,

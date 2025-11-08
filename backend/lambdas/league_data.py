@@ -23,7 +23,7 @@ logger.setLevel(logging.INFO)
 from services.riot_api_client import RiotAPIClient
 from services.aws_clients import upload_to_s3
 from services.validators import validate_riot_id, validate_region
-from services.constants import PLATFORM_TO_REGIONAL
+from services.constants import PLATFORM_TO_REGIONAL, SEASON_14_START_TIMESTAMP
 from services.match_analyzer import IntelligentSampler
 from services.session_manager import SessionManager
 
@@ -188,18 +188,16 @@ class LeagueDataFetcher:
         Args:
             puuid: Player PUUID
             region: Platform region (will be converted to regional routing)
-            start_time: Unix timestamp for start of year (default: 1 year ago)
+            start_time: Unix timestamp for start of year (default: Season 14 start date)
         
         Returns:
             List of match IDs from the past year
         """
-        # Calculate 1 year ago timestamp if not provided
+        # Use Season 14 start date for consistent data across runs
         if start_time is None:
-            from datetime import datetime, timedelta
-            one_year_ago = datetime.utcnow() - timedelta(days=365)
-            start_time = int(one_year_ago.timestamp())
+            start_time = SEASON_14_START_TIMESTAMP
         
-        logger.info(f"[4/5] Fetching FULL YEAR match history (starting from {datetime.fromtimestamp(start_time).date()})...")
+        logger.info(f"[4/5] Fetching match history since Season 14 start ({datetime.fromtimestamp(start_time).date()})...")
         
         # Riot API returns max 100 matches per call, so we need to paginate
         all_match_ids = []

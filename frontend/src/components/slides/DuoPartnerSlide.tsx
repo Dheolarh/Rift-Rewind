@@ -185,9 +185,9 @@ export function DuoPartnerSlide({
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 1, duration: 0.6 }}
-          className="text-center max-w-sm px-2"
+          className="text-center max-w-md sm:max-w-lg px-4"
         >
-          <p className="text-xs text-[#E8E6E3]/80 italic leading-relaxed">
+          <p className="text-base sm:text-lg md:text-xl text-[#E8E6E3]/80 italic leading-relaxed">
             {aiHumor}
           </p>
         </motion.div>

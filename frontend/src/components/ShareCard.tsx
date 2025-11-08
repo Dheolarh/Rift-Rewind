@@ -182,7 +182,7 @@ export function ShareCard({ isOpen, onClose, summonerName, playerTitle, year, st
                       {/* Player Level - Gold border like Final Recap */}
                       <div className="bg-black/70 backdrop-blur-sm border border-[#C8AA6E]/30 text-center flex flex-col justify-center" style={{ padding: '3px' }}>
                         <div className="text-[#C8AA6E] tabular-nums" style={{ fontFamily: 'Georgia, serif', fontSize: '11px', fontWeight: 'bold' }}>
-                          {stats.playerLevel}
+                          {stats.playerLevel || '—'}
                         </div>
                         <div className="text-[#A09B8C] uppercase tracking-widest" style={{ fontSize: '6px', marginTop: '1px' }}>Level</div>
                       </div>

@@ -87,6 +87,159 @@ class RiftRewindAPI:
                 'error': f'Failed to fetch regions: {str(e)}'
             })
     
+    def _update_session_status(self, session_id: str, status: str, message: str = '', player_info: dict = None, fetcher_data: dict = None):
+        """Update session processing status in S3"""
+        import datetime
+        status_data = {
+            'status': status,
+            'message': message,
+            'updatedAt': datetime.datetime.now().isoformat()
+        }
+        if player_info:
+            status_data['player'] = player_info
+        if fetcher_data:
+            status_data['fetcherData'] = fetcher_data
+        
+        status_key = f"sessions/{session_id}/status.json"
+        upload_to_s3(status_key, status_data)
+        logger.info(f"📍 Status updated: {status} - {message}")
+    
+    def _process_rewind_async(self, session_id: str, game_name: str, tag_line: str, region: str, fetcher_data: dict):
+        """Background processing of rewind data"""
+        try:
+            # Update status: analyzing
+            self._update_session_status(session_id, 'analyzing', 'Analyzing your match history...')
+            
+            # Re-create fetcher with cached data
+            fetcher = LeagueDataFetcher()
+            fetcher.data = fetcher_data
+            puuid = fetcher_data['account']['puuid']
+            
+            # Fetch match history
+            match_ids = fetcher.fetch_match_history(puuid, region)
+            total_matches = len(match_ids)
+            
+            # NO SAMPLING - Analyze ALL matches
+            matches_to_fetch = match_ids
+            fetcher.data['samplingMetadata'] = {
+                'totalMatches': total_matches,
+                'analyzedMatches': total_matches,
+                'samplePercentage': 100.0,
+                'strategy': 'full_analysis'
+            }
+            logger.info(f"✓ Analyzing ALL {total_matches} matches (no sampling)")
+            
+            matches = fetcher.fetch_match_details_batch(matches_to_fetch, region, use_sampling=False)
+            
+            # Calculate analytics
+            logger.info("📊 Calculating analytics...")
+            raw_data = {
+                'account': fetcher.data.get('account', {}),
+                'summoner': fetcher.data.get('summoner', {}),
+                'ranked': fetcher.data.get('ranked', {}),
+                'matches': matches,
+                'puuid': puuid
+            }
+            
+            analytics_engine = RiftRewindAnalytics(raw_data)
+            analytics = analytics_engine.calculate_all()
+            
+            # Upload analytics to S3
+            analytics_key = f"sessions/{session_id}/analytics.json"
+            upload_to_s3(analytics_key, analytics)
+            logger.info(f"✓ Analytics uploaded to S3")
+            
+            # Update status: generating humor
+            self._update_session_status(session_id, 'generating', 'Generating personalized insights...')
+            
+            # Generate humor for ALL slides (2-15)
+            logger.info("🎭 Generating AI humor for all slides...")
+            humor_generator = HumorGenerator()
+            humor_slides = list(range(2, 16))
+            
+            import time
+            for idx, slide_num in enumerate(humor_slides):
+                try:
+                    if idx > 0:
+                        time.sleep(4)
+                    
+                    humor_generator.generate(session_id, slide_num)
+                    logger.info(f"  ✓ Slide {slide_num} humor generated")
+                except Exception as e:
+                    logger.warning(f"  ⚠️  Slide {slide_num} humor failed: {e}")
+            
+            logger.info("✅ All humor generation complete!")
+            
+            # Generate insights
+            logger.info("🧠 Generating AI insights...")
+            try:
+                insights_generator = InsightsGenerator()
+                insights_result = insights_generator.generate(session_id)
+                insights = insights_result.get('insights', {})
+                
+                # Update analytics with insights
+                if 'slide10_11_analysis' in analytics:
+                    analytics['slide10_11_analysis'].update({
+                        'strengths': insights.get('strengths', []),
+                        'weaknesses': insights.get('weaknesses', []),
+                        'coaching_tips': insights.get('coaching_tips', []),
+                        'play_style': insights.get('play_style', ''),
+                        'personality_title': insights.get('personality_title', 'The Rising Summoner')
+                    })
+                    
+                    # Re-upload analytics with insights
+                    upload_to_s3(analytics_key, analytics)
+                    logger.info("✓ Insights integrated into analytics")
+                    
+            except Exception as e:
+                logger.error(f"❌ Insights generation failed: {e}")
+            
+            # Collect all humor for caching
+            humor_data = {}
+            for slide_num in range(2, 16):
+                humor_str = download_from_s3(f"sessions/{session_id}/humor/slide_{slide_num}.json")
+                if humor_str:
+                    humor_json = json.loads(humor_str)
+                    humor_text = humor_json.get('humorText', '')
+                    
+                    if slide_num == 15:
+                        humor_data['slide15_farewell'] = humor_text
+                    else:
+                        humor_data[f"slide{slide_num}_humor"] = humor_text
+            
+            # Build updated player info
+            from services.riot_api_client import RiotAPIClient
+            profile_icon_id = fetcher.data['summoner']['profileIconId']
+            profile_icon_url = RiotAPIClient.get_profile_icon_url(profile_icon_id)
+            
+            player_info = {
+                'gameName': game_name,
+                'tagLine': tag_line,
+                'region': region,
+                'summonerLevel': fetcher.data['summoner']['summonerLevel'],
+                'profileIconId': profile_icon_id,
+                'profileIconUrl': profile_icon_url,
+                'rank': analytics.get('slide6_rankedJourney', {}).get('currentRank', 'UNRANKED')
+            }
+            
+            # Save to cache
+            self.cache_manager.save_session_to_cache(
+                game_name, tag_line, region,
+                session_id, analytics, humor_data, player_info,
+                len(matches_to_fetch), total_matches
+            )
+            logger.info("💾 Session saved to cache")
+            
+            # Update status: complete
+            self._update_session_status(session_id, 'complete', 'Your rewind is ready!', player_info)
+            logger.info(f"✅ Session {session_id} processing complete!")
+            
+        except Exception as e:
+            logger.error(f"❌ Background processing failed for session {session_id}: {e}")
+            import traceback
+            traceback.print_exc()
+            self._update_session_status(session_id, 'error', str(e))
+    
     def start_rewind(self, game_name: str, tag_line: str, region: str, force_refresh: bool = False) -> Dict[str, Any]:
         """
         POST /api/rewind
@@ -125,117 +278,24 @@ class RiftRewindAPI:
                     })
                 logger.info(f"📡 No cache found, fetching fresh data for {game_name}#{tag_line}-{region}")
             
-            # Step 1: Fetch player data
+            # Generate session ID first
+            import uuid
+            session_id = str(uuid.uuid4())
+            logger.info(f"📝 Session ID: {session_id}")
+            
+            # Step 1: Quick account lookup to confirm player exists
             fetcher = LeagueDataFetcher()
             
-            # Fetch account and summoner info
+            logger.info(f"🔍 Looking up account for {game_name}#{tag_line}-{region}")
             account_data = fetcher.fetch_account_data(game_name, tag_line, region)
             puuid = account_data['puuid']
             
             fetcher.fetch_summoner_data(puuid, region)
             fetcher.fetch_ranked_info(puuid, region)
             
-            # Fetch ALL match IDs from the past year
-            match_ids = fetcher.fetch_match_history(puuid, region)
-            total_matches = len(match_ids)
+            logger.info(f"✓ Account found: {game_name}#{tag_line}")
             
-            # NO SAMPLING - Analyze ALL matches
-            matches_to_fetch = match_ids
-            fetcher.data['samplingMetadata'] = {
-                'totalMatches': total_matches,
-                'analyzedMatches': total_matches,
-                'samplePercentage': 100.0,
-                'strategy': 'full_analysis'
-            }
-            logger.info(f"✓ Analyzing ALL {total_matches} matches (no sampling)")
-            
-            matches = fetcher.fetch_match_details_batch(matches_to_fetch, region, use_sampling=False)
-            
-            # Generate session ID
-            import uuid
-            session_id = str(uuid.uuid4())
-            logger.info(f"📝 Session ID: {session_id}")
-            
-            # Step 2: Calculate analytics directly (no S3 upload/download of raw data)
-            logger.info("📊 Calculating analytics...")
-            raw_data = {
-                'account': account_data,
-                'summoner': fetcher.data.get('summoner', {}),
-                'ranked': fetcher.data.get('ranked', {}),
-                'matches': matches,
-                'puuid': puuid
-            }
-            
-            analytics_engine = RiftRewindAnalytics(raw_data)
-            analytics = analytics_engine.calculate_all()
-            
-            # Upload analytics to S3
-            analytics_key = f"sessions/{session_id}/analytics.json"
-            upload_to_s3(analytics_key, analytics)
-            logger.info(f"✓ Analytics uploaded to S3")
-            
-            # Step 3: Generate humor for ALL slides (2-15) before completing
-            logger.info("🎭 Generating AI humor for all slides...")
-            humor_generator = HumorGenerator()
-            humor_slides = list(range(2, 16))  # Slides 2-15 need humor
-            
-            import time
-            for idx, slide_num in enumerate(humor_slides):
-                try:
-                    # Add delay between requests to avoid throttling (except first request)
-                    if idx > 0:
-                        time.sleep(4)  # 4 second delay between requests to avoid throttling
-                    
-                    humor_generator.generate(session_id, slide_num)
-                    logger.info(f"  ✓ Slide {slide_num} humor generated")
-                except Exception as e:
-                    logger.warning(f"  ⚠️  Slide {slide_num} humor failed: {e}")
-                    # Continue with other slides even if one fails
-            
-            logger.info("✅ All humor generation complete!")
-            
-            # Step 4: Generate insights (strengths, weaknesses, personality_title, coaching tips)
-            logger.info("🧠 Generating AI insights...")
-            try:
-                insights_generator = InsightsGenerator()
-                insights_result = insights_generator.generate(session_id)
-                insights = insights_result.get('insights', {})
-                
-                # Update analytics with insights data
-                if 'slide10_11_analysis' in analytics:
-                    analytics['slide10_11_analysis'].update({
-                        'strengths': insights.get('strengths', []),
-                        'weaknesses': insights.get('weaknesses', []),
-                        'coaching_tips': insights.get('coaching_tips', []),
-                        'play_style': insights.get('play_style', ''),
-                        'personality_title': insights.get('personality_title', 'The Rising Summoner')
-                    })
-                    
-                    # Re-upload analytics with insights
-                    upload_to_s3(analytics_key, analytics)
-                    logger.info("✓ Insights integrated into analytics")
-                else:
-                    logger.warning("⚠️ slide10_11_analysis not found in analytics")
-                    
-            except Exception as e:
-                logger.error(f"❌ Insights generation failed: {e}")
-                # Continue without insights - placeholders already in analytics
-            
-            # Collect all humor for caching
-            humor_data = {}
-            for slide_num in range(2, 16):
-                humor_str = download_from_s3(f"sessions/{session_id}/humor/slide_{slide_num}.json")
-                if humor_str:
-                    humor_json = json.loads(humor_str)
-                    humor_text = humor_json.get('humorText', '')
-                    
-                    # Slide 15 is the farewell message, store it differently
-                    if slide_num == 15:
-                        humor_data['slide15_farewell'] = humor_text
-                    else:
-                        humor_data[f"slide{slide_num}_humor"] = humor_text
-            
-            # Build profile icon URL
+            # Build player info from initial fetch
             from services.riot_api_client import RiotAPIClient
             profile_icon_id = fetcher.data['summoner']['profileIconId']
             profile_icon_url = RiotAPIClient.get_profile_icon_url(profile_icon_id)
@@ -247,29 +307,28 @@ class RiftRewindAPI:
                 'summonerLevel': fetcher.data['summoner']['summonerLevel'],
                 'profileIconId': profile_icon_id,
                 'profileIconUrl': profile_icon_url,
-                'rank': analytics.get('slide6_rankedJourney', {}).get('currentRank', 'UNRANKED')
+                'rank': fetcher.data.get('ranked', {}).get('tier', 'UNRANKED')
             }
             
-            # Save to cache in background (don't wait for it)
+            # Save initial status with player info
+            self._update_session_status(session_id, 'found', 'Haha, found you! Analyzing your match history...', player_info, fetcher.data)
+            
+            # Start background processing
             import threading
-            def save_cache_async():
-                self.cache_manager.save_session_to_cache(
-                    game_name, tag_line, region,
-                    session_id, analytics, humor_data, player_info,
-                    len(matches_to_fetch), total_matches
-                )
+            process_thread = threading.Thread(
+                target=self._process_rewind_async,
+                args=(session_id, game_name, tag_line, region, fetcher.data),
+                daemon=True
+            )
+            process_thread.start()
+            logger.info(f"🚀 Started background processing for session {session_id}")
             
-            cache_thread = threading.Thread(target=save_cache_async, daemon=True)
-            cache_thread.start()
-            logger.info("💾 Started background cache save")
-            
+            # Return immediately with 'found' status
             return self.create_response(200, {
                 'sessionId': session_id,
-                'status': 'complete',  # Always return complete after all processing
+                'status': 'found',
                 'fromCache': False,
                 'testMode': self.test_mode,
-                'matchCount': len(matches_to_fetch),
-                'totalMatches': total_matches,
                 'player': player_info
             })
         
@@ -294,9 +353,33 @@ class RiftRewindAPI:
             region: Optional - for cache lookup
         
         Returns:
-            Session data
+            Session data or processing status
         """
         try:
+            # Check processing status first
+            status_str = download_from_s3(f"sessions/{session_id}/status.json")
+            if status_str:
+                status_data = json.loads(status_str)
+                current_status = status_data.get('status', 'unknown')
+                
+                # If still processing, return status update
+                if current_status in ['searching', 'found', 'analyzing', 'generating']:
+                    return self.create_response(200, {
+                        'sessionId': session_id,
+                        'status': current_status,
+                        'message': status_data.get('message', ''),
+                        'player': status_data.get('player', {}),
+                        'fromCache': False
+                    })
+                
+                # If error, return error status
+                if current_status == 'error':
+                    return self.create_response(500, {
+                        'sessionId': session_id,
+                        'status': 'error',
+                        'error': status_data.get('message', 'Processing failed')
+                    })
+            
             # Try cache first if user info provided
             if game_name and tag_line and region:
                 cached_session = self.cache_manager.get_cached_session(game_name, tag_line, region)

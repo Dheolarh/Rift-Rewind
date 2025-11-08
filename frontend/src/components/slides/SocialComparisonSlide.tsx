@@ -188,7 +188,7 @@ export function SocialComparisonSlide({
           transition={{ delay: 1, duration: 0.6 }}
           className="text-center max-w-md px-4"
         >
-          <p className="text-sm sm:text-base md:text-lg text-[#E8E6E3]/80 italic leading-relaxed">
+          <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-[#E8E6E3]/80 italic leading-relaxed">
             {aiHumor}
           </p>
         </motion.div>

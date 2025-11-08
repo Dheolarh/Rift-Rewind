@@ -201,8 +201,8 @@ export function FinalRecapSlide({
             {/* Player Level */}
             <div className="bg-[#0A1428]/60 backdrop-blur-sm border border-[#C8AA6E]/30 p-3 sm:p-4 text-center rounded-sm">
               <div className="text-2xl sm:text-3xl text-[#C8AA6E] mb-1 tabular-nums" style={{ fontFamily: 'Georgia, serif' }}>
-                {highlightStats.playerLevel}
-              </div>
+                  {highlightStats.playerLevel || '—'}
+                </div>
               <div className="text-xs text-[#A09B8C] uppercase tracking-wider">Level</div>
             </div>
           </motion.div>

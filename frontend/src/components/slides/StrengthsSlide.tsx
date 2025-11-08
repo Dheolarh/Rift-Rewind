@@ -76,7 +76,7 @@ export function StrengthsSlide({
           className="text-center"
         >
           <motion.h2 
-            className="text-xl sm:text-2xl md:text-3xl bg-gradient-to-br from-[#FFD700] via-[#C8AA6E] to-[#8B7548] bg-clip-text text-transparent mb-3 sm:mb-4 leading-tight px-4" 
+            className="text-xl sm:text-2xl md:text-3xl bg-gradient-to-br from-[#FFD700] via-[#C8AA6E] to-[#8B7548] bg-clip-text text-transparent mb-2 sm:mb-3 leading-tight px-4" 
             style={{ fontFamily: 'Georgia, serif' }}
             animate={{
               backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'],
@@ -91,12 +91,19 @@ export function StrengthsSlide({
           </motion.h2>
         </motion.div>
 
-        {/* Decorative line */}
+        {/* Decorative line (ensure visible across screens) - inline styles to avoid rendering/antialiasing issues */}
         <motion.div
           initial={{ scaleX: 0 }}
           animate={{ scaleX: 1 }}
           transition={{ delay: 0.8, duration: 0.8 }}
-          className="w-24 sm:w-32 h-px bg-gradient-to-r from-transparent via-[#C8AA6E] to-transparent"
+          style={{
+            width: 'min(8rem, 32vw)',
+            height: '2px',
+            background: 'linear-gradient(to right, rgba(0,0,0,0), rgba(200,170,110,0.9), rgba(0,0,0,0))',
+            transformOrigin: 'left',
+            zIndex: 20,
+            position: 'relative'
+          }}
         />
 
         {/* AI Analysis Content */}
@@ -104,7 +111,7 @@ export function StrengthsSlide({
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 1, duration: 0.6 }}
-          className="text-center max-w-3xl mx-auto space-y-3 px-4"
+          className="text-center max-w-3xl mx-auto space-y-2 px-4"
         >
           {/* Display AI analysis content as white text without bullet points */}
           {aiAnalysis && (
@@ -126,7 +133,7 @@ export function StrengthsSlide({
                     initial={{ opacity: 0, x: -10 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 1.3 + index * 0.1, duration: 0.5 }}
-                    className="text-sm sm:text-base text-white/90 leading-relaxed"
+                    className="text-base sm:text-lg md:text-xl text-white/90 leading-relaxed"
                     style={{ fontFamily: 'Georgia, serif' }}
                   >
                     {noDecimals}

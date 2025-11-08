@@ -111,7 +111,7 @@ export function WeaknessesSlide({
           className="text-center"
         >
           <motion.h2 
-            className="text-xl sm:text-2xl md:text-3xl text-[#0AC8B9] mb-3 sm:mb-4 leading-tight px-4" 
+            className="text-xl sm:text-2xl md:text-3xl text-[#0AC8B9] mb-2 sm:mb-3 leading-tight px-4" 
             style={{ fontFamily: 'Georgia, serif' }}
             animate={{
               opacity: [0.9, 1, 0.9],
@@ -125,12 +125,19 @@ export function WeaknessesSlide({
           </motion.h2>
         </motion.div>
 
-        {/* Decorative line */}
+        {/* Decorative line (teal) - ensure visible across screens; use inline style for reliability */}
         <motion.div
           initial={{ scaleX: 0 }}
           animate={{ scaleX: 1 }}
           transition={{ delay: 0.8, duration: 0.8 }}
-          className="w-24 sm:w-32 h-px bg-gradient-to-r from-transparent via-[#0AC8B9] to-transparent"
+          style={{
+            width: 'min(8rem, 32vw)',
+            height: '2px',
+            background: 'linear-gradient(to right, rgba(0,0,0,0), rgba(10,200,185,0.9), rgba(0,0,0,0))',
+            transformOrigin: 'left',
+            zIndex: 20,
+            position: 'relative'
+          }}
         />
 
         {/* AI Analysis Content */}
@@ -138,7 +145,7 @@ export function WeaknessesSlide({
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 1, duration: 0.6 }}
-          className="text-center max-w-3xl mx-auto space-y-3 px-4"
+          className="text-center max-w-3xl mx-auto space-y-2 px-4"
         >
           {/* Display AI analysis content as white text without bullet points */}
           {aiAnalysis && (
@@ -160,7 +167,7 @@ export function WeaknessesSlide({
                     initial={{ opacity: 0, x: -10 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 1.3 + index * 0.1, duration: 0.5 }}
-                    className="text-sm sm:text-base text-white/90 leading-relaxed"
+                    className="text-base sm:text-lg md:text-xl text-white/90 leading-relaxed"
                     style={{ fontFamily: 'Georgia, serif' }}
                   >
                     {noDecimals}

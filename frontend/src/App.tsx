@@ -17,10 +17,12 @@ import { FarewellSlide } from "./components/slides/FarewellSlide";
 import { FinalRecapSlide } from "./components/slides/FinalRecapSlide";
 import { SlideNavigation } from "./components/SlideNavigation";
 import { ErrorModal } from "./components/ErrorModal";
-import api, { APIError } from "./services/api";
+import { APIError, api } from "./services/api";
+import { preloadAllImages } from "./utils/imagePreloader";
 import backgroundMusic from "./assets/sound/League of Legends Season 5.mp3";
 
-// Mock data with AI humor for each slide
+// Mock data kept for reference - not currently used since we use real session data
+/* 
 const mockData = {
   timeSpent: {
     hoursPlayed: 847,
@@ -225,6 +227,7 @@ const mockData = {
     aiHumor: "You're rubbing shoulders with the elite! Just... digitally. And they probably don't know you exist. 😎"
   },
 };
+*/
 
 export default function App() {
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -233,11 +236,12 @@ export default function App() {
   const [region, setRegion] = useState("");
   const [hasStarted, setHasStarted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [loadingStatus, setLoadingStatus] = useState<'searching' | 'found' | 'analyzing' | 'caching'>('searching');
   const [isMusicPlaying, setIsMusicPlaying] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   
   // Backend integration state
-  const [sessionId, setSessionId] = useState<string>("");
+  const [_sessionId, setSessionId] = useState<string>("");  // Kept for potential future use
   const [sessionData, setSessionData] = useState<any>(null);
   const [playerInfo, setPlayerInfo] = useState<any>(null);
   const [loadingError, setLoadingError] = useState<string>("");
@@ -310,9 +314,10 @@ export default function App() {
   const handleStart = async () => {
     setHasStarted(true);
     setIsLoading(true);
-    setCurrentSlide(1); // Show loading slide
     setLoadingError("");
     setIsAnalysisComplete(false);
+    setLoadingStatus('searching'); // Reset to searching BEFORE showing slide
+    setCurrentSlide(1); // Show loading slide
     
     // Start music when beginning the rewind
     setIsMusicPlaying(true);
@@ -324,24 +329,63 @@ export default function App() {
     
     try {
       // Call backend API to start rewind
+      console.log('App: Calling API to start rewind...');
       const response = await api.startRewind({
         gameName: summonerName,
         tagLine: summonerTag,
         region: region
       });
       
+      // Player found! API returned successfully
       setSessionId(response.sessionId);
+      // If API returned player info immediately (from cache), store it so slides can use it early
+      if (response.player) {
+        setPlayerInfo(response.player);
+      }
+      console.log('App: Setting loadingStatus to "found" (player found)');
+      setLoadingStatus('found');
+      
+      // Small delay to show "found" message
+      await new Promise(resolve => setTimeout(resolve, 1500));
       
       // Wait for analysis to complete
+      console.log('App: Setting loadingStatus to "analyzing"');
+      setLoadingStatus('analyzing')
       const session = await api.waitForComplete(
         response.sessionId,
-        (status) => {
+        (status: string) => {
           console.log('Processing status:', status);
         }
       );
-      
+
+      // Store analytics
       setSessionData(session.analytics);
-      setPlayerInfo(session.player);
+
+      // Prefer explicit player object from the session, but if the
+      // player doesn't include a summoner level, attempt to pull it
+      // from the analytics leaderboard (slide14_percentile) where the
+      // leaderboard entry for the user often contains `summonerLevel`.
+      const sessionPlayer = session.player || null;
+      const leaderboard = session.analytics?.slide14_percentile?.leaderboard || [];
+      const yourEntry = leaderboard.find((e: any) => e.isYou) || null;
+
+      const resolvedPlayer = {
+        ...(sessionPlayer || {}),
+        // If session.player already has summonerLevel, keep it. Otherwise use leaderboard entry.
+        summonerLevel: (sessionPlayer && sessionPlayer.summonerLevel) ?? yourEntry?.summonerLevel ?? undefined,
+      };
+
+      setPlayerInfo(resolvedPlayer);
+      
+      // Preload all images before marking as complete
+      console.log('App: Setting loadingStatus to "caching"');
+      setLoadingStatus('caching'); // Show caching messages
+      console.log('Preloading images...');
+      await preloadAllImages(session.analytics, (loaded, total) => {
+        console.log(`Preloaded ${loaded}/${total} images`);
+      });
+      console.log('All images preloaded!');
+      
       setIsAnalysisComplete(true);
       
     } catch (error) {
@@ -353,6 +397,7 @@ export default function App() {
       }
       // Don't set isAnalysisComplete to true on error - this prevents "BEGIN REWIND" from showing
       setShowErrorModal(true); // Show error modal
+      // Don't change loading status on error - keep showing searching/analyzing messages
     }
   };
 
@@ -389,6 +434,7 @@ export default function App() {
     setIsPaused(false);
     setLoadingError("");
     setShowErrorModal(false);
+    setLoadingStatus('searching'); // Reset loading status
     setIsAnalysisComplete(false);
     setSessionData(null);
     setIsMusicPlaying(false); // Stop music on restart
@@ -424,34 +470,7 @@ export default function App() {
     }
   };
 
-  const goToSlide = (index: number) => {
-    if (hasStarted || index === 0) {
-      setCurrentSlide(index);
-      setShowHumorPhase(false);
-    }
-  };
-
   const displayName = summonerName || "YourUsername";
-
-  // Get current slide AI humor
-  const getCurrentHumor = () => {
-    switch(currentSlide) {
-      case 1: return mockData.timeSpent.aiHumor;
-      case 2: return mockData.favoriteChampions.aiHumor;
-      case 3: return mockData.bestMatch.aiHumor;
-      case 4: return mockData.kdaOverview.aiHumor;
-      case 5: return mockData.rankedJourney.aiHumor;
-      case 6: return mockData.vision.aiHumor;
-      case 7: return "You've mastered more champions than most people have mastered breathing! 🎮";
-      case 8: return mockData.duoPartner.aiHumor;
-      case 9: return "These are the skills that separate the good from the legendary! ⚡";
-      case 10: return "Every weakness is just a strength waiting to be discovered! 💪";
-      case 11: return mockData.progress.aiHumor;
-      case 12: return "Achievement unlocked: Being absolutely legendary! 🏆";
-      case 13: return mockData.socialComparison.aiHumor;
-      default: return "";
-    }
-  };
 
   // Different animation variants for each slide
   const getSlideAnimation = (slideIndex: number) => {
@@ -535,6 +554,8 @@ export default function App() {
               playerName={summonerName || "Summoner"} 
               onComplete={isAnalysisComplete ? handleLoadingComplete : undefined}
               hasError={!!loadingError}
+              errorMessage={loadingError}
+              loadingStatus={loadingStatus}
               isMusicPlaying={isMusicPlaying}
               onMusicToggle={() => setIsMusicPlaying(!isMusicPlaying)}
             />

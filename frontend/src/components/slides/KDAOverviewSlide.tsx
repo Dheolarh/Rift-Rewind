@@ -76,14 +76,17 @@ export function KDAOverviewSlide({
           </p>
         </motion.div>
 
-        {/* Kill count - Reduced size */}
+        {/* Kill count — enlarged to match VisionSlide sizing */}
         <motion.div
           initial={{ opacity: 0, scale: 0.8, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           transition={{ delay: 0.6, duration: 0.8 }}
           className="mb-4 sm:mb-6"
         >
-          <div className="text-[80px] sm:text-[100px] md:text-[120px] lg:text-[160px] xl:text-[200px] leading-none bg-gradient-to-br from-[#0AC8B9] via-[#5DADE2] to-[#3498DB] bg-clip-text text-transparent tabular-nums" style={{ fontFamily: 'Georgia, serif', paddingBottom: '5px' }}>
+          <div
+            className="leading-none bg-gradient-to-br from-[#0AC8B9] via-[#5DADE2] to-[#3498DB] bg-clip-text text-transparent tabular-nums"
+            style={{ fontFamily: 'Georgia, serif', fontSize: 'clamp(7rem, 15vw, 14rem)', paddingBottom: '5px' }}
+          >
             <Counter value={totalKills} />{totalKills >= 1000 ? 'K' : ''}
           </div>
         </motion.div>
@@ -107,7 +110,7 @@ export function KDAOverviewSlide({
           transition={{ delay: 1.5, duration: 0.6 }}
           className="max-w-2xl text-center"
         >
-          <p className="text-sm sm:text-base md:text-lg text-[#E8E6E3]/80 italic leading-relaxed">
+          <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-[#E8E6E3]/80 italic leading-relaxed">
             {aiHumor}
           </p>
         </motion.div>

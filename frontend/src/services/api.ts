@@ -22,9 +22,9 @@ export interface StartRewindRequest {
 
 export interface StartRewindResponse {
   sessionId: string;
-  status: 'processing' | 'complete';
+  status: 'found' | 'complete';
   testMode: boolean;
-  matchCount: number;
+  matchCount?: number;
   player: {
     gameName: string;
     tagLine: string;
@@ -36,8 +36,9 @@ export interface StartRewindResponse {
 
 export interface SessionData {
   sessionId: string;
-  status: string;
-  analytics: any;
+  status: 'searching' | 'found' | 'analyzing' | 'generating' | 'complete' | 'error';
+  message?: string;
+  analytics?: any;
   player?: {
     gameName: string;
     tagLine: string;
@@ -173,7 +174,7 @@ class RiftRewindAPIService {
   async waitForSessionComplete(
     sessionId: string,
     onProgress?: (status: string) => void,
-    maxAttempts: number = 60,
+    maxAttempts: number = 1800, 
     intervalMs: number = 2000
   ): Promise<SessionData> {
     for (let attempt = 0; attempt < maxAttempts; attempt++) {

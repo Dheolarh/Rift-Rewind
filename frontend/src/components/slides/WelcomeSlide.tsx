@@ -92,9 +92,25 @@ export function WelcomeSlide({
             transition={{ delay: 0.6 }}
             className="flex items-center justify-center gap-2 mb-3"
           >
-            <div className="h-px w-12 bg-gradient-to-r from-transparent to-[#C8AA6E]" />
+            <div
+              style={{
+                width: 'min(6rem, 28vw)',
+                height: '2px',
+                background: 'linear-gradient(to right, rgba(0,0,0,0), rgba(200,170,110,0.9), rgba(0,0,0,0))',
+                position: 'relative',
+                zIndex: 20
+              }}
+            />
             <Swords className="w-5 h-5 text-[#C8AA6E]" />
-            <div className="h-px w-12 bg-gradient-to-l from-transparent to-[#C8AA6E]" />
+            <div
+              style={{
+                width: 'min(6rem, 28vw)',
+                height: '2px',
+                background: 'linear-gradient(to left, rgba(0,0,0,0), rgba(200,170,110,0.9), rgba(0,0,0,0))',
+                position: 'relative',
+                zIndex: 20
+              }}
+            />
           </motion.div>
 
           <motion.p
