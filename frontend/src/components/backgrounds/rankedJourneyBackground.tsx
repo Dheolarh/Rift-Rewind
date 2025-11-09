@@ -1,5 +1,5 @@
 import { useRef, useEffect, useState } from 'react';
-import { Renderer, Program, Triangle, Mesh } from 'ogl';
+import { Renderer, Program, Geometry, Mesh } from 'ogl';
 
 export type RaysOrigin =
   | 'top-center'
@@ -281,7 +281,12 @@ void main() {
       };
       uniformsRef.current = uniforms;
 
-      const geometry = new Triangle(gl);
+      // Create a full-screen triangle geometry (covers the viewport)
+      // Using a single triangle with vertices (-1,-1), (3,-1), (-1,3)
+      const positions = new Float32Array([-1, -1, 3, -1, -1, 3]);
+      const geometry = new Geometry(gl, {
+        position: { size: 2, data: positions }
+      });
       const program = new Program(gl, {
         vertex: vert,
         fragment: frag,
