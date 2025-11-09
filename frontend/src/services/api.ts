@@ -189,11 +189,23 @@ class RiftRewindAPIService {
           return session;
         }
 
+        // Check for error status
+        if (session.status === 'error') {
+          throw new APIError(
+            session.message || 'An error occurred during analysis',
+            500
+          );
+        }
+
         // Wait before next poll
         await new Promise(resolve => setTimeout(resolve, intervalMs));
       } catch (error) {
         console.error('Error polling session:', error);
-        // Continue polling even on errors
+        // Re-throw APIError so it can be caught by the caller
+        if (error instanceof APIError) {
+          throw error;
+        }
+        // Continue polling on other errors
       }
     }
 

@@ -1,13 +1,13 @@
 import { motion, AnimatePresence } from "motion/react";
 import { useState, useEffect, useRef } from "react";
 import { Music } from "lucide-react";
+import LoadBG from "../../assets/LoadBG.webm";
 import "./LoadingSlide.css";
 
 interface LoadingSlideProps {
   playerName?: string;
   onComplete?: () => void;
   hasError?: boolean;
-  errorMessage?: string;
   loadingStatus?: string; // e.g., 'searching', 'found', 'analyzing', 'caching', 'complete'
   isMusicPlaying?: boolean;
   onMusicToggle?: () => void;
@@ -25,12 +25,13 @@ const loadingMessageSets = {
     "Let's dive in...",
   ],
   analyzing: [
-    "Checking your match records...",
-    "Performing deep analysis...",
+    "Reviewing your game history...",
     "Crunching the numbers...",
+    "Checking your match records...",
+    "This might take a while",
+    "Performing analysis...",
     "Analyzing your performance...",
     "Calculating statistics...",
-    "Reviewing your game history...",
     "Examining your champion pool...",
     "Tracking your ranked journey...",
     "Measuring your impact...",
@@ -45,39 +46,10 @@ const loadingMessageSets = {
   ]
 };
 
-const getUserFriendlyError = (errorMessage: string): string => {
-  const lowerError = errorMessage.toLowerCase();
-  
-  if (lowerError.includes('not found') || lowerError.includes('404')) {
-    return "Account not found. Please check your summoner name and region.";
-  }
-  if (lowerError.includes('unauthorized') || lowerError.includes('401')) {
-    return "It's not you, it's us. (Dev: API key error).";
-  }
-  if (lowerError.includes('network') || lowerError.includes('fetch')) {
-    return "Network error. Please check your connection and try again.";
-  }
-  if (lowerError.includes('timeout')) {
-    return "Request timed out. The server might be busy, please try again.";
-  }
-  if (lowerError.includes('rate limit')) {
-    return "Too many requests. Please wait a moment and try again.";
-  }
-  if (lowerError.includes('api key') || lowerError.includes('forbidden')) {
-    return "Service configuration error. Please contact support.";
-  }
-  if (lowerError.includes('no ranked games') || lowerError.includes('no matches')) {
-    return "No ranked games found. Play some ranked matches first!";
-  }
-  
-  return "Something went wrong. Please try again later.";
-};
-
 export function LoadingSlide({ 
   playerName = "Summoner", 
   onComplete, 
   hasError = false,
-  errorMessage = "",
   loadingStatus = 'searching',
   isMusicPlaying = false,
   onMusicToggle 
@@ -96,10 +68,7 @@ export function LoadingSlide({
     const newPhase = loadingStatus as 'searching' | 'found' | 'analyzing' | 'caching';
     const prevPhase = prevLoadingStatusRef.current;
     
-    console.log(`LoadingSlide: loadingStatus changed from "${prevPhase}" to "${newPhase}"`);
-    
     if (newPhase !== prevPhase && ['searching', 'found', 'analyzing', 'caching'].includes(newPhase)) {
-      console.log(`LoadingSlide: Transitioning to "${newPhase}"`);
       setCurrentPhase(newPhase);
       setPhaseHistory(prev => new Set([...prev, newPhase]));
       setCurrentMessage(0);
@@ -165,10 +134,23 @@ export function LoadingSlide({
   }, [onComplete]);
 
   const currentMessageText = displayedMessages[currentMessage] || "";
-  const friendlyError = hasError && errorMessage ? getUserFriendlyError(errorMessage) : "";
 
   return (
     <div className="relative size-full overflow-hidden bg-gradient-to-br from-[#010A13] via-[#0A1428] to-[#1a0b2e]">
+      {/* Background Video */}
+      <video
+        autoPlay
+        loop
+        muted
+        playsInline
+        className="absolute inset-0 w-full h-full object-cover opacity-20"
+      >
+        <source src={LoadBG} type="video/webm" />
+      </video>
+
+      {/* Dark overlay for better readability */}
+      <div className="absolute inset-0 bg-gradient-to-br from-[#010A13]/80 via-[#0A1428]/75 to-[#1a0b2e]/80" />
+
       {/* Music Toggle Button - Top Left */}
       {onMusicToggle && (
         <motion.button
@@ -194,8 +176,8 @@ export function LoadingSlide({
         </motion.button>
       )}
       
-      {/* Ripple Loader */}
-      {!hasError && (
+      {/* Ripple Loader - hide when error or complete */}
+      {!hasError && !isComplete && (
         <div className="ripple-container">
           <div className="hole">
             <i />
@@ -215,23 +197,7 @@ export function LoadingSlide({
       {/* Content */}
       <div className="relative z-10 size-full flex flex-col items-center justify-center px-4 sm:px-6 gap-8">
         <AnimatePresence mode="wait">
-          {hasError ? (
-            <motion.div
-              key="error"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.5 }}
-              className="text-center max-w-md"
-            >
-              <p className="text-lg sm:text-xl md:text-2xl text-[#FF6B6B] font-semibold mb-2">
-                {friendlyError}
-              </p>
-              <p className="text-sm sm:text-base text-[#A09B8C] mt-4">
-                Please try again or contact support if the problem persists.
-              </p>
-            </motion.div>
-          ) : !isComplete ? (
+          {!isComplete ? (
             <motion.div
               key={`${currentPhase}-${currentMessage}`}
               initial={{ opacity: 0, y: 10 }}

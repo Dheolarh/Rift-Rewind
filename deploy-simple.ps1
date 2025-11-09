@@ -82,11 +82,11 @@ if ($LASTEXITCODE -eq 0) {
     Write-Host "Updating existing function..." -ForegroundColor Yellow
     aws lambda update-function-code --function-name RiftRewindOrchestrator --zip-file fileb://backend/rift-rewind-lambda.zip --region $Region | Out-Null
     Start-Sleep -Seconds 2
-    aws lambda update-function-configuration --function-name RiftRewindOrchestrator --environment Variables="{RIOT_API_KEY=$RiotApiKey,S3_BUCKET_NAME=$BucketName,BEDROCK_MODEL_ID=anthropic.claude-3-sonnet-20240229-v1:0}" --region $Region | Out-Null
+    aws lambda update-function-configuration --function-name RiftRewindOrchestrator --environment Variables="{RIOT_API_KEY=$RiotApiKey,S3_BUCKET_NAME=$BucketName,BEDROCK_MODEL_ID=us.meta.llama3-1-70b-instruct-v1:0}" --region $Region | Out-Null
     Write-Host "OK Lambda function updated" -ForegroundColor Green
 } else {
     Write-Host "Creating new function..." -ForegroundColor Yellow
-    aws lambda create-function --function-name RiftRewindOrchestrator --runtime python3.11 --role $roleArn --handler orchestrator.lambda_handler --zip-file fileb://backend/rift-rewind-lambda.zip --timeout 300 --memory-size 1024 --region $Region --environment Variables="{RIOT_API_KEY=$RiotApiKey,S3_BUCKET_NAME=$BucketName,BEDROCK_MODEL_ID=anthropic.claude-3-sonnet-20240229-v1:0}" | Out-Null
+    aws lambda create-function --function-name RiftRewindOrchestrator --runtime python3.11 --role $roleArn --handler orchestrator.lambda_handler --zip-file fileb://backend/rift-rewind-lambda.zip --timeout 300 --memory-size 1024 --region $Region --environment Variables="{RIOT_API_KEY=$RiotApiKey,S3_BUCKET_NAME=$BucketName,BEDROCK_MODEL_ID=us.meta.llama3-1-70b-instruct-v1:0}" | Out-Null
     if ($LASTEXITCODE -eq 0) {
         Write-Host "OK Lambda function created" -ForegroundColor Green
     } else {

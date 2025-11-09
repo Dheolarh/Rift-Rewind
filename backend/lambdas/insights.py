@@ -111,7 +111,7 @@ class InsightsGenerator:
 - KDA Performance: {perf_metrics.get('kda_performance', 'unknown')}
 
 **Vision & Map Control:**
-- Average Vision Score: {vision_score:.1f} per game
+- Average Vision Score: {vision_score:.1f} per game (Excellent: 50+, Good: 30-50, Poor: <25)
 - Average Wards Placed: {avg_wards:.1f} per game
 - Average Control Wards: {avg_control:.1f} per game
 - Vision Performance: {perf_metrics.get('vision_performance', 'unknown')}
@@ -127,20 +127,23 @@ class InsightsGenerator:
 3. **Detect POOR PERFORMANCE indicators** - high deaths, low vision, inconsistent champion picks
 4. **Be SPECIFIC with numbers** - "Your 7.2 deaths per game is 40% higher than average for {rank_display}"
 5. **Highlight PLAYSTYLE MISMATCHES** - e.g., playing assassins but dying too much
+6. **DIVERSE WEAKNESS ANALYSIS** - Don't focus only on vision! Include:
+   - Death rate patterns (aggressive positioning, overextension)
+   - Champion pool issues (one-trick limitations, lack of diversity)
+   - Farm/economy problems (if data available)
+   - Team fight patterns (KDA vs death rate conflicts)
+   - Consistency issues (win rate vs games played)
 
 **Task: Generate insights in the following JSON format (respond ONLY with valid JSON):**
 
 {{
   "strengths": [
-    "Specific strength with exact numbers (max 3-4 strengths, only if truly deserved)",
-    "Another data-backed strength",
-    "Third strength if applicable"
+    "Specific strength with exact numbers (2-3 strengths, only if truly deserved)"
   ],
   "weaknesses": [
-    "Critical weakness with comparison to rank average (at least 3-4 weaknesses)",
-    "Another weakness explaining WHY it's hurting performance",
-    "Third weakness with actionable context",
-    "Fourth weakness if multiple issues exist"
+    "Critical weakness - NOT just vision! Focus on death patterns, positioning, champion diversity, or other meaningful metrics",
+    "Second weakness from a DIFFERENT category than the first",
+    "Third weakness if applicable - be diverse in analysis"
   ],
   "coaching_tips": [
     "Highest priority tip addressing biggest weakness",
@@ -148,8 +151,18 @@ class InsightsGenerator:
     "Third tip for long-term growth"
   ],
   "play_style": "One sentence HONEST description of their actual playstyle based on data patterns",
-  "personality_title": "Creative 3-4 word title reflecting their ACTUAL performance (e.g., 'The Reckless Brawler', 'The Vision-Blind Assassin')"
+  "personality_title": "Creative 3-4 word title based on CHAMPION STATS and playstyle (e.g., 'The Reckless Yasuo Main', 'The Cautious Support', 'The Solo Carry Hunter', 'The Team Fight Specialist')"
 }}
+
+**PERSONALITY TITLE RULES:**
+- Base it on their TOP CHAMPION and playstyle patterns, NOT vision score
+- Examples: "The {adjective} {champion/role} {playstyle}"
+  - "The Fearless Darius Diver"
+  - "The Calculated Mage Sniper"
+  - "The Overeager Assassin"
+  - "The Patient Farm King"
+  - "The One-Trick Wonder" (if champion pool is tiny)
+- Make it reflect their ACTUAL performance patterns
 
 **IMPORTANT:**
 - If KDA < 2.0, it's a major weakness
@@ -166,68 +179,218 @@ Respond ONLY with valid JSON - no other text."""
         
         return prompt
     
-    def call_bedrock(self, prompt: str) -> Dict[str, Any]:
+    def call_bedrock(self, prompt: str, ai_context: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Call Bedrock to generate insights using Meta Llama.
+        Call Bedrock to generate insights using Meta Llama with retries and guaranteed fallback.
         
         Args:
             prompt: Prompt string
+            ai_context: Context data for generating data-driven fallbacks
         
         Returns:
-            Parsed insights dict
+            Parsed insights dict (ALWAYS returns valid insights)
         """
-        logger.info("Calling Bedrock for insights generation...")
+        max_retries = 3
         
-        # Meta Llama 3.1 uses chat template format
-        system_prompt = """You are a no-bullshit League of Legends coach analyzing gameplay. 
-Call out bad plays. If someone's inting, say it. If their vision score is trash, roast it.
-Be brutally honest with data. Don't sugarcoat failures. Constructive but savage.
+        for attempt in range(max_retries):
+            try:
+                logger.info(f"Calling Bedrock for insights generation (attempt {attempt + 1}/{max_retries})...")
+                
+                # Meta Llama 3.1 uses chat template format
+                system_prompt = """You are a professional League of Legends coach analyzing gameplay with brutal honesty. 
+Focus on ACTUAL WEAKNESSES from the data - don't default to vision criticism unless it's truly poor (avg vision score < 25).
+A vision score of 40+ is GOOD - don't roast it! Instead focus on deaths, KDA, champion pool, consistency, positioning.
+Be data-driven and specific. If someone has good stats in an area, acknowledge it and find REAL weaknesses elsewhere.
 Respond ONLY with valid JSON - no other text."""
-        
-        llama_prompt = f"""<|begin_of_text|><|start_header_id|>system<|end_header_id|>
+                
+                llama_prompt = f"""<|begin_of_text|><|start_header_id|>system<|end_header_id|>
 
 {system_prompt}<|eot_id|><|start_header_id|>user<|end_header_id|>
 
 {prompt}<|eot_id|><|start_header_id|>assistant<|end_header_id|>
 
 """
+                
+                request_body = {
+                    "prompt": llama_prompt,
+                    "max_gen_len": 1500,
+                    "temperature": 0.7,
+                    "top_p": 0.9
+                }
+                
+                # Invoke Bedrock
+                response = self.bedrock_client.invoke_model(
+                    modelId=self.model_id,
+                    body=json.dumps(request_body)
+                )
+                
+                response_body = json.loads(response['body'].read())
+                insights_text = response_body.get('generation', '').strip()
+                
+                # Log the raw AI response for debugging
+                logger.info(f"==> Bedrock raw response (attempt {attempt + 1}):")
+                logger.info(f"    Full response length: {len(insights_text)} chars")
+                logger.info(f"    First 300 chars: {insights_text[:300]}")
+                
+                # Extract JSON if wrapped in markdown code blocks
+                if '```json' in insights_text:
+                    insights_text = insights_text.split('```json')[1].split('```')[0].strip()
+                elif '```' in insights_text:
+                    insights_text = insights_text.split('```')[1].split('```')[0].strip()
+                
+                insights_data = json.loads(insights_text)
+                
+                # Log what we got from parsing
+                logger.info(f"==> Parsed JSON successfully")
+                logger.info(f"    Fields present: {list(insights_data.keys())}")
+                logger.info(f"    Strengths count: {len(insights_data.get('strengths', []))}")
+                logger.info(f"    Weaknesses count: {len(insights_data.get('weaknesses', []))}")
+                logger.info(f"    Tips count: {len(insights_data.get('coaching_tips', []))}")
+                
+                # Validate that all required fields exist
+                required_fields = ['strengths', 'weaknesses', 'coaching_tips', 'play_style', 'personality_title']
+                if all(field in insights_data for field in required_fields):
+                    # Ensure arrays have at least one item
+                    if (insights_data['strengths'] and 
+                        insights_data['weaknesses'] and 
+                        insights_data['coaching_tips']):
+                        logger.info("==> AI insights generated successfully with all required fields")
+                        return insights_data
+                    else:
+                        logger.warning(f"==> AI returned empty arrays, retrying (attempt {attempt + 1})")
+                        logger.warning(f"    Strengths: {len(insights_data.get('strengths', []))}, Weaknesses: {len(insights_data.get('weaknesses', []))}, Tips: {len(insights_data.get('coaching_tips', []))}")
+                else:
+                    missing_fields = [f for f in required_fields if f not in insights_data]
+                    logger.warning(f"==> AI response missing fields: {missing_fields}, retrying (attempt {attempt + 1})")
+                
+            except json.JSONDecodeError as e:
+                logger.error(f"==> JSON parsing error on attempt {attempt + 1}: {e}")
+                logger.error(f"    Raw AI response (first 200 chars): {insights_text[:200]}")
+                if attempt < max_retries - 1:
+                    continue
+            except Exception as e:
+                logger.error(f"==> Bedrock API error on attempt {attempt + 1}: {e}")
+                if attempt < max_retries - 1:
+                    continue
         
-        request_body = {
-            "prompt": llama_prompt,
-            "max_gen_len": 1500,
-            "temperature": 0.7,
-            "top_p": 0.9
+        # All retries failed - generate data-driven fallback
+        logger.warning("==> All Bedrock attempts failed, using data-driven fallback insights")
+        return self._generate_fallback_insights(ai_context)
+    
+    def _generate_fallback_insights(self, ai_context: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Generate data-driven fallback insights when AI fails.
+        Uses actual player stats to create meaningful insights.
+        
+        Args:
+            ai_context: Player statistics and metrics
+        
+        Returns:
+            Valid insights dict with data-driven content
+        """
+        logger.info(" Generating data-driven fallback insights...")
+        
+        # Extract key metrics
+        avg_kda = ai_context.get('avgKDA', 0)
+        avg_deaths = ai_context.get('avgDeaths', 0)
+        win_rate = ai_context.get('winRate', 0)
+        vision_score = ai_context.get('avgVisionScore', 0)
+        champ_pool = ai_context.get('championPoolSize', 0)
+        top_champs = ai_context.get('topChampions', [])
+        perf = ai_context.get('performanceMetrics', {})
+        
+        # Determine strengths based on data
+        strengths = []
+        if avg_kda > 3.0:
+            strengths.append(f"Excellent KDA ratio of {avg_kda:.1f} shows strong mechanical skill")
+        elif avg_kda > 2.0:
+            strengths.append(f"Solid {avg_kda:.1f} KDA demonstrates consistent gameplay")
+        
+        if win_rate >= 55:
+            strengths.append(f"Strong {win_rate}% win rate reflects good decision-making")
+        elif win_rate >= 50:
+            strengths.append("Maintaining positive win rate shows competitive performance")
+        
+        if vision_score > 40:
+            strengths.append(f"Good vision control with {vision_score:.0f} average vision score")
+        
+        if not strengths:
+            strengths.append("Active ranked participation boosts skill development")
+            strengths.append("Consistent play shows dedication to improvement")
+        
+        # Determine weaknesses based on data
+        weaknesses = []
+        if avg_deaths > 7:
+            weaknesses.append(f"High death rate of {avg_deaths:.1f} per game suggests aggressive positioning")
+        elif avg_deaths > 5.5:
+            weaknesses.append("Death count could be reduced with better map awareness")
+        
+        if champ_pool < 5:
+            weaknesses.append(f"Limited champion pool of {champ_pool} champions may hurt flexibility")
+        elif champ_pool > 20:
+            weaknesses.append("Very diverse champion pool may prevent mastery of specific picks")
+        
+        if vision_score < 25:
+            weaknesses.append(f"Vision score of {vision_score:.0f} needs improvement for better map control")
+        
+        if win_rate < 45:
+            weaknesses.append("Win rate indicates need for strategic adjustments")
+        
+        if not weaknesses:
+            weaknesses.append("Focus on consistency to climb higher")
+            weaknesses.append("Small optimizations in positioning can increase win rate")
+        
+        # Generate coaching tips
+        coaching_tips = []
+        if avg_deaths > 6:
+            coaching_tips.append("Focus on positioning - ask 'where are my teammates?' before engaging")
+        if vision_score < 30:
+            coaching_tips.append("Buy 2+ control wards per back and place them in river/jungle")
+        if champ_pool < 5:
+            coaching_tips.append("Master 3-5 champions deeply rather than playing everything")
+        
+        if not coaching_tips:
+            coaching_tips.append("Review your deaths after each game to identify patterns")
+            coaching_tips.append("Focus on objectives over kills for consistent wins")
+            coaching_tips.append("Practice one champion extensively to learn matchups")
+        
+        # Generate play style description
+        if avg_deaths > 7:
+            play_style = "Aggressive player who takes risks for high-reward plays"
+        elif avg_deaths < 4:
+            play_style = "Cautious player who prioritizes survival and consistent performance"
+        elif avg_kda > 3:
+            play_style = "Skilled player who balances aggression with smart decision-making"
+        else:
+            play_style = "Developing player working to refine their strategic approach"
+        
+        # Generate personality title based on top champion
+        if top_champs and len(top_champs) > 0:
+            top_champ = top_champs[0].get('name', 'Champion')
+            if avg_deaths > 7:
+                personality_title = f"The Fearless {top_champ} Player"
+            elif avg_kda > 3:
+                personality_title = f"The Skilled {top_champ} Main"
+            else:
+                personality_title = f"The Dedicated {top_champ} Enthusiast"
+        else:
+            personality_title = "The Determined Competitor"
+        
+        fallback_result = {
+            "strengths": strengths[:3],  # Limit to 3
+            "weaknesses": weaknesses[:3],  # Limit to 3
+            "coaching_tips": coaching_tips[:3],  # Limit to 3
+            "play_style": play_style,
+            "personality_title": personality_title
         }
         
-        # Invoke Bedrock
-        response = self.bedrock_client.invoke_model(
-            modelId=self.model_id,
-            body=json.dumps(request_body)
-        )
+        # Log the fallback that was generated
+        logger.info(f"==> Generated fallback insights:")
+        logger.info(f"    Strengths: {fallback_result['strengths']}")
+        logger.info(f"    Weaknesses: {fallback_result['weaknesses']}")
+        logger.info(f"    Title: {fallback_result['personality_title']}")
         
-        response_body = json.loads(response['body'].read())
-        insights_text = response_body.get('generation', '').strip()
-        
-        try:
-            # Extract JSON if wrapped in markdown code blocks
-            if '```json' in insights_text:
-                insights_text = insights_text.split('```json')[1].split('```')[0].strip()
-            elif '```' in insights_text:
-                insights_text = insights_text.split('```')[1].split('```')[0].strip()
-            
-            insights_data = json.loads(insights_text)
-            logger.info("Insights generated successfully")
-            return insights_data
-        
-        except json.JSONDecodeError as e:
-            logger.error(f"Error parsing JSON from Bedrock: {e}")
-            return {
-                "strengths": ["Data analysis in progress"],
-                "weaknesses": ["More matches needed for accurate analysis"],
-                "coaching_tips": ["Keep playing ranked games for better insights"],
-                "play_style": "Developing player profile",
-                "personality_title": "The Rising Summoner"
-            }
+        return fallback_result
     
     def store_insights(self, session_id: str, insights: Dict[str, Any]):
         """
@@ -257,24 +420,57 @@ Respond ONLY with valid JSON - no other text."""
             session_id: Session ID
         
         Returns:
-            Result dict with insights
+            Result dict with insights (ALWAYS succeeds with valid insights)
         """
         logger.info(f"Generating insights for session: {session_id}")
         
-        analytics = self.download_analytics(session_id)
-        prompt = self.create_insights_prompt(analytics)
-        insights = self.call_bedrock(prompt)
-        self.store_insights(session_id, insights)
-        
-        logger.info(f"Insights generation complete - Strengths: {len(insights.get('strengths', []))}, "
-                   f"Weaknesses: {len(insights.get('weaknesses', []))}, "
-                   f"Tips: {len(insights.get('coaching_tips', []))}")
-        
-        return {
-            'sessionId': session_id,
-            'insights': insights,
-            'status': 'success'
-        }
+        try:
+            analytics = self.download_analytics(session_id)
+            
+            # Extract aiContext for fallback generation if needed
+            slide_data = analytics.get('slide10_11_analysis', {})
+            ai_context = slide_data.get('aiContext', {})
+            
+            prompt = self.create_insights_prompt(analytics)
+            insights = self.call_bedrock(prompt, ai_context)  # Pass ai_context for fallback
+            
+            # Validate insights structure
+            if not insights.get('strengths') or not insights.get('weaknesses'):
+                logger.warning("  AI returned incomplete insights, using fallback")
+                insights = self._generate_fallback_insights(ai_context)
+            
+            self.store_insights(session_id, insights)
+            
+            logger.info(f" Insights generation complete - Strengths: {len(insights.get('strengths', []))}, "
+                       f"Weaknesses: {len(insights.get('weaknesses', []))}, "
+                       f"Tips: {len(insights.get('coaching_tips', []))}")
+            
+            return {
+                'sessionId': session_id,
+                'insights': insights,
+                'status': 'success'
+            }
+        except Exception as e:
+            logger.error(f" Critical error in insights generation: {e}")
+            # Last resort fallback
+            fallback_insights = {
+                "strengths": ["Active ranked participation", "Commitment to competitive play"],
+                "weaknesses": ["Continue playing for deeper analysis", "Focus on consistency"],
+                "coaching_tips": ["Review replays after losses", "Master 3-5 champions", "Prioritize objectives"],
+                "play_style": "Developing competitive player",
+                "personality_title": "The Rising Competitor"
+            }
+            
+            try:
+                self.store_insights(session_id, fallback_insights)
+            except:
+                pass  # If S3 fails, at least return insights
+            
+            return {
+                'sessionId': session_id,
+                'insights': fallback_insights,
+                'status': 'success'
+            }
 
 
 def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
@@ -316,7 +512,6 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         }
     
     except Exception as e:
-        print(f"Error generating insights: {e}")
         return {
             'statusCode': 500,
             'body': json.dumps({

@@ -84,7 +84,7 @@ class SessionCacheManager:
             
             # Check if metadata exists
             if not check_s3_object_exists(metadata_key):
-                logger.info(f"❌ No cache found for {game_name}#{tag_line}-{region}")
+                logger.info(f" No cache found for {game_name}#{tag_line}-{region}")
                 return False
             
             # Download and check expiration
@@ -100,7 +100,7 @@ class SessionCacheManager:
                 logger.info(f"⏰ Cache expired for {game_name}#{tag_line}-{region}")
                 return False
             
-            logger.info(f"✅ Valid cache found for {game_name}#{tag_line}-{region}")
+            logger.info(f" Valid cache found for {game_name}#{tag_line}-{region}")
             return True
         
         except Exception as e:
@@ -130,7 +130,7 @@ class SessionCacheManager:
                 return None
             
             cached_data = json.loads(cache_str)
-            logger.info(f"📦 Retrieved cached session for {game_name}#{tag_line}-{region}")
+            logger.info(f" Retrieved cached session for {game_name}#{tag_line}-{region}")
             
             return cached_data
         
@@ -205,7 +205,7 @@ class SessionCacheManager:
             }
             upload_to_s3(metadata_key, metadata)
             
-            logger.info(f"💾 Cached session for {game_name}#{tag_line}-{region} (expires in {self.cache_expiry_days} days)")
+            logger.info(f" Cached session for {game_name}#{tag_line}-{region} (expires in {self.cache_expiry_days} days)")
             return True
         
         except Exception as e:
@@ -239,7 +239,7 @@ class SessionCacheManager:
             s3_client.delete_object(Bucket=S3_BUCKET_NAME, Key=cache_key)
             s3_client.delete_object(Bucket=S3_BUCKET_NAME, Key=metadata_key)
             
-            logger.info(f"🗑️ Invalidated cache for {game_name}#{tag_line}-{region}")
+            logger.info(f" Invalidated cache for {game_name}#{tag_line}-{region}")
             return True
         
         except Exception as e:
@@ -327,7 +327,7 @@ class SessionCacheManager:
                         cache_key = f"{user_prefix}complete_session.json"
                         cache_str = download_from_s3(cache_key)
                         if cache_str:
-                            logger.info(f"📦 Found session {session_id} in cache at {user_prefix}")
+                            logger.info(f" Found session {session_id} in cache at {user_prefix}")
                             return json.loads(cache_str)
                 except Exception as e:
                     # Skip this user if there's an error

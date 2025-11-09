@@ -91,7 +91,23 @@ class RiotAPIClient:
                     time.sleep(retry_after)
                     continue
                 elif response.status_code == 403:
-                    logger.error(f"Forbidden (403) - check API key: {url}")
+                    logger.error(f" Forbidden (403) - Access Denied")
+                    logger.error(f"   URL: {url}")
+                    logger.error(f"   API Key prefix: {self.api_key[:10]}...")
+                    try:
+                        error_body = response.json()
+                        logger.error(f"   Response body: {error_body}")
+                    except:
+                        if response.text:
+                            logger.error(f"   Response text: {response.text[:300]}")
+                    logger.error(f"   Response headers: {dict(response.headers)}")
+                    
+                    # Check if this is a valid Riot ID format issue
+                    if 'account/v1/accounts/by-riot-id' in url:
+                        logger.error(f"     Possible issues:")
+                        logger.error(f"      - Riot ID might not exist in this region")
+                        logger.error(f"      - Name/tag might contain invalid characters")
+                        logger.error(f"      - Regional routing might be incorrect")
                     return None
                 else:
                     logger.error(f"Error {response.status_code}: {url}")
@@ -101,28 +117,28 @@ class RiotAPIClient:
                     return None
                     
             except requests.exceptions.Timeout:
-                logger.warning(f"⏱️  Timeout on attempt {attempt + 1}/{max_retries} - retrying...")
+                logger.warning(f"⏱  Timeout on attempt {attempt + 1}/{max_retries} - retrying...")
                 if attempt < max_retries - 1:
                     time.sleep(2 ** attempt)  # Exponential backoff
                     continue
-                logger.error(f"❌ Request timed out after {max_retries} attempts")
+                logger.error(f" Request timed out after {max_retries} attempts")
                 return None
             except requests.exceptions.SSLError as e:
-                logger.warning(f"🔒 SSL Error on attempt {attempt + 1}/{max_retries} - connection issue")
+                logger.warning(f" SSL Error on attempt {attempt + 1}/{max_retries} - connection issue")
                 if attempt < max_retries - 1:
                     time.sleep(2 ** attempt)  # Exponential backoff
                     continue
-                logger.error(f"❌ SSL Error persists after {max_retries} attempts (skipping)")
+                logger.error(f" SSL Error persists after {max_retries} attempts (skipping)")
                 return None
             except requests.exceptions.ConnectionError as e:
-                logger.warning(f"🔌 Connection Error on attempt {attempt + 1}/{max_retries} - network issue")
+                logger.warning(f" Connection Error on attempt {attempt + 1}/{max_retries} - network issue")
                 if attempt < max_retries - 1:
                     time.sleep(2 ** attempt)  # Exponential backoff
                     continue
-                logger.error(f"❌ Connection failed after {max_retries} attempts (skipping)")
+                logger.error(f" Connection failed after {max_retries} attempts (skipping)")
                 return None
             except Exception as e:
-                logger.error(f"⚠️  Unexpected error: {e}")
+                logger.error(f"  Unexpected error: {e}")
                 if attempt < max_retries - 1:
                     time.sleep(1)
                     continue
@@ -145,14 +161,36 @@ class RiotAPIClient:
         Returns:
             Account data with puuid, gameName, tagLine
         """
+        import urllib.parse
+        
+        # Strip whitespace and URL-encode game name and tag line to handle non-ASCII and special characters
+        clean_game_name = game_name.strip()
+        clean_tag_line = tag_line.strip()
+        
+        logger.info(f" Account Lookup Debug:")
+        logger.info(f"   Original: '{game_name}' #{tag_line}")
+        logger.info(f"   Cleaned: '{clean_game_name}' #{clean_tag_line}")
+        logger.info(f"   Regional: {regional}")
+        
+        encoded_game_name = urllib.parse.quote(clean_game_name)
+        encoded_tag_line = urllib.parse.quote(clean_tag_line)
+        
+        logger.info(f"   Encoded name: {encoded_game_name}")
+        logger.info(f"   Encoded tag: {encoded_tag_line}")
+        
         base_url = RIOT_API_REGIONAL_BASE.format(regional=regional)
         endpoint = RIOT_API_ENDPOINTS['account_by_riot_id'].format(
-            gameName=game_name,
-            tagLine=tag_line
+            gameName=encoded_game_name,
+            tagLine=encoded_tag_line
         )
         url = base_url + endpoint
         
-        logger.info(f"Fetching account: {game_name}#{tag_line} on {regional}")
+        logger.info(f"   Full URL: {url}")
+        
+        logger.info(f"Fetching account: {clean_game_name}#{clean_tag_line} on {regional}")
+        logger.debug(f"Full URL: {url}")
+        logger.debug(f"API Key (first 10 chars): {self.api_key[:10] if self.api_key else 'NOT SET'}...")
+        
         return self._make_request(url)
     
     # ==================== SUMMONER-V4 API ====================
@@ -281,6 +319,9 @@ class RiotAPIClient:
         url = base_url + endpoint + "?" + "&".join(params)
         
         logger.info(f"Fetching {count} match IDs for PUUID: {puuid[:8]}...")
+        logger.info(f" Match history URL: {url}")
+        logger.info(f" Filters - Queue: {queue}, Start time: {start_time} ({datetime.fromtimestamp(start_time) if start_time else 'None'})")
+        
         return self._make_request(url)
     
     def get_match_details(self, match_id: str, platform: str) -> Optional[Dict[str, Any]]:
@@ -366,7 +407,7 @@ class RiotAPIClient:
         
         if len(matches) < total:
             failed_count = total - len(matches)
-            logger.warning(f"⚠️  {failed_count} matches failed to fetch (network/SSL errors - continuing anyway)")
+            logger.warning(f"  {failed_count} matches failed to fetch (network/SSL errors - continuing anyway)")
         
         return matches
     

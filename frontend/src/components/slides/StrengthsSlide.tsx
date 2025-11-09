@@ -9,10 +9,10 @@ interface StrengthsSlideProps {
 
 export function StrengthsSlide({ 
   strengths,
-  aiAnalysis = "Analyzing your gameplay strengths..."
+  aiAnalysis = "Your dedication and consistency shine through your gameplay."
 }: StrengthsSlideProps) {
   // Get the first strength as the main one to display
-  const mainStrength = strengths[0] || "No strengths detected";
+  const mainStrength = strengths[0] || "Consistent ranked participation";
 
   return (
     <div className="relative w-full h-full overflow-hidden bg-[#010A13]">

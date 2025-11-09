@@ -101,7 +101,7 @@ class SessionManager:
                 }
             )
             
-            logger.info(f"✓ Checkpoint saved: {session_id} (status: {status})")
+            logger.info(f" Checkpoint saved: {session_id} (status: {status})")
             return True
             
         except Exception as e:
@@ -139,7 +139,7 @@ class SessionManager:
                 self.delete_session(session_id)
                 return None
             
-            logger.info(f"✓ Checkpoint loaded: {session_id} (status: {checkpoint_data['status']})")
+            logger.info(f" Checkpoint loaded: {session_id} (status: {checkpoint_data['status']})")
             return checkpoint_data
             
         except self.s3_client.exceptions.NoSuchKey:
@@ -210,7 +210,7 @@ class SessionManager:
                 }
             )
             
-            logger.info(f"✓ Session marked complete: {session_id}")
+            logger.info(f" Session marked complete: {session_id}")
             return True
             
         except Exception as e:
@@ -234,7 +234,7 @@ class SessionManager:
                 Key=key
             )
             
-            logger.info(f"✓ Session deleted: {session_id}")
+            logger.info(f" Session deleted: {session_id}")
             return True
             
         except Exception as e:
@@ -284,7 +284,7 @@ class SessionManager:
                 ContentType='application/json'
             )
             
-            logger.info(f"✓ Analytics updated: {session_id}")
+            logger.info(f" Analytics updated: {session_id}")
             return True
             
         except Exception as e:
@@ -330,7 +330,7 @@ class SessionManager:
                 ContentType='application/json'
             )
             
-            logger.info(f"✓ Humor updated: {session_id} - Slide {slide_num}")
+            logger.info(f" Humor updated: {session_id} - Slide {slide_num}")
             return True
             
         except Exception as e:

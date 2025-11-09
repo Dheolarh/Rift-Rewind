@@ -39,7 +39,7 @@ export function FarewellSlide({
         }
         return prev + 1;
       });
-    }, 400); // Each line appears every 400ms
+  }, 900); // Each line appears every 900ms (slower fade-in for more dramatic pacing)
 
     return () => clearInterval(timer);
   }, [farewellText, farewellLines.length]);
@@ -90,7 +90,7 @@ export function FarewellSlide({
                   y: isVisible ? 0 : 10
                 }}
                 transition={{
-                  duration: 0.5,
+                  duration: 1.0,
                   ease: "easeOut"
                 }}
                 className="text-center"

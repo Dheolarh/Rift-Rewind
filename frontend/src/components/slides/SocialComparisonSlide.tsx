@@ -156,7 +156,7 @@ export function SocialComparisonSlide({
                           <span>{userEntry.rankTier || 'UNRANKED'}</span>
                         </div>
                         <div className="text-xs sm:text-sm lg:text-base text-[#A09B8C] mt-2 flex items-center gap-3">
-                          <span>{userEntry.gamesPlayed} games</span>
+                          <span>{userEntry.gamesPlayed} ranked games</span>
                           <span className="text-[#A09B8C]/30">|</span>
                           <span>{userEntry.wins || Math.round(userEntry.gamesPlayed * (userEntry.winRate / 100))} wins</span>
                         </div>

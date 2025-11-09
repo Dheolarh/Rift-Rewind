@@ -18,216 +18,9 @@ import { FinalRecapSlide } from "./components/slides/FinalRecapSlide";
 import { SlideNavigation } from "./components/SlideNavigation";
 import { ErrorModal } from "./components/ErrorModal";
 import { APIError, api } from "./services/api";
+import { getUserFriendlyError } from "./utils/errorMessages";
 import { preloadAllImages } from "./utils/imagePreloader";
 import backgroundMusic from "./assets/sound/League of Legends Season 5.mp3";
-
-// Mock data kept for reference - not currently used since we use real session data
-/* 
-const mockData = {
-  timeSpent: {
-    hoursPlayed: 847,
-    gamesPlayed: 1243,
-    aiHumor: "That's approximately 47 binge-worthy Netflix series... but who's counting? 📺"
-  },
-  favoriteChampions: {
-    champions: [
-      { name: "Yasuo", mastery: 487250, games: 342, winRate: 58 },
-      { name: "Lee Sin", mastery: 356890, games: 287, winRate: 54 },
-      { name: "Thresh", mastery: 298450, games: 234, winRate: 61 },
-      { name: "Ahri", mastery: 245000, games: 198, winRate: 56 },
-      { name: "Zed", mastery: 198500, games: 176, winRate: 52 },
-    ],
-    aiHumor: "Looks like someone has a type... High skill ceiling champions and pain! 😅"
-  },
-  bestMatch: {
-    championName: "Yasuo",
-    kills: 24,
-    deaths: 3,
-    assists: 18,
-    kda: 14.0,
-    date: "October 15, 2024",
-    aiHumor: "This match was so epic, even the enemy team was probably cheering for you! 🎭"
-  },
-  kdaOverview: {
-    averageKDA: 3.8,
-    totalKills: 8742,
-    totalDeaths: 5234,
-    totalAssists: 11203,
-    aiHumor: "You've eliminated more champions than there are people in a small village! 🏰"
-  },
-  rankedJourney: {
-    startRank: "Silver II",
-    endRank: "Platinum I",
-    peakRank: "Diamond IV",
-    milestones: [
-      { rank: "Silver", division: "II", month: "January", lp: 42 },
-      { rank: "Gold", division: "IV", month: "March", lp: 68 },
-      { rank: "Gold", division: "I", month: "May", lp: 84 },
-      { rank: "Platinum", division: "III", month: "July", lp: 55 },
-      { rank: "Diamond", division: "IV", month: "September", lp: 12 },
-      { rank: "Platinum", division: "I", month: "December", lp: 76 },
-    ],
-    aiHumor: "You climbed more ranks than a chess grandmaster... but with way more rage quits! ♟️😤"
-  },
-  vision: {
-    wardsPlaced: 12847,
-    wardsDestroyed: 3542,
-    visionScore: 89234,
-    controlWardsBought: 2156,
-    aiHumor: "You've placed more wards than a hospital has patients! 🏥 Your map awareness is legendary!"
-  },
-  championPool: {
-    uniqueChampions: 47,
-    mostPlayedRole: "Mid Lane",
-    champions: [
-      { name: "Yasuo", games: 342, role: "Mid" },
-      { name: "Lee Sin", games: 287, role: "Jungle" },
-      { name: "Thresh", games: 234, role: "Support" },
-      { name: "Jinx", games: 198, role: "ADC" },
-      { name: "Ahri", games: 176, role: "Mid" },
-      { name: "Jhin", games: 154, role: "ADC" },
-      { name: "Zed", games: 143, role: "Mid" },
-      { name: "Vayne", games: 132, role: "ADC" },
-      { name: "Lux", games: 121, role: "Support" },
-      { name: "Ekko", games: 108, role: "Jungle" },
-      { name: "Akali", games: 97, role: "Mid" },
-      { name: "Ezreal", games: 89, role: "ADC" },
-      { name: "Morgana", games: 76, role: "Support" },
-      { name: "Irelia", games: 68, role: "Top" },
-      { name: "Kai'Sa", games: 54, role: "ADC" },
-      { name: "Blitzcrank", games: 43, role: "Support" },
-    ],
-  },
-  duoPartner: {
-    partnerName: "SummonerX",
-    gamesPlayed: 287,
-    winRate: 64,
-    favoriteCombo: {
-      yourChampion: "Yasuo",
-      theirChampion: "Malphite",
-    },
-    aiHumor: "You two are like peanut butter and jelly... if jelly could flash-ult and secure pentas! 🥜✨"
-  },
-  strengths: [
-    {
-      title: "Mechanical Outplays",
-      description: "Your ability to execute complex combos and outplay opponents in critical moments sets you apart.",
-      score: 92,
-      icon: "zap" as const,
-    },
-    {
-      title: "Objective Control",
-      description: "Superior map awareness and timing for securing dragons, barons, and turrets.",
-      score: 87,
-      icon: "target" as const,
-    },
-    {
-      title: "Team Fighting",
-      description: "Exceptional positioning and target selection in 5v5 engagements.",
-      score: 85,
-      icon: "shield" as const,
-    },
-    {
-      title: "Aggressive Plays",
-      description: "Bold early game aggression that creates advantages for your team.",
-      score: 89,
-      icon: "swords" as const,
-    },
-  ],
-  weaknesses: [
-    {
-      title: "Vision Denial",
-      description: "Opportunities to deny enemy vision are sometimes missed, giving opponents map control.",
-      improvement: "Focus on buying control wards and sweeping key areas before objectives.",
-      icon: "alert" as const,
-    },
-    {
-      title: "CS in Late Game",
-      description: "Farming efficiency drops in late game scenarios when prioritizing team fights.",
-      improvement: "Take advantage of wave management between objectives to maintain gold income.",
-      icon: "trending" as const,
-    },
-    {
-      title: "Overextension",
-      description: "Aggressive playstyle sometimes leads to risky positions without vision or backup.",
-      improvement: "Check minimap before pushing deep and communicate dive intentions with team.",
-      icon: "xcircle" as const,
-    },
-    {
-      title: "Champion Pool Depth",
-      description: "Heavy reliance on comfort picks can make you predictable in champion select.",
-      improvement: "Expand your pool with 2-3 meta champions to adapt to enemy compositions.",
-      icon: "brain" as const,
-    },
-  ],
-  progress: {
-    improvement: {
-      winRate: 6,
-      kda: 0.6,
-      visionScore: 9,
-    },
-    aiHumor: "You've grown more than a Cho'Gath with full stacks! 🦖 The grind never stops!"
-  },
-  achievements: [
-    {
-      title: "Pentakill Master",
-      description: "Achieved 5 pentakills in ranked games",
-      rarity: "legendary" as const,
-      icon: "crown" as const,
-      dateEarned: "Oct 23, 2024",
-    },
-    {
-      title: "Vision Legend",
-      description: "Placed 10,000+ wards in a season",
-      rarity: "epic" as const,
-      icon: "star" as const,
-      dateEarned: "Nov 12, 2024",
-    },
-    {
-      title: "Comeback King",
-      description: "Won 50 games after being 10k gold down",
-      rarity: "rare" as const,
-      icon: "flame" as const,
-      dateEarned: "Aug 5, 2024",
-    },
-    {
-      title: "Speed Demon",
-      description: "Won a game in under 15 minutes",
-      rarity: "epic" as const,
-      icon: "zap" as const,
-      dateEarned: "Sep 18, 2024",
-    },
-    {
-      title: "100 Game Streak",
-      description: "Played 100 consecutive ranked games",
-      rarity: "rare" as const,
-      icon: "trophy" as const,
-      dateEarned: "Jul 30, 2024",
-    },
-    {
-      title: "Baron Stealer",
-      description: "Stole Baron Nashor 25 times",
-      rarity: "epic" as const,
-      icon: "award" as const,
-      dateEarned: "Dec 3, 2024",
-    },
-  ],
-  socialComparison: {
-    yourRank: 15847,
-    percentile: 8,
-    leaderboard: [
-      { rank: 1, summonerName: "ProPlayer99", winRate: 68, gamesPlayed: 892 },
-      { rank: 2, summonerName: "DiamondAce", winRate: 65, gamesPlayed: 1024 },
-      { rank: 3, summonerName: "ChallMaster", winRate: 64, gamesPlayed: 756 },
-      { rank: 4, summonerName: "YourUsername", winRate: 57, gamesPlayed: 1243, isYou: true },
-      { rank: 5, summonerName: "MidLaner42", winRate: 56, gamesPlayed: 987 },
-      { rank: 6, summonerName: "JungleKing", winRate: 55, gamesPlayed: 834 },
-      { rank: 7, summonerName: "SupportMain", winRate: 55, gamesPlayed: 1156 },
-    ],
-    aiHumor: "You're rubbing shoulders with the elite! Just... digitally. And they probably don't know you exist. 😎"
-  },
-};
-*/
 
 export default function App() {
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -248,18 +41,15 @@ export default function App() {
   const [isAnalysisComplete, setIsAnalysisComplete] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
 
-  // Sub-slide (humor phase) state
   const [showHumorPhase, setShowHumorPhase] = useState(false);
   
   // Audio ref for background music
   const audioRef = useRef<HTMLAudioElement>(null);
   
-  // Handle music playback and volume
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
 
-    // Set volume to 0.3
     audio.volume = 0.3;
 
     if (isMusicPlaying) {
@@ -271,21 +61,17 @@ export default function App() {
     }
   }, [isMusicPlaying]);
   
-  // Define which slides have humor phases (slides 4, 6, 8)
   const slidesWithHumor = [4, 6, 8];
   const currentSlideHasHumor = slidesWithHumor.includes(currentSlide);
 
-  // Auto-advance slides after 10 seconds (but not on welcome, loading or final slide, and when not paused)
   useEffect(() => {
     if (!hasStarted || currentSlide === 0 || currentSlide === 1 || currentSlide === 14 || isPaused) return;
     
     const timer = setTimeout(() => {
       if (currentSlide < 14) {
-        // If current slide has humor and we're showing stats, switch to humor
         if (currentSlideHasHumor && !showHumorPhase) {
           setShowHumorPhase(true);
         } else {
-          // Move to next slide and reset humor phase
           setCurrentSlide(prev => prev + 1);
           setShowHumorPhase(false);
         }
@@ -316,8 +102,8 @@ export default function App() {
     setIsLoading(true);
     setLoadingError("");
     setIsAnalysisComplete(false);
-    setLoadingStatus('searching'); // Reset to searching BEFORE showing slide
-    setCurrentSlide(1); // Show loading slide
+    setLoadingStatus('searching');
+    setCurrentSlide(1); 
     
     // Start music when beginning the rewind
     setIsMusicPlaying(true);
@@ -329,7 +115,6 @@ export default function App() {
     
     try {
       // Call backend API to start rewind
-      console.log('App: Calling API to start rewind...');
       const response = await api.startRewind({
         gameName: summonerName,
         tagLine: summonerTag,
@@ -338,54 +123,38 @@ export default function App() {
       
       // Player found! API returned successfully
       setSessionId(response.sessionId);
-      // If API returned player info immediately (from cache), store it so slides can use it early
       if (response.player) {
         setPlayerInfo(response.player);
       }
-      console.log('App: Setting loadingStatus to "found" (player found)');
+      
       setLoadingStatus('found');
       
-      // Small delay to show "found" message
       await new Promise(resolve => setTimeout(resolve, 1500));
       
-      // Wait for analysis to complete
-      console.log('App: Setting loadingStatus to "analyzing"');
       setLoadingStatus('analyzing')
       const session = await api.waitForComplete(
         response.sessionId,
         (status: string) => {
-          console.log('Processing status:', status);
-        }
+          }
       );
 
       // Store analytics
       setSessionData(session.analytics);
 
-      // Prefer explicit player object from the session, but if the
-      // player doesn't include a summoner level, attempt to pull it
-      // from the analytics leaderboard (slide14_percentile) where the
-      // leaderboard entry for the user often contains `summonerLevel`.
       const sessionPlayer = session.player || null;
       const leaderboard = session.analytics?.slide14_percentile?.leaderboard || [];
       const yourEntry = leaderboard.find((e: any) => e.isYou) || null;
 
       const resolvedPlayer = {
         ...(sessionPlayer || {}),
-        // If session.player already has summonerLevel, keep it. Otherwise use leaderboard entry.
         summonerLevel: (sessionPlayer && sessionPlayer.summonerLevel) ?? yourEntry?.summonerLevel ?? undefined,
       };
 
       setPlayerInfo(resolvedPlayer);
       
-      // Preload all images before marking as complete
-      console.log('App: Setting loadingStatus to "caching"');
-      setLoadingStatus('caching'); // Show caching messages
-      console.log('Preloading images...');
+      setLoadingStatus('caching'); 
       await preloadAllImages(session.analytics, (loaded, total) => {
-        console.log(`Preloaded ${loaded}/${total} images`);
-      });
-      console.log('All images preloaded!');
-      
+        });
       setIsAnalysisComplete(true);
       
     } catch (error) {
@@ -395,16 +164,14 @@ export default function App() {
       } else {
         setLoadingError('Failed to connect to server. Please try again.');
       }
-      // Don't set isAnalysisComplete to true on error - this prevents "BEGIN REWIND" from showing
-      setShowErrorModal(true); // Show error modal
-      // Don't change loading status on error - keep showing searching/analyzing messages
+      setShowErrorModal(true); 
     }
   };
 
   const handleLoadingComplete = () => {
     if (sessionData) {
       setIsLoading(false);
-      setCurrentSlide(2); // Move to Time Spent slide
+      setCurrentSlide(2); 
     }
   };
 
@@ -434,10 +201,10 @@ export default function App() {
     setIsPaused(false);
     setLoadingError("");
     setShowErrorModal(false);
-    setLoadingStatus('searching'); // Reset loading status
+    setLoadingStatus('searching');
     setIsAnalysisComplete(false);
     setSessionData(null);
-    setIsMusicPlaying(false); // Stop music on restart
+    setIsMusicPlaying(false); 
   };
 
   const togglePause = () => {
@@ -445,11 +212,9 @@ export default function App() {
   };
 
   const nextSlide = () => {
-    // If current slide has humor and we're showing stats, switch to humor
     if (currentSlideHasHumor && !showHumorPhase) {
       setShowHumorPhase(true);
     } else {
-      // Move to next slide and reset humor phase
       if (currentSlide < 14) {
         setCurrentSlide(prev => prev + 1);
         setShowHumorPhase(false);
@@ -458,11 +223,9 @@ export default function App() {
   };
 
   const previousSlide = () => {
-    // If current slide has humor and we're showing humor, switch back to stats
     if (currentSlideHasHumor && showHumorPhase) {
       setShowHumorPhase(false);
     } else {
-      // Move to previous slide and always reset to stats phase (not humor)
       if (currentSlide > 0) {
         setCurrentSlide(prev => prev - 1);
         setShowHumorPhase(false);
@@ -554,7 +317,6 @@ export default function App() {
               playerName={summonerName || "Summoner"} 
               onComplete={isAnalysisComplete ? handleLoadingComplete : undefined}
               hasError={!!loadingError}
-              errorMessage={loadingError}
               loadingStatus={loadingStatus}
               isMusicPlaying={isMusicPlaying}
               onMusicToggle={() => setIsMusicPlaying(!isMusicPlaying)}
@@ -675,7 +437,7 @@ export default function App() {
       {/* Error Modal */}
       <ErrorModal
         isOpen={showErrorModal}
-        error={loadingError}
+        error={getUserFriendlyError(loadingError)}
         onClose={handleCloseError}
         onRetry={handleRetryAfterError}
       />

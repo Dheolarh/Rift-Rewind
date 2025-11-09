@@ -7,6 +7,8 @@ interface VisionSlideProps {
   avgWardsPlaced: number;
   avgControlWards: number;
   totalVisionScore: number;
+  totalWardsPlaced?: number;
+  totalControlWards?: number;
   aiHumor?: string;
 }
 
@@ -14,6 +16,8 @@ export function VisionSlide({
   avgVisionScore,
   avgWardsPlaced,
   avgControlWards,
+  totalWardsPlaced = 0,
+  totalControlWards = 0,
   aiHumor = "You've placed more wards than a hospital has patients! 🏥 Your map awareness is legendary!"
 }: VisionSlideProps) {
   return (
@@ -83,9 +87,9 @@ export function VisionSlide({
               Average per game
             </p>
             <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-[#A09B8C]">
-              <span className="text-[#C8AA6E]">{avgWardsPlaced.toFixed(1)}</span> wards placed
+              <span className="text-[#C8AA6E]">{totalWardsPlaced.toLocaleString()}</span> wards placed
               <span className="text-[#A09B8C]"> • </span>
-              <span className="text-[#0AC8B9]">{avgControlWards.toFixed(1)}</span> control wards
+              <span className="text-[#0AC8B9]">{totalControlWards.toLocaleString()}</span> control wards
             </p>
           </motion.div>
 

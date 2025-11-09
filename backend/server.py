@@ -15,6 +15,10 @@ logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
+
+# Disable Flask/Werkzeug request logs to reduce noise
+logging.getLogger('werkzeug').setLevel(logging.ERROR)
+
 logger = logging.getLogger(__name__)
 
 # Load environment
@@ -121,9 +125,9 @@ if __name__ == '__main__':
     debug = os.getenv('DEBUG', 'true').lower() == 'true'
     
     print(f"""
-╔══════════════════════════════════════════════════════════╗
-║  RIFT REWIND - Development API Server                   ║
-╚══════════════════════════════════════════════════════════╝
+
+  RIFT REWIND - Development API Server                   
+
 
 Server running at: http://localhost:{port}
 

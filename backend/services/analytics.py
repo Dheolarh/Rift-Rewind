@@ -287,7 +287,7 @@ class RiftRewindAnalytics:
         Calculate vision statistics.
         
         Returns:
-            Vision score, wards placed, control wards
+            Vision score, wards placed, control wards (both averages and totals)
         """
         total_vision = 0
         total_wards = 0
@@ -308,7 +308,9 @@ class RiftRewindAnalytics:
             'avgVisionScore': round(total_vision / games, 1) if games > 0 else 0,
             'avgWardsPlaced': round(total_wards / games, 1) if games > 0 else 0,
             'avgControlWards': round(total_control_wards / games, 1) if games > 0 else 0,
-            'totalVisionScore': total_vision
+            'totalVisionScore': total_vision,
+            'totalWardsPlaced': total_wards,
+            'totalControlWards': total_control_wards
         }
     
     # Slide 8: Champion Pool
@@ -435,13 +437,16 @@ class RiftRewindAnalytics:
                 'vision_performance': 'excellent' if vision_stats['avgVisionScore'] > 30 else 'poor' if vision_stats['avgVisionScore'] < 15 else 'average',
                 'death_control': 'excellent' if kda_stats['avgDeaths'] < 4 else 'poor' if kda_stats['avgDeaths'] > 7 else 'average',
                 'ward_placement': 'excellent' if vision_stats['avgWardsPlaced'] > 20 else 'poor' if vision_stats['avgWardsPlaced'] < 10 else 'average',
+                'champion_diversity': 'excellent' if len(self.analyze_champion_pool().get('championList', [])) > 15 else 'poor' if len(self.analyze_champion_pool().get('championList', [])) < 5 else 'average',
+                'death_rate_severity': 'critical' if kda_stats['avgDeaths'] > 8 else 'concerning' if kda_stats['avgDeaths'] > 6 else 'acceptable',
+                'consistency': 'inconsistent' if abs(kda_stats['kdaRatio'] - 2.0) > 1.5 else 'stable',
             }
         }
         
         # Return placeholder + AI context
         return {
-            'strengths': ['Analyzing your gameplay...'],
-            'weaknesses': ['Analysis in progress...'],
+            'strengths': [],
+            'weaknesses': [],
             'aiContext': ai_context,
             'needsAIProcessing': True  # Flag for orchestrator to invoke insights Lambda
         }
@@ -658,7 +663,6 @@ class RiftRewindAnalytics:
         Returns:
             Analytics dict with available data
         """
-        print(f"Calculating analytics for checkpoint {checkpoint_num} ({len(self.matches)} matches)...")
         
         # Calculate available analytics based on current matches
         analytics = {
@@ -742,7 +746,6 @@ class RiftRewindAnalytics:
         Returns:
             Complete analytics dict
         """
-        print("Calculating analytics for all 15 slides...")
         
         analytics = {
             'sessionId': self.raw_data.get('metadata', {}).get('sessionId'),
@@ -763,7 +766,7 @@ class RiftRewindAnalytics:
             }
         }
         
-        logger.info("✓ Analytics calculation complete!")
+        logger.info(" Analytics calculation complete!")
         return analytics
 
 

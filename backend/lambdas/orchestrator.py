@@ -62,13 +62,24 @@ class ProgressiveOrchestrator:
         insights_generator = InsightsGenerator()
         try:
             insights_result = insights_generator.generate(session_id)
-            logger.info(f"AI insights generated: {insights_result.get('status')}")
+            insights_data = insights_result.get('insights', {})
             
-            # Update analytics with AI-generated strengths/weaknesses
-            self._update_analytics_with_insights(session_id, insights_result.get('insights', {}))
+            # ALWAYS update analytics with insights (even if AI failed, fallback validation will run)
+            self._update_analytics_with_insights(session_id, insights_data)
+            
+            if insights_result.get('status') == 'success' and insights_data:
+                logger.info(f" AI insights generated successfully")
+            else:
+                logger.warning(f" AI insights incomplete, fallback validation applied")
         except Exception as e:
-            logger.error(f"Failed to generate AI insights: {e}")
-            # Continue without AI insights - will use placeholder values
+            logger.error(f" Failed to generate AI insights: {e}")
+            # Force fallback update with empty dict - validation logic will provide defaults
+            try:
+                self._update_analytics_with_insights(session_id, {})
+                logger.info(" Fallback insights applied via validation")
+            except Exception as update_error:
+                logger.error(f" Failed to apply fallback insights: {update_error}")
+
         
         # Generate ALL humor before marking complete (slides 2-12, 14 - skip 13 achievements)
         logger.info(f"Generating humor for all slides (2-12, 14)")
@@ -81,11 +92,11 @@ class ProgressiveOrchestrator:
                 logger.info(f"Generating humor for slide {slide_num}")
                 result = humor_generator.generate(session_id, slide_num)
                 if result.get('humor'):
-                    logger.info(f"✓ Slide {slide_num} humor generated")
+                    logger.info(f" Slide {slide_num} humor generated")
                 else:
-                    logger.warning(f"⚠ Slide {slide_num} returned no humor")
+                    logger.warning(f" Slide {slide_num} returned no humor")
             except Exception as e:
-                logger.error(f"✗ Failed to generate humor for slide {slide_num}: {e}")
+                logger.error(f" Failed to generate humor for slide {slide_num}: {e}")
                 # Continue to next slide even if one fails
         
         # NOW mark complete - all processing done
@@ -149,11 +160,11 @@ class ProgressiveOrchestrator:
                     result = humor_generator.generate(session_id, slide_num)
                     if result.get('humor'):
                         self.session_manager.update_humor(session_id, slide_num, result['humor'])
-                        logger.info(f"✓ Slide {slide_num} humor generated")
+                        logger.info(f" Slide {slide_num} humor generated")
                     else:
-                        logger.warning(f"⚠ Slide {slide_num} returned no humor")
+                        logger.warning(f" Slide {slide_num} returned no humor")
                 except Exception as e:
-                    logger.error(f"✗ Failed to generate humor for slide {slide_num}: {e}")
+                    logger.error(f" Failed to generate humor for slide {slide_num}: {e}")
                     # Continue to next slide
         else:
             logger.info("All humor already generated for this session")
@@ -182,6 +193,7 @@ class ProgressiveOrchestrator:
     def _update_analytics_with_insights(self, session_id: str, insights: Dict[str, Any]):
         """
         Update analytics with AI-generated insights.
+        GUARANTEED to always provide valid insights - never leaves empty arrays.
         
         Args:
             session_id: Session ID
@@ -200,23 +212,38 @@ class ProgressiveOrchestrator:
             
             analytics = json.loads(analytics_str)
             
+            # Validate insights have content (never allow empty arrays)
+            strengths = insights.get('strengths', [])
+            weaknesses = insights.get('weaknesses', [])
+            
+            if not strengths:
+                strengths = ["Consistent ranked participation", "Dedication to improvement"]
+                logger.warning("  No strengths in insights, using fallback")
+            
+            if not weaknesses:
+                weaknesses = ["Focus on consistency for higher ranks", "Small improvements in positioning"]
+                logger.warning("  No weaknesses in insights, using fallback")
+            
             # Update slide10_11_analysis with AI-generated strengths/weaknesses
             if 'slide10_11_analysis' in analytics:
-                analytics['slide10_11_analysis']['strengths'] = insights.get('strengths', ['Analysis complete'])
-                analytics['slide10_11_analysis']['weaknesses'] = insights.get('weaknesses', ['Analysis complete'])
+                analytics['slide10_11_analysis']['strengths'] = strengths
+                analytics['slide10_11_analysis']['weaknesses'] = weaknesses
                 analytics['slide10_11_analysis']['needsAIProcessing'] = False
                 
                 # Store additional insights for potential future use
-                analytics['slide10_11_analysis']['coaching_tips'] = insights.get('coaching_tips', [])
-                analytics['slide10_11_analysis']['play_style'] = insights.get('play_style', '')
-                analytics['slide10_11_analysis']['personality_title'] = insights.get('personality_title', '')
+                analytics['slide10_11_analysis']['coaching_tips'] = insights.get('coaching_tips', 
+                    ["Review deaths after each game", "Master 3-5 champions", "Focus on objectives"])
+                analytics['slide10_11_analysis']['play_style'] = insights.get('play_style', 
+                    'Developing competitive player')
+                analytics['slide10_11_analysis']['personality_title'] = insights.get('personality_title', 
+                    'The Determined Competitor')
             
             # Upload updated analytics
             upload_to_s3(s3_key, analytics)
-            logger.info(f"Analytics updated with AI insights for session: {session_id}")
+            logger.info(f" Analytics updated with AI insights for session: {session_id}")
             
         except Exception as e:
-            logger.error(f"Error updating analytics with insights: {e}")
+            logger.error(f" Error updating analytics with insights: {e}")
             raise
 
 

@@ -60,3 +60,5 @@ ENV/
 .ENV3/
 .venv2/
 .ENV2/
+
+.md

@@ -134,7 +134,7 @@ Examples:
 "Restraining order from that champ pending."
 "One nerf away from existential dread."
 "You’re loyal, maybe too loyal."
-"That’s not a pool — it’s an ocean of confusion."
+"You probably spend more time picking champs than playing."
 
 Under 15 words, short and character-driven:""",
     
@@ -145,7 +145,7 @@ Stats: {partnerName}, {gamesTogether}, {winRate}%
 
 Examples:
 "You and {partnerName}? A romantic disaster."
-"{partnerName} carried your trauma, not your LP."
+"Let's not argue about who carried whom."
 "Together, you two redefine throwing."
 "Dynamic duo? More like dynamic disaster."
 
@@ -166,14 +166,20 @@ Under 25 words, professional and encouraging:""",
 
     11: """You are a professional coach giving quick, actionable advice for their biggest weakness.
 
-Top Weakness: {weaknesses}
+Weakness: {weaknesses}
 
-Examples:
-"Too aggressive early. Learn patience, win late."
-"Low vision — start warding like you mean it."
-"Bad CS. Farm gold, not death timers."
+Your task: Write ONLY the coaching advice - do NOT repeat the weakness, do NOT say "Analysis complete" or similar phrases.
 
-Under 25 words, clear and constructive:""",
+Examples of GOOD responses:
+"Stay back, don't overextend. Let your team initiate, you follow up with damage."
+"Start warding every 2 minutes. Vision wins games, not just kills."
+"Focus on farming early game. You need gold before you can carry."
+
+Examples of BAD responses:
+"Analysis complete. Weakness: Positioning. Stay back and..." 
+"Top weakness identified: Vision score. You should..." 
+
+Under 25 words, clear and constructive coaching advice ONLY:""",
     
 
     12: """Write a short, darkly funny line about their overall season progress — like an anime arc gone wrong.
@@ -193,22 +199,23 @@ Under 15 words, existential humor tone:""",
 Stats: {currentRank}, {percentile}%
 
 Examples:
-"Top {percentile}% — the chosen few."
-"Top {percentile}% — respectable mediocrity."
-"Top {percentile}% — humanity’s middle child."
+"Among the chosen few."
+"You came, You saw, You conquered."
+"A toast to humanity’s middle child."
 
 Under 15 words, dramatic or deadpan tone:""",
     
 
-    15: """Write a short farewell for their season wrap-up. 
-It should sound warm, proud, and a little nostalgic — like the system saying goodbye to a friend.
+    15: """Write a short farewell for their ranked season wrap-up. 
+It should sound warm, proud, and a little nostalgic — like the system saying goodbye to a friend after reviewing their ranked journey.
 
-Stats: {totalGames} games, {totalHours} hours, {currentRank} rank, {topChampion}, {kdaRatio} KDA, {winRate}% win rate
+Stats: {totalGames} ranked games, {totalHours} hours, {currentRank} rank, {topChampion}, {kdaRatio} KDA, {winRate}% win rate
 
 Examples:
-"What a season.\n{totalGames} games, countless moments.\n{topChampion} carried your story.\nSee you next season, summoner."
+"What a ranked season.\n{totalGames} games, countless moments on the Rift.\n{topChampion} carried your story.\nSee you next season, summoner."
 
-3–5 sentences max, under 100 words:"""
+Mention that these were RANKED matches specifically (not normals or ARAM).
+3-5 sentences max, under 100 words:"""
 }
 
 class HumorGenerator:
@@ -234,7 +241,6 @@ class HumorGenerator:
             Analytics data dict
         """
         s3_key = f"sessions/{session_id}/analytics.json"
-        print(f"Downloading analytics from S3: {s3_key}")
         
         analytics_str = download_from_s3(s3_key)
         if not analytics_str:
@@ -418,10 +424,8 @@ class HumorGenerator:
             return formatted_prompt
             
         except KeyError as e:
-            print(f"Warning: Missing analytics field for slide {slide_number}: {e}")
             return template  # Return unformatted template as fallback
         except Exception as e:
-            print(f"Error formatting prompt for slide {slide_number}: {e}")
             return template
     
     def call_bedrock(self, prompt: str) -> str:
@@ -434,7 +438,6 @@ class HumorGenerator:
         Returns:
             Generated humor text
         """
-        print(f"Calling Bedrock with prompt length: {len(prompt)}")
         
         # Meta Llama 3.1 chat template
         system_prompt = """You are a CONTEXT-AWARE League of Legends roaster analyzing player performance.
@@ -497,7 +500,7 @@ NO EMOJIS. NO EM DASHES (—). Use commas instead and hyphens (-) if necessary. 
             "]+", flags=re.UNICODE)
         humor_text = emoji_pattern.sub('', humor_text).strip()
         
-        logger.info(f"✓ Generated humor: {humor_text}")
+        logger.info(f" Generated humor: {humor_text}")
         return humor_text
     
     def store_humor(self, session_id: str, slide_number: int, humor_text: str):
@@ -518,7 +521,6 @@ NO EMOJIS. NO EM DASHES (—). Use commas instead and hyphens (-) if necessary. 
             'generatedAt': json.dumps({"timestamp": "now"}) 
         }
         
-        print(f"Storing humor to S3: {s3_key}")
         upload_to_s3(s3_key, data)
     
     def generate(self, session_id: str, slide_number: int) -> Dict[str, Any]:
@@ -532,9 +534,6 @@ NO EMOJIS. NO EM DASHES (—). Use commas instead and hyphens (-) if necessary. 
         Returns:
             Result dict with humor text
         """
-        print(f"\n{'='*60}")
-        print(f"GENERATING HUMOR FOR SLIDE {slide_number}")
-        print(f"{'='*60}\n")
         
         # Step 1: Download analytics
         analytics = self.download_analytics(session_id)
@@ -543,7 +542,6 @@ NO EMOJIS. NO EM DASHES (—). Use commas instead and hyphens (-) if necessary. 
         prompt = self.create_prompt(slide_number, analytics)
         
         if not prompt:
-            print(f"No humor template for slide {slide_number}")
             return {
                 'sessionId': session_id,
                 'slideNumber': slide_number,
@@ -557,9 +555,6 @@ NO EMOJIS. NO EM DASHES (—). Use commas instead and hyphens (-) if necessary. 
         # Step 4: Store result
         self.store_humor(session_id, slide_number, humor_text)
         
-        print(f"\n{'='*60}")
-        print(f"HUMOR GENERATION COMPLETE!")
-        print(f"{'='*60}\n")
         
         return {
             'sessionId': session_id,
@@ -586,14 +581,12 @@ NO EMOJIS. NO EM DASHES (—). Use commas instead and hyphens (-) if necessary. 
         """
         from services.session_manager import SessionManager
         
-        print(f"PRIORITY GENERATION: Slides 1-5 for session {session_id}")
         
         priority_slides = [1, 2, 3, 4, 5]
         results = {}
         session_manager = SessionManager()
         
         for slide_num in priority_slides:
-            print(f"  Generating slide {slide_num}...")
             
             try:
                 result = self.generate(session_id, slide_num)
@@ -603,16 +596,13 @@ NO EMOJIS. NO EM DASHES (—). Use commas instead and hyphens (-) if necessary. 
                 if humor_text:
                     session_manager.update_humor(session_id, slide_num, humor_text)
                     results[f"slide{slide_num}"] = humor_text
-                    print(f"  ✓ Slide {slide_num} complete")
                 else:
                     results[f"slide{slide_num}"] = None
-                    print(f"  ⊘ Slide {slide_num} - no humor needed")
                     
             except Exception as e:
-                print(f"  ✗ Slide {slide_num} failed: {e}")
                 results[f"slide{slide_num}"] = None
         
-        logger.info(f"✓ Priority generation complete ({len([r for r in results.values() if r])}/5 slides)")
+        logger.info(f" Priority generation complete ({len([r for r in results.values() if r])}/5 slides)")
         return results
     
     def generate_background_slides(self, session_id: str) -> Dict[str, Any]:
@@ -628,14 +618,12 @@ NO EMOJIS. NO EM DASHES (—). Use commas instead and hyphens (-) if necessary. 
         """
         from services.session_manager import SessionManager
         
-        print(f"BACKGROUND GENERATION: Slides 6-15 for session {session_id}")
         
         background_slides = [6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
         results = {}
         session_manager = SessionManager()
         
         for slide_num in background_slides:
-            print(f"  Generating slide {slide_num}...")
             
             try:
                 result = self.generate(session_id, slide_num)
@@ -645,15 +633,13 @@ NO EMOJIS. NO EM DASHES (—). Use commas instead and hyphens (-) if necessary. 
                 if humor_text:
                     session_manager.update_humor(session_id, slide_num, humor_text)
                     results[f"slide{slide_num}"] = humor_text
-                    print(f"  ✓ Slide {slide_num} complete")
                 else:
                     results[f"slide{slide_num}"] = None
                     
             except Exception as e:
-                print(f"  ✗ Slide {slide_num} failed: {e}")
                 results[f"slide{slide_num}"] = None
         
-        logger.info(f"✓ Background generation complete ({len([r for r in results.values() if r])}/10 slides)")
+        logger.info(f" Background generation complete ({len([r for r in results.values() if r])}/10 slides)")
         return results
     
     def regenerate_all_slides(self, session_id: str) -> Dict[str, Any]:
@@ -669,14 +655,12 @@ NO EMOJIS. NO EM DASHES (—). Use commas instead and hyphens (-) if necessary. 
         """
         from services.session_manager import SessionManager
         
-        print(f"FULL REGENERATION: All slides with complete data for session {session_id}")
         
         all_slides = range(1, 16)  # Slides 1-15
         results = {}
         session_manager = SessionManager()
         
         for slide_num in all_slides:
-            print(f"  Regenerating slide {slide_num}...")
             
             try:
                 result = self.generate(session_id, slide_num)
@@ -686,20 +670,15 @@ NO EMOJIS. NO EM DASHES (—). Use commas instead and hyphens (-) if necessary. 
                 if humor_text:
                     session_manager.update_humor(session_id, slide_num, humor_text)
                     results[f"slide{slide_num}"] = humor_text
-                    print(f"  ✓ Slide {slide_num} regenerated")
                 else:
                     results[f"slide{slide_num}"] = None
                     
             except Exception as e:
-                print(f"  ✗ Slide {slide_num} failed: {e}")
                 results[f"slide{slide_num}"] = None
         
-        logger.info(f"✓ Full regeneration complete ({len([r for r in results.values() if r])}/15 slides)")
+        logger.info(f" Full regeneration complete ({len([r for r in results.values() if r])}/15 slides)")
         
         # Notify that regeneration is complete
-        print(f"\n{'='*60}")
-        print(f"GENERATION COMPLETE!")
-        print(f"{'='*60}\n")
         
         return results
     
@@ -826,7 +805,6 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             }
     
     except Exception as e:
-        print(f"Error generating humor: {e}")
         return {
             'statusCode': 500,
             'body': json.dumps({

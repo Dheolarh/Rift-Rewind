@@ -102,7 +102,7 @@ class RiftRewindAPI:
         
         status_key = f"sessions/{session_id}/status.json"
         upload_to_s3(status_key, status_data)
-        logger.info(f"📍 Status updated: {status} - {message}")
+        logger.info(f" Status updated: {status} - {message}")
     
     def _process_rewind_async(self, session_id: str, game_name: str, tag_line: str, region: str, fetcher_data: dict):
         """Background processing of rewind data"""
@@ -119,6 +119,17 @@ class RiftRewindAPI:
             match_ids = fetcher.fetch_match_history(puuid, region)
             total_matches = len(match_ids)
             
+            # Check if player has any matches
+            if total_matches == 0:
+                error_message = (
+                    f"No ranked matches found for {game_name}#{tag_line} in 2025. "
+                    "This account either hasn't played ranked games this year, or only plays other game modes (ARAM, normals, etc.). "
+                    "Please try a different account that has played ranked matches in 2025."
+                )
+                logger.warning(f"  {error_message}")
+                self._update_session_status(session_id, 'error', error_message)
+                return
+            
             # NO SAMPLING - Analyze ALL matches
             matches_to_fetch = match_ids
             fetcher.data['samplingMetadata'] = {
@@ -127,12 +138,12 @@ class RiftRewindAPI:
                 'samplePercentage': 100.0,
                 'strategy': 'full_analysis'
             }
-            logger.info(f"✓ Analyzing ALL {total_matches} matches (no sampling)")
+            logger.info(f"Analyzing ALL {total_matches} ranked matches (no sampling)")
             
             matches = fetcher.fetch_match_details_batch(matches_to_fetch, region, use_sampling=False)
             
             # Calculate analytics
-            logger.info("📊 Calculating analytics...")
+            logger.info(" Calculating analytics...")
             raw_data = {
                 'account': fetcher.data.get('account', {}),
                 'summoner': fetcher.data.get('summoner', {}),
@@ -147,13 +158,13 @@ class RiftRewindAPI:
             # Upload analytics to S3
             analytics_key = f"sessions/{session_id}/analytics.json"
             upload_to_s3(analytics_key, analytics)
-            logger.info(f"✓ Analytics uploaded to S3")
+            logger.info(f" Analytics uploaded to S3")
             
             # Update status: generating humor
             self._update_session_status(session_id, 'generating', 'Generating personalized insights...')
             
             # Generate humor for ALL slides (2-15)
-            logger.info("🎭 Generating AI humor for all slides...")
+            logger.info(" Generating AI humor for all slides...")
             humor_generator = HumorGenerator()
             humor_slides = list(range(2, 16))
             
@@ -164,14 +175,14 @@ class RiftRewindAPI:
                         time.sleep(4)
                     
                     humor_generator.generate(session_id, slide_num)
-                    logger.info(f"  ✓ Slide {slide_num} humor generated")
+                    logger.info(f"   Slide {slide_num} humor generated")
                 except Exception as e:
-                    logger.warning(f"  ⚠️  Slide {slide_num} humor failed: {e}")
+                    logger.warning(f"    Slide {slide_num} humor failed: {e}")
             
-            logger.info("✅ All humor generation complete!")
+            logger.info(" All humor generation complete!")
             
             # Generate insights
-            logger.info("🧠 Generating AI insights...")
+            logger.info(" Generating AI insights...")
             try:
                 insights_generator = InsightsGenerator()
                 insights_result = insights_generator.generate(session_id)
@@ -189,10 +200,10 @@ class RiftRewindAPI:
                     
                     # Re-upload analytics with insights
                     upload_to_s3(analytics_key, analytics)
-                    logger.info("✓ Insights integrated into analytics")
+                    logger.info(" Insights integrated into analytics")
                     
             except Exception as e:
-                logger.error(f"❌ Insights generation failed: {e}")
+                logger.error(f" Insights generation failed: {e}")
             
             # Collect all humor for caching
             humor_data = {}
@@ -228,14 +239,14 @@ class RiftRewindAPI:
                 session_id, analytics, humor_data, player_info,
                 len(matches_to_fetch), total_matches
             )
-            logger.info("💾 Session saved to cache")
+            logger.info(" Session saved to cache")
             
             # Update status: complete
             self._update_session_status(session_id, 'complete', 'Your rewind is ready!', player_info)
-            logger.info(f"✅ Session {session_id} processing complete!")
+            logger.info(f" Session {session_id} processing complete!")
             
         except Exception as e:
-            logger.error(f"❌ Background processing failed for session {session_id}: {e}")
+            logger.error(f" Background processing failed for session {session_id}: {e}")
             import traceback
             traceback.print_exc()
             self._update_session_status(session_id, 'error', str(e))
@@ -265,7 +276,7 @@ class RiftRewindAPI:
             if not force_refresh:
                 cached_session = self.cache_manager.get_cached_session(game_name, tag_line, region)
                 if cached_session:
-                    logger.info(f"🎯 Returning cached session for {game_name}#{tag_line}-{region}")
+                    logger.info(f" Returning cached session for {game_name}#{tag_line}-{region}")
                     return self.create_response(200, {
                         'sessionId': cached_session['metadata']['sessionId'],
                         'status': 'complete',
@@ -276,24 +287,24 @@ class RiftRewindAPI:
                         'player': cached_session['player'],
                         'cachedAt': cached_session['metadata']['cachedAt']
                     })
-                logger.info(f"📡 No cache found, fetching fresh data for {game_name}#{tag_line}-{region}")
+                logger.info(f" No cache found, fetching fresh data for {game_name}#{tag_line}-{region}")
             
             # Generate session ID first
             import uuid
             session_id = str(uuid.uuid4())
-            logger.info(f"📝 Session ID: {session_id}")
+            logger.info(f" Session ID: {session_id}")
             
             # Step 1: Quick account lookup to confirm player exists
             fetcher = LeagueDataFetcher()
             
-            logger.info(f"🔍 Looking up account for {game_name}#{tag_line}-{region}")
+            logger.info(f" Looking up account for {game_name}#{tag_line}-{region}")
             account_data = fetcher.fetch_account_data(game_name, tag_line, region)
             puuid = account_data['puuid']
             
             fetcher.fetch_summoner_data(puuid, region)
             fetcher.fetch_ranked_info(puuid, region)
             
-            logger.info(f"✓ Account found: {game_name}#{tag_line}")
+            logger.info(f" Account found: {game_name}#{tag_line}")
             
             # Build player info from initial fetch
             from services.riot_api_client import RiotAPIClient
@@ -321,7 +332,7 @@ class RiftRewindAPI:
                 daemon=True
             )
             process_thread.start()
-            logger.info(f"🚀 Started background processing for session {session_id}")
+            logger.info(f" Started background processing for session {session_id}")
             
             # Return immediately with 'found' status
             return self.create_response(200, {
@@ -384,7 +395,7 @@ class RiftRewindAPI:
             if game_name and tag_line and region:
                 cached_session = self.cache_manager.get_cached_session(game_name, tag_line, region)
                 if cached_session:
-                    logger.info(f"📦 Returning cached session data")
+                    logger.info(f" Returning cached session data")
                     return self.create_response(200, {
                         'sessionId': cached_session['metadata']['sessionId'],
                         'status': 'complete',
@@ -402,7 +413,7 @@ class RiftRewindAPI:
                 logger.warning(f"Session {session_id} not found in sessions storage, checking cache...")
                 cached_session = self.cache_manager.find_session_by_id(session_id)
                 if cached_session:
-                    logger.info(f"📦 Found session in cache")
+                    logger.info(f" Found session in cache")
                     return self.create_response(200, {
                         'sessionId': cached_session['metadata']['sessionId'],
                         'status': 'complete',
@@ -651,11 +662,13 @@ def handle_request(method: str, path: str, body: Optional[Dict] = None) -> Dict[
     elif method == 'POST' and path == '/api/rewind':
         if not body:
             return api.create_response(400, {'error': 'Request body required'})
-        return api.start_rewind(
-            body.get('gameName', ''),
-            body.get('tagLine', ''),
-            body.get('region', '')
-        )
+        
+        # Strip whitespace from inputs to prevent encoding issues
+        game_name = body.get('gameName', '').strip()
+        tag_line = body.get('tagLine', '').strip()
+        region = body.get('region', '').strip()
+        
+        return api.start_rewind(game_name, tag_line, region)
     
     elif method == 'GET' and path.startswith('/api/rewind/'):
         parts = path.split('/')

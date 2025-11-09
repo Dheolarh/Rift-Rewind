@@ -1,7 +1,7 @@
 import { motion, useMotionValue, useTransform, animate } from "motion/react";
 import { useEffect } from "react";
 import { ImageWithFallback } from "../source/ImageWithFallback";
-import zileanTime from "../../assets/Zilean_Time.webp";
+import zileanTime from "../../assets/ekko.webp";
 
 interface TimeSpentSlideProps {
   hoursPlayed: number;
@@ -113,7 +113,7 @@ export function TimeSpentSlide({
           </p>
         </motion.div>
 
-        {/* AI Humor - storytelling */}
+        {/* AI Humor*/}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}

@@ -86,7 +86,6 @@ def upload_to_s3(key: str, data: Union[str, Dict[str, Any]], content_type: str =
         )
         return True
     except Exception as e:
-        print(f"Error uploading to S3: {e}")
         return False
 
 
@@ -105,7 +104,6 @@ def download_from_s3(key: str) -> Optional[str]:
         response = s3_client.get_object(Bucket=S3_BUCKET_NAME, Key=key)
         return response['Body'].read().decode('utf-8')
     except Exception as e:
-        print(f"Error downloading from S3: {e}")
         return None
 
 

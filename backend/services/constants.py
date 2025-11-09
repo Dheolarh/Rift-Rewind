@@ -4,22 +4,22 @@ Constants for Riot API endpoints, region mappings, and configuration
 
 # Region mappings for Riot API routing
 REGIONS = [
-    {"label": "North America (NA)", "value": "na1", "flag": "🇺🇸", "regional": "americas"},
-    {"label": "Europe West (EUW)", "value": "euw1", "flag": "🇪🇺", "regional": "europe"},
-    {"label": "Europe Nordic & East (EUNE)", "value": "eun1", "flag": "🇪🇺", "regional": "europe"},
-    {"label": "Korea (KR)", "value": "kr", "flag": "🇰🇷", "regional": "asia"},
-    {"label": "Brazil (BR)", "value": "br1", "flag": "🇧🇷", "regional": "americas"},
-    {"label": "Japan (JP)", "value": "jp1", "flag": "🇯🇵", "regional": "asia"},
-    {"label": "Latin America North (LAN)", "value": "la1", "flag": "🇲🇽", "regional": "americas"},
-    {"label": "Latin America South (LAS)", "value": "la2", "flag": "🇦🇷", "regional": "americas"},
-    {"label": "Oceania (OCE)", "value": "oc1", "flag": "🇦🇺", "regional": "americas"},
-    {"label": "Turkey (TR)", "value": "tr1", "flag": "🇹🇷", "regional": "europe"},
-    {"label": "Russia (RU)", "value": "ru", "flag": "🇷🇺", "regional": "europe"},
-    {"label": "Philippines (PH)", "value": "ph2", "flag": "🇵🇭", "regional": "sea"},
-    {"label": "Singapore (SG)", "value": "sg2", "flag": "🇸🇬", "regional": "sea"},
-    {"label": "Thailand (TH)", "value": "th2", "flag": "🇹🇭", "regional": "sea"},
-    {"label": "Taiwan (TW)", "value": "tw2", "flag": "🇹🇼", "regional": "sea"},
-    {"label": "Vietnam (VN)", "value": "vn2", "flag": "🇻🇳", "regional": "sea"},
+    {"label": "North America (NA)", "value": "na1", "flag": "", "regional": "americas"},
+    {"label": "Europe West (EUW)", "value": "euw1", "flag": "", "regional": "europe"},
+    {"label": "Europe Nordic & East (EUNE)", "value": "eun1", "flag": "", "regional": "europe"},
+    {"label": "Korea (KR)", "value": "kr", "flag": "", "regional": "asia"},
+    {"label": "Brazil (BR)", "value": "br1", "flag": "", "regional": "americas"},
+    {"label": "Japan (JP)", "value": "jp1", "flag": "", "regional": "asia"},
+    {"label": "Latin America North (LAN)", "value": "la1", "flag": "", "regional": "americas"},
+    {"label": "Latin America South (LAS)", "value": "la2", "flag": "", "regional": "americas"},
+    {"label": "Oceania (OCE)", "value": "oc1", "flag": "", "regional": "americas"},
+    {"label": "Turkey (TR)", "value": "tr1", "flag": "", "regional": "europe"},
+    {"label": "Russia (RU)", "value": "ru", "flag": "", "regional": "europe"},
+    {"label": "Philippines (PH)", "value": "ph2", "flag": "", "regional": "sea"},
+    {"label": "Singapore (SG)", "value": "sg2", "flag": "", "regional": "sea"},
+    {"label": "Thailand (TH)", "value": "th2", "flag": "", "regional": "sea"},
+    {"label": "Taiwan (TW)", "value": "tw2", "flag": "", "regional": "asia"},
+    {"label": "Vietnam (VN)", "value": "vn2", "flag": "", "regional": "sea"},
 ]
 
 # Platform to Regional routing mapping
@@ -38,7 +38,7 @@ PLATFORM_TO_REGIONAL = {
     "ph2": "sea",
     "sg2": "sea",
     "th2": "sea",
-    "tw2": "sea",
+    "tw2": "asia",
     "vn2": "sea",
 }
 
@@ -113,9 +113,9 @@ SAGEMAKER_ENDPOINT_NAME = os.getenv("SAGEMAKER_ENDPOINT_NAME", "rift-rewind-insi
 SESSION_EXPIRY_HOURS = 24
 MAX_MATCHES_TO_FETCH = 100
 
-# Season 14 start date (January 10, 2024) - Fixed timestamp for consistent data
-# Using a fixed date ensures same player lookups return same match counts
-SEASON_14_START_TIMESTAMP = 1704844800  # January 10, 2024, 00:00:00 UTC
+# 2025 Year in Review - Track matches from January 1, 2025
+# Using a fixed date ensures consistent data for year-in-review
+SEASON_14_START_TIMESTAMP = 1735689600  # January 1, 2025, 00:00:00 UTC
 
 # Rank percentiles (approximate global distribution)
 RANK_PERCENTILES = {

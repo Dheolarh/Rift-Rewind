@@ -9,10 +9,10 @@ interface WeaknessesSlideProps {
 
 export function WeaknessesSlide({ 
   weaknesses,
-  aiAnalysis = "Analyzing areas for improvement..."
+  aiAnalysis = "Focus on champion mastery and consistency to climb higher."
 }: WeaknessesSlideProps) {
   // Get the first weakness as the main one to display
-  const mainWeakness = weaknesses[0] || "No significant weaknesses detected";
+  const mainWeakness = weaknesses[0] || "Keep playing to unlock deeper insights";
 
   return (
     <div className="relative w-full h-full overflow-hidden bg-[#010A13] flex items-center justify-center">

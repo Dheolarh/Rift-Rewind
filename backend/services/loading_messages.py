@@ -16,7 +16,7 @@ class LoadingMessages:
     
     # Phase 1: Account fetching (0-5 seconds)
     ACCOUNT_MESSAGES = [
-        "Summoner spotted on the Rift! 👀",
+        "Summoner spotted on the Rift! ",
         "Connecting to the Nexus...",
         "Scanning the Rift for your profile...",
         "Found you! Preparing your journey...",
@@ -25,40 +25,40 @@ class LoadingMessages:
     
     # Phase 2: Match history retrieval (5-10 seconds)
     HISTORY_MESSAGES = [
-        "Checking your match history... 📜",
-        "Wow... you've been busy on the Rift this year 👀",
+        "Checking your match history... ",
+        "Wow... you've been busy on the Rift this year ",
         "Gathering your epic moments...",
         "Your teammates are going to want to see this...",
         "Compiling your Rift adventures...",
-        "This might take a minute... you've got some stories to tell 😏",
+        "This might take a minute... you've got some stories to tell ",
     ]
     
     # Phase 3: Analysis in progress (10-60 seconds)
     ANALYSIS_MESSAGES = [
-        "Analyzing your biggest plays... 🎮",
-        "Calculating your... interesting... decision-making 😏",
+        "Analyzing your biggest plays... ",
+        "Calculating your... interesting... decision-making ",
         "Our AI is judging your champion choices...",
         "Measuring your impact on the Rift...",
         "Evaluating your 5Head moments (and the others)...",
         "Processing your pentakills and... other moments...",
-        "Analyzing your farming skills... or lack thereof 🌾",
+        "Analyzing your farming skills... or lack thereof ",
         "Counting how many times you pinged '?'...",
         "Reviewing your flash-into-wall technique...",
-        "Calculating your ward-to-death ratio... 👁️",
+        "Calculating your ward-to-death ratio... ",
         "Measuring your main character energy...",
         "Analyzing your 200 years of experience...",
     ]
     
     # Phase 4: Final preparation (60+ seconds)
     FINAL_MESSAGES = [
-        "Polishing your highlights... ✨",
-        "Preparing your personal roast... I mean review 🔥",
+        "Polishing your highlights... ",
+        "Preparing your personal roast... I mean review ",
         "Generating your custom insights...",
         "Almost there! Getting the good stuff ready...",
         "Finalizing your year on the Rift...",
-        "Your Rewind is almost ready... brace yourself 😅",
+        "Your Rewind is almost ready... brace yourself ",
         "Putting the finishing touches on your story...",
-        "Loading the receipts... 📸",
+        "Loading the receipts... ",
     ]
     
     # Progress indicators (no specific stats)

@@ -13,7 +13,6 @@ function preloadImage(src: string): Promise<void> {
     const img = new Image();
     img.onload = () => resolve();
     img.onerror = () => {
-      console.warn(`Failed to preload image: ${src}`);
       resolve(); // Don't reject, just log warning
     };
     img.src = src;
@@ -139,12 +138,9 @@ export async function preloadAllImages(sessionData: any, onProgress?: (loaded: n
     const imageUrls = await extractImageUrls(sessionData);
     
     if (imageUrls.length === 0) {
-      console.log('No images to preload');
       return;
     }
 
-    console.log(`Preloading ${imageUrls.length} images...`);
-    
     let loaded = 0;
     const total = imageUrls.length;
 
@@ -161,8 +157,7 @@ export async function preloadAllImages(sessionData: any, onProgress?: (loaded: n
       }));
     }
 
-    console.log(`✓ Preloaded ${loaded}/${total} images`);
-  } catch (error) {
+    } catch (error) {
     console.error('Error preloading images:', error);
     // Don't throw - allow the app to continue even if preloading fails
   }

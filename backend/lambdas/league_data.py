@@ -87,6 +87,7 @@ class LeagueDataFetcher:
         logger.info(f"[1/5] Fetching account data for {game_name}#{tag_line} in {region}...")
         
         regional = PLATFORM_TO_REGIONAL.get(region, region)
+        logger.info(f"   Platform '{region}' → Regional routing '{regional}'")
         
         account_data = self.riot_client.get_account_by_riot_id(
             game_name=game_name,
@@ -104,7 +105,7 @@ class LeagueDataFetcher:
             'region': region
         }
         
-        logger.info(f"✓ Account found - PUUID: {account_data.get('puuid')[:10]}...")
+        logger.info(f" Account found - PUUID: {account_data.get('puuid')[:10]}...")
         return account_data
     
     def fetch_summoner_data(self, puuid: str, region: str) -> Dict[str, Any]:
@@ -135,7 +136,7 @@ class LeagueDataFetcher:
             'revisionDate': summoner_data.get('revisionDate')
         }
         
-        logger.info(f"✓ Summoner Level: {summoner_data.get('summonerLevel')}")
+        logger.info(f" Summoner Level: {summoner_data.get('summonerLevel')}")
         return summoner_data
     
     def fetch_ranked_info(self, puuid: str, region: str) -> Dict[str, Any]:
@@ -175,9 +176,9 @@ class LeagueDataFetcher:
             tier = ranked_solo.get('tier', 'UNRANKED')
             rank = ranked_solo.get('rank', '')
             lp = ranked_solo.get('leaguePoints', 0)
-            logger.info(f"✓ Rank: {tier} {rank} ({lp} LP)")
+            logger.info(f" Rank: {tier} {rank} ({lp} LP)")
         else:
-            logger.info("✓ Rank: UNRANKED")
+            logger.info(" Rank: UNRANKED")
         
         return league_entries
     
@@ -188,53 +189,115 @@ class LeagueDataFetcher:
         Args:
             puuid: Player PUUID
             region: Platform region (will be converted to regional routing)
-            start_time: Unix timestamp for start of year (default: Season 14 start date)
+            start_time: Unix timestamp for start of year (default: January 1, 2025)
         
         Returns:
-            List of match IDs from the past year
+            List of match IDs from 2025
         """
-        # Use Season 14 start date for consistent data across runs
         if start_time is None:
             start_time = SEASON_14_START_TIMESTAMP
         
-        logger.info(f"[4/5] Fetching match history since Season 14 start ({datetime.fromtimestamp(start_time).date()})...")
+        logger.info(f"[4/5] Fetching match history since 2025 start ({datetime.fromtimestamp(start_time).date()})...")
         
-        # Riot API returns max 100 matches per call, so we need to paginate
+        # First, try to get ANY matches at all (no queue filter, no time filter) to verify the account has match history
+        logger.info(f"    Checking if account has ANY match history (no filters)...")
+        test_any_matches = self.riot_client.get_match_ids(
+            puuid=puuid,
+            platform=region,
+            count=10,
+            start=0
+        )
+        logger.info(f"   Total matches (all modes, all time): {len(test_any_matches) if test_any_matches else 0}")
+        if test_any_matches:
+            logger.info(f"   Sample match IDs: {test_any_matches[:3]}")
+        else:
+            logger.error(f" CRITICAL: This PUUID has NO match history at all in the match-v5 API!")
+            logger.error(f"   This could mean:")
+            logger.error(f"   - Account has match history privacy enabled")
+            logger.error(f"   - Account transferred from another region")
+            logger.error(f"   - Riot API sync issue for this region")
+            logger.error(f"   - This is not the correct account")
+        
+        # Fetch ALL ranked queues: Solo/Duo (420), Flex (440), and Clash (700)
         all_match_ids = []
-        start_index = 0
-        batch_size = 100
+        queue_counts = {}  # Track per-queue counts for debugging
         
-        while True:
+        for queue_id, queue_name in [(420, "Solo/Duo"), (440, "Flex"), (700, "Clash")]:
+            logger.info(f"   Fetching {queue_name} ranked matches...")
+            start_index = 0
+            batch_size = 100
+            queue_matches = []
             
-            match_ids = self.riot_client.get_match_ids(
-                puuid=puuid,
-                platform=region,
-                count=batch_size,
-                start=start_index,
-                start_time=start_time,
-                queue=420  # 420 = Ranked Solo/Duo 5v5 only
-            )
+            while True:
+                match_ids = self.riot_client.get_match_ids(
+                    puuid=puuid,
+                    platform=region,
+                    count=batch_size,
+                    start=start_index,
+                    start_time=start_time,
+                    queue=queue_id
+                )
+                
+                logger.info(f"      {queue_name}: API returned {len(match_ids) if match_ids else 0} match IDs (start_index={start_index})")
+                
+                if not match_ids:
+                    # If no matches found with time filter, try without it to debug
+                    if start_index == 0 and start_time:
+                        logger.warning(f"  No {queue_name} matches found with 2025 filter. Trying without time filter to check if ANY matches exist...")
+                        test_matches = self.riot_client.get_match_ids(
+                            puuid=puuid,
+                            platform=region,
+                            count=20,
+                            start=0,
+                            queue=queue_id
+                        )
+                        logger.info(f"      {queue_name} without filter: {len(test_matches) if test_matches else 0} matches found")
+                        if test_matches:
+                            logger.warning(f"      Sample match IDs: {test_matches[:3]}")
+                            # If matches exist without filter but not with filter, timestamp might be wrong
+                            logger.error(f" CRITICAL: Found {len(test_matches)} {queue_name} matches WITHOUT time filter, but 0 WITH filter!")
+                            logger.error(f"   This means the timestamp {start_time} is filtering out all matches.")
+                            logger.error(f"   The player's matches might be from 2024 or earlier.")
+                    break  # No more matches for this queue
+                
+                queue_matches.extend(match_ids)
+                
+                # If we got less than batch_size, we've reached the end
+                if len(match_ids) < batch_size:
+                    break
+                
+                start_index += batch_size
             
-            if not match_ids:
-                break  # No more matches
+            # Deduplicate within this queue (pagination duplicates)
+            queue_matches_before = len(queue_matches)
+            queue_matches = list(dict.fromkeys(queue_matches))
+            queue_duplicates = queue_matches_before - len(queue_matches)
             
-            all_match_ids.extend(match_ids)
+            if queue_duplicates > 0:
+                logger.warning(f"        {queue_name}: Removed {queue_duplicates} pagination duplicates within queue")
             
-            # If we got less than batch_size, we've reached the end
-            if len(match_ids) < batch_size:
-                break
-            
-            start_index += batch_size
-            
-            # Safety limit: max 1000 matches (should be enough for a year)
-            if len(all_match_ids) >= 1000:
-                print(f"   Reached safety limit of 1000 matches")
-                break
+            queue_counts[queue_name] = len(queue_matches)
+            all_match_ids.extend(queue_matches)
+            logger.info(f"    {queue_name}: {len(queue_matches)} unique matches")
         
-        logger.info(f"✓ Found {len(all_match_ids)} matches from the past year")
+        # Remove duplicates (in case of any overlap between queues)
+        matches_before_dedup = len(all_match_ids)
+        all_match_ids = list(dict.fromkeys(all_match_ids))
+        cross_queue_duplicates = matches_before_dedup - len(all_match_ids)
+        
+        # Log detailed breakdown
+        logger.info("")
+        logger.info("==> Match Fetching Summary:")
+        for queue_name, count in queue_counts.items():
+            logger.info(f"    {queue_name}: {count} ranked matches")
+        logger.info(f"    Combined total: {matches_before_dedup} matches")
+        if cross_queue_duplicates > 0:
+            logger.warning(f"    Cross-queue duplicates removed: {cross_queue_duplicates}")
+        logger.info(f"    Final unique ranked matches: {len(all_match_ids)}")
+        logger.info("")
         
         self.data['matchIds'] = all_match_ids
-        logger.info(f"✓ Total matches for the year: {len(all_match_ids)}")
+        logger.info(f"Total ranked matches for 2025: {len(all_match_ids)}")
         
         return all_match_ids
     
@@ -270,10 +333,10 @@ class LeagueDataFetcher:
                 'monthly_breakdown': sampling_result['monthly_breakdown']
             }
             
-            logger.info(f"✓ Sampling Strategy: {sampling_result['metadata']['sampling_tier']}")
-            logger.info(f"✓ Analyzing {len(sampled_ids)}/{total_matches} matches ({sampling_result['sample_percentage']:.1f}%)")
-            logger.info(f"✓ Statistical Confidence: {sampling_result['metadata']['statistical_confidence']}")
-            logger.info(f"✓ Speed Improvement: {sampling_result['metadata']['efficiency_gain']}")
+            logger.info(f" Sampling Strategy: {sampling_result['metadata']['sampling_tier']}")
+            logger.info(f" Analyzing {len(sampled_ids)}/{total_matches} matches ({sampling_result['sample_percentage']:.1f}%)")
+            logger.info(f" Statistical Confidence: {sampling_result['metadata']['statistical_confidence']}")
+            logger.info(f" Speed Improvement: {sampling_result['metadata']['efficiency_gain']}")
             
             match_ids_to_fetch = sampled_ids
         else:
@@ -303,7 +366,7 @@ class LeagueDataFetcher:
         self.data['allMatchIds'] = match_ids  # Store all IDs for reference
         self.data['sampledMatchIds'] = match_ids_to_fetch  # Store sampled IDs
         
-        logger.info(f"✓ Retrieved {len(matches)}/{len(match_ids_to_fetch)} match details")
+        logger.info(f" Retrieved {len(matches)}/{len(match_ids_to_fetch)} match details")
         
         return matches
     
@@ -329,10 +392,9 @@ class LeagueDataFetcher:
         # Store in S3
         s3_key = f"sessions/{self.session_id}/raw_data.json"
         
-        print(f"\nStoring data to S3: {s3_key}")
         upload_to_s3(s3_key, self.data)
         
-        logger.info(f"✓ Data stored successfully!")
+        logger.info(f" Data stored successfully!")
         return s3_key
     
     # ========================================================================
@@ -361,22 +423,16 @@ class LeagueDataFetcher:
         """
         from services.analytics import RiftRewindAnalytics
         
-        print(f"\n{'='*60}")
-        print(f"PROGRESSIVE FETCH: {game_name}#{tag_line}")
-        print(f"{'='*60}\n")
         
         # Check for existing session (returning player)
         existing_session = self.session_manager.load_checkpoint(game_name, tag_line, region)
         
         if existing_session and existing_session['status'] == 'partial':
-            print(f"↻ RESUME MODE: Found existing session")
             return self._resume_from_checkpoint(existing_session, region, checkpoint_callback)
         
         # NEW SESSION MODE
-        print(f"✦ NEW SESSION MODE")
         
         # Step 1: Fetch instant data (5-10 seconds)
-        print(f"\n[1/3] Fetching instant data...")
         
         validation = self.validate_input(game_name, tag_line, region)
         if not validation['valid']:
@@ -389,17 +445,15 @@ class LeagueDataFetcher:
         self.fetch_ranked_info(puuid, region)
         
         # Step 2: Fetch ALL match IDs (instant)
-        print(f"\n[2/3] Fetching match IDs...")
         all_match_ids = self.fetch_match_history(puuid, region)
         total_matches = len(all_match_ids)
         
-        logger.info(f"✓ Found {total_matches} matches")
+        logger.info(f" Found {total_matches} matches")
         
         # Create session ID
         self.session_id = self.session_manager.create_session_id(game_name, tag_line, region)
         
         # Step 3: Progressive match fetching (100-match checkpoints)
-        print(f"\n[3/3] Progressive match analysis...")
         
         checkpoint_num = 0
         analyzed_ids = []
@@ -422,7 +476,7 @@ class LeagueDataFetcher:
             analyzed_ids.extend(batch_ids)
             remaining_ids = all_match_ids[len(analyzed_ids):]
             
-            logger.info(f"✓ Fetched {len(batch_matches)} matches")
+            logger.info(f" Fetched {len(batch_matches)} matches")
             
             # Calculate analytics for current checkpoint
             checkpoint_data = {
@@ -481,15 +535,11 @@ class LeagueDataFetcher:
         # Mark as complete
         if not remaining_ids:
             self.session_manager.mark_complete(self.session_id)
-            print(f"\n✓ All matches analyzed!")
         
         # Store final complete data
         self.data['matches'] = all_matches
         s3_key = self.store_to_s3()
         
-        print(f"\n{'='*60}")
-        print(f"PROGRESSIVE FETCH COMPLETE!")
-        print(f"{'='*60}\n")
         
         return {
             'sessionId': self.session_id,
@@ -518,7 +568,6 @@ class LeagueDataFetcher:
         """
         from services.analytics import RiftRewindAnalytics
         
-        print(f"↻ Resuming from checkpoint {existing_session['matchData']['lastCheckpoint']}")
         
         self.session_id = existing_session['sessionId']
         player_info = existing_session['playerInfo']
@@ -563,7 +612,7 @@ class LeagueDataFetcher:
             all_analyzed_ids.extend(batch_ids)
             still_remaining = remaining_ids[len(all_analyzed_ids) - len(match_data['analyzedMatchIds']):]
             
-            logger.info(f"✓ Fetched {len(batch_matches)} matches")
+            logger.info(f" Fetched {len(batch_matches)} matches")
             
             # Update checkpoint
             match_data['analyzedMatchIds'] = all_analyzed_ids
@@ -611,12 +660,7 @@ class LeagueDataFetcher:
         Returns:
             Complete data payload with session ID
         """
-        print(f"\n⚠️  WARNING: Using legacy fetch_all() method")
-        print(f"    Consider using fetch_progressive() for better UX\n")
         
-        print(f"\n{'='*60}")
-        print(f"FETCHING LEAGUE DATA FOR {game_name}#{tag_line}")
-        print(f"{'='*60}\n")
         
         # Step 1: Validate input
         validation = self.validate_input(game_name, tag_line, region)
@@ -642,10 +686,6 @@ class LeagueDataFetcher:
         # Step 7: Store to S3
         s3_key = self.store_to_s3()
         
-        print(f"\n{'='*60}")
-        print(f"DATA FETCH COMPLETE!")
-        print(f"S3 Key: {s3_key}")
-        print(f"{'='*60}\n")
         
         return {
             'sessionId': self.session_id,
@@ -698,7 +738,6 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         }
     
     except ValueError as e:
-        print(f"Validation error: {e}")
         return {
             'statusCode': 400,
             'body': json.dumps({
@@ -707,7 +746,6 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         }
     
     except Exception as e:
-        print(f"Unexpected error: {e}")
         return {
             'statusCode': 500,
             'body': json.dumps({
