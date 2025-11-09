@@ -31,7 +31,7 @@ frontend:
           fi
   artifacts:
     # The project lives in a nested folder (Rift-Rewind). Vite is configured to output to 'build', so point Amplify to that folder.
-    baseDirectory: Rift-Rewind/frontend/build
+    baseDirectory: frontend/build
     files:
       - '**/*'
   cache:
