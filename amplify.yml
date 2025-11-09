@@ -30,8 +30,8 @@ frontend:
             exit 1
           fi
   artifacts:
-    # The project lives in a nested folder (Rift-Rewind). Use the nested path so Amplify can find the built files.
-    baseDirectory: Rift-Rewind/frontend/dist
+    # The project lives in a nested folder (Rift-Rewind). Vite is configured to output to 'build', so point Amplify to that folder.
+    baseDirectory: Rift-Rewind/frontend/build
     files:
       - '**/*'
   cache:
