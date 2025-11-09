@@ -4,21 +4,29 @@ frontend:
     preBuild:
       commands:
         - |
-          if [ -d "$CODEBUILD_SRC_DIR/frontend" ]; then
-            cd "$CODEBUILD_SRC_DIR/frontend" && npm ci
+          # Find the frontend directory anywhere under the repository root (handles nested repo folders)
+          FRONTEND_DIR=$(find "$CODEBUILD_SRC_DIR" -type d -name frontend -print -quit || true)
+          if [ -n "$FRONTEND_DIR" ]; then
+            echo "Found frontend at: $FRONTEND_DIR"
+            cd "$FRONTEND_DIR" && npm ci
           else
-            echo "frontend directory not found in $CODEBUILD_SRC_DIR"
-            echo "Listing current directory:" && ls -la "$CODEBUILD_SRC_DIR"
+            echo "frontend directory not found under $CODEBUILD_SRC_DIR"
+            echo "Listing top-level contents:" && ls -la "$CODEBUILD_SRC_DIR"
+            echo "Looking for directories (depth=2):" && find "$CODEBUILD_SRC_DIR" -maxdepth 2 -type d -print
             exit 1
           fi
     build:
       commands:
         - |
-          if [ -d "$CODEBUILD_SRC_DIR/frontend" ]; then
-            cd "$CODEBUILD_SRC_DIR/frontend" && npm run build
+          # Re-resolve frontend path and build
+          FRONTEND_DIR=$(find "$CODEBUILD_SRC_DIR" -type d -name frontend -print -quit || true)
+          if [ -n "$FRONTEND_DIR" ]; then
+            echo "Building frontend in: $FRONTEND_DIR"
+            cd "$FRONTEND_DIR" && npm run build
           else
-            echo "frontend directory not found in $CODEBUILD_SRC_DIR"
-            echo "Listing current directory:" && ls -la "$CODEBUILD_SRC_DIR"
+            echo "frontend directory not found under $CODEBUILD_SRC_DIR"
+            echo "Listing top-level contents:" && ls -la "$CODEBUILD_SRC_DIR"
+            echo "Looking for directories (depth=2):" && find "$CODEBUILD_SRC_DIR" -maxdepth 2 -type d -print
             exit 1
           fi
   artifacts:
