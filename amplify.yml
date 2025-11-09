@@ -3,10 +3,24 @@ frontend:
   phases:
     preBuild:
       commands:
-        - cd frontend && npm ci
+        - |
+          if [ -d "$CODEBUILD_SRC_DIR/frontend" ]; then
+            cd "$CODEBUILD_SRC_DIR/frontend" && npm ci
+          else
+            echo "frontend directory not found in $CODEBUILD_SRC_DIR"
+            echo "Listing current directory:" && ls -la "$CODEBUILD_SRC_DIR"
+            exit 1
+          fi
     build:
       commands:
-        - cd frontend && npm run build
+        - |
+          if [ -d "$CODEBUILD_SRC_DIR/frontend" ]; then
+            cd "$CODEBUILD_SRC_DIR/frontend" && npm run build
+          else
+            echo "frontend directory not found in $CODEBUILD_SRC_DIR"
+            echo "Listing current directory:" && ls -la "$CODEBUILD_SRC_DIR"
+            exit 1
+          fi
   artifacts:
     baseDirectory: frontend/dist
     files:
