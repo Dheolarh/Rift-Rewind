@@ -3,19 +3,14 @@ frontend:
   phases:
     preBuild:
       commands:
-        # We are already in the frontend directory
         - npm ci
     build:
       commands:
-        # We are already in the frontend directory
         - npm run build
   artifacts:
-    # This is now relative to the 'frontend' folder.
-    # Your vite.config.ts outputs to 'build', so this is correct.
     baseDirectory: build
     files:
       - '**/*'
   cache:
     paths:
-      # This is also relative to the 'frontend' folder
       - node_modules/**/*
