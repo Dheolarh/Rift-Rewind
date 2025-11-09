@@ -30,9 +30,10 @@ frontend:
             exit 1
           fi
   artifacts:
-    baseDirectory: frontend/dist
+    # The project lives in a nested folder (Rift-Rewind). Use the nested path so Amplify can find the built files.
+    baseDirectory: Rift-Rewind/frontend/dist
     files:
       - '**/*'
   cache:
     paths:
-      - frontend/node_modules/**/*
+      - Rift-Rewind/frontend/node_modules/**/*
