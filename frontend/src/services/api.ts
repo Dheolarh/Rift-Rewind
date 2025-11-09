@@ -4,7 +4,8 @@
  */
 
 // API Configuration
-const API_BASE_URL = import.meta.env.VITE_API_ENDPOINT || 'http://localhost:8000';
+// Prefer VITE_API_BASE_URL (explicit), fall back to VITE_API_ENDPOINT (older name), then localhost
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_ENDPOINT || 'http://localhost:8000';
 
 // Types
 export interface Region {
