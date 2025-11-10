@@ -27,6 +27,12 @@ if (-not $apiId) {
     $apiId = aws apigateway get-rest-apis --region $Region --query "items[?name=='$ApiName'].id" --output text
     if ($apiId) {
         Write-Host "OK API already exists: $apiId" -ForegroundColor Green
+        # Check if we need to redeploy - delete existing deployment
+        $existingDeployment = aws apigateway get-deployments --rest-api-id $apiId --region $Region --query 'items[0].id' --output text 2>$null
+        if ($existingDeployment) {
+            Write-Host "Removing existing deployment to allow updates..." -ForegroundColor Yellow
+            aws apigateway delete-deployment --rest-api-id $apiId --deployment-id $existingDeployment --region $Region 2>$null | Out-Null
+        }
     } else {
         Write-Host "ERROR: Failed to create/find API" -ForegroundColor Red
         exit 1
@@ -35,229 +41,198 @@ if (-not $apiId) {
     Write-Host "OK API created: $apiId" -ForegroundColor Green
 }
 
+# Function to ensure resource exists
+function Ensure-Resource {
+    param(
+        [string]$ApiId,
+        [string]$ParentId,
+        [string]$PathPart,
+        [string]$Region
+    )
+
+    $existingResource = aws apigateway get-resources --rest-api-id $ApiId --region $Region --query "items[?pathPart=='$PathPart' && parentId=='$ParentId'].id" --output text 2>$null
+    if ($existingResource -and $existingResource -ne "None") {
+        Write-Host "OK Resource '$PathPart' already exists: $existingResource" -ForegroundColor Green
+        return $existingResource
+    }
+
+    $newResource = aws apigateway create-resource --rest-api-id $ApiId --parent-id $ParentId --path-part $PathPart --region $Region --query 'id' --output text 2>$null
+    if ($newResource) {
+        Write-Host "OK Resource '$PathPart' created: $newResource" -ForegroundColor Green
+        return $newResource
+    }
+
+    Write-Host "ERROR: Failed to create/find resource '$PathPart'" -ForegroundColor Red
+    exit 1
+}
+
+# Function to ensure method exists
+function Ensure-Method {
+    param(
+        [string]$ApiId,
+        [string]$ResourceId,
+        [string]$HttpMethod,
+        [string]$Region,
+        [string]$RequestParameters = ""
+    )
+
+    # Check if method exists
+    $methodExists = aws apigateway get-method --rest-api-id $ApiId --resource-id $ResourceId --http-method $HttpMethod --region $Region 2>$null
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "OK Method $HttpMethod already exists" -ForegroundColor Green
+        return
+    }
+
+    # Create method
+    if ($RequestParameters) {
+        aws apigateway put-method --rest-api-id $ApiId --resource-id $ResourceId --http-method $HttpMethod --authorization-type NONE --region $Region --request-parameters $RequestParameters 2>$null | Out-Null
+    } else {
+        aws apigateway put-method --rest-api-id $ApiId --resource-id $ResourceId --http-method $HttpMethod --authorization-type NONE --region $Region 2>$null | Out-Null
+    }
+    Write-Host "OK Method $HttpMethod created" -ForegroundColor Green
+}
+
+# Function to ensure integration exists
+function Ensure-Integration {
+    param(
+        [string]$ApiId,
+        [string]$ResourceId,
+        [string]$HttpMethod,
+        [string]$LambdaUri,
+        [string]$Region
+    )
+
+    # Check if integration exists
+    $integrationExists = aws apigateway get-integration --rest-api-id $ApiId --resource-id $ResourceId --http-method $HttpMethod --region $Region 2>$null
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "OK Integration $HttpMethod already exists" -ForegroundColor Green
+        return
+    }
+
+    # Create integration
+    aws apigateway put-integration --rest-api-id $ApiId --resource-id $ResourceId --http-method $HttpMethod --type AWS_PROXY --integration-http-method POST --uri $LambdaUri --region $Region 2>$null | Out-Null
+    Write-Host "OK Integration $HttpMethod created" -ForegroundColor Green
+}
+
+# Function to enable CORS for a resource
+function Enable-CORS {
+    param(
+        [string]$ApiId,
+        [string]$ResourceId,
+        [string]$AllowedMethods,
+        [string]$Region,
+        [string]$RequestParameters = ""
+    )
+
+    # Create OPTIONS method
+    if ($RequestParameters) {
+        aws apigateway put-method --rest-api-id $ApiId --resource-id $ResourceId --http-method OPTIONS --authorization-type NONE --region $Region --request-parameters $RequestParameters 2>$null | Out-Null
+    } else {
+        aws apigateway put-method --rest-api-id $ApiId --resource-id $ResourceId --http-method OPTIONS --authorization-type NONE --region $Region 2>$null | Out-Null
+    }
+
+    # Create MOCK integration for OPTIONS
+    aws apigateway put-integration --rest-api-id $ApiId --resource-id $ResourceId --http-method OPTIONS --type MOCK --request-templates '{"application/json":"{\"statusCode\":200}"}' --region $Region 2>$null | Out-Null
+
+    # Create method response for OPTIONS
+    aws apigateway put-method-response --rest-api-id $ApiId --resource-id $ResourceId --http-method OPTIONS --status-code 200 --response-parameters 'method.response.header.Access-Control-Allow-Headers=false,method.response.header.Access-Control-Allow-Methods=false,method.response.header.Access-Control-Allow-Origin=false' --region $Region 2>$null | Out-Null
+
+    # Create integration response for OPTIONS
+    $corsHeaders = @{
+        'method.response.header.Access-Control-Allow-Headers' = "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+        'method.response.header.Access-Control-Allow-Methods' = "'$AllowedMethods'"
+        'method.response.header.Access-Control-Allow-Origin' = "'*'"
+    }
+    $corsHeadersJson = $corsHeaders | ConvertTo-Json -Compress
+    aws apigateway put-integration-response --rest-api-id $ApiId --resource-id $ResourceId --http-method OPTIONS --status-code 200 --response-parameters $corsHeadersJson --region $Region 2>$null | Out-Null
+
+    # Add CORS headers to actual method responses
+    $methods = $AllowedMethods -split ','
+    foreach ($method in $methods) {
+        if ($method -ne 'OPTIONS') {
+            aws apigateway put-method-response --rest-api-id $ApiId --resource-id $ResourceId --http-method $method --status-code 200 --response-parameters 'method.response.header.Access-Control-Allow-Origin=false' --region $Region 2>$null | Out-Null
+        }
+    }
+
+    Write-Host "OK CORS enabled for $AllowedMethods" -ForegroundColor Green
+}
+
 # Get root resource ID
 $rootId = aws apigateway get-resources --rest-api-id $apiId --region $Region --query 'items[?path==`/`].id' --output text
 
-# Create /analyze resource
-Write-Host "[3/6] Creating /analyze resource..." -ForegroundColor Yellow
-$analyzeId = aws apigateway create-resource --rest-api-id $apiId --parent-id $rootId --path-part analyze --region $Region --query 'id' --output text 2>$null
-
-if (-not $analyzeId) {
-    # Resource might already exist
-    $analyzeId = aws apigateway get-resources --rest-api-id $apiId --region $Region --query "items[?path=='/analyze'].id" --output text
-    Write-Host "OK Resource already exists: $analyzeId" -ForegroundColor Green
-} else {
-    Write-Host "OK Resource created: $analyzeId" -ForegroundColor Green
-}
-
-# Create POST method
-Write-Host "[4/6] Creating POST method..." -ForegroundColor Yellow
-aws apigateway put-method --rest-api-id $apiId --resource-id $analyzeId --http-method POST --authorization-type NONE --region $Region 2>$null | Out-Null
-
-# Set Lambda integration
+# Set Lambda URI
 $lambdaUri = "arn:aws:apigateway:${Region}:lambda:path/2015-03-31/functions/$lambdaArn/invocations"
-aws apigateway put-integration --rest-api-id $apiId --resource-id $analyzeId --http-method POST --type AWS_PROXY --integration-http-method POST --uri $lambdaUri --region $Region 2>$null | Out-Null
-Write-Host "OK POST method configured" -ForegroundColor Green
 
-# Add Lambda permission
-Write-Host "[5/6] Adding Lambda permissions..." -ForegroundColor Yellow
-$sourceArn = "arn:aws:execute-api:${Region}:${accountId}:${apiId}/*/*/analyze"
-aws lambda add-permission --function-name RiftRewindOrchestrator --statement-id apigateway-access-$(Get-Random) --action lambda:InvokeFunction --principal apigateway.amazonaws.com --source-arn $sourceArn --region $Region 2>$null | Out-Null
-Write-Host "OK Lambda permissions added" -ForegroundColor Green
+# Create /analyze endpoint
+Write-Host "[3/6] Setting up /analyze endpoint..." -ForegroundColor Yellow
+$analyzeId = Ensure-Resource -ApiId $apiId -ParentId $rootId -PathPart "analyze" -Region $Region
+Ensure-Method -ApiId $apiId -ResourceId $analyzeId -HttpMethod "POST" -Region $Region
+Ensure-Integration -ApiId $apiId -ResourceId $analyzeId -HttpMethod "POST" -LambdaUri $lambdaUri -Region $Region
+Enable-CORS -ApiId $apiId -ResourceId $analyzeId -AllowedMethods "POST,OPTIONS" -Region $Region
 
-# Enable CORS for /analyze
-Write-Host "[6/6] Enabling CORS for /analyze..." -ForegroundColor Yellow
-aws apigateway put-method --rest-api-id $apiId --resource-id $analyzeId --http-method OPTIONS --authorization-type NONE --region $Region 2>$null | Out-Null
-aws apigateway put-integration --rest-api-id $apiId --resource-id $analyzeId --http-method OPTIONS --type MOCK --request-templates '{"application/json":"{\"statusCode\":200}"}' --region $Region 2>$null | Out-Null
-aws apigateway put-method-response --rest-api-id $apiId --resource-id $analyzeId --http-method OPTIONS --status-code 200 --response-parameters 'method.response.header.Access-Control-Allow-Headers=false,method.response.header.Access-Control-Allow-Methods=false,method.response.header.Access-Control-Allow-Origin=false' --region $Region 2>$null | Out-Null
-$corsHeaders = @{
-    'method.response.header.Access-Control-Allow-Headers' = "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
-    'method.response.header.Access-Control-Allow-Methods' = "'POST,OPTIONS'"
-    'method.response.header.Access-Control-Allow-Origin' = "'*'"
-}
-$corsHeadersJson = $corsHeaders | ConvertTo-Json -Compress
-aws apigateway put-integration-response --rest-api-id $apiId --resource-id $analyzeId --http-method OPTIONS --status-code 200 --response-parameters $corsHeadersJson --region $Region 2>$null | Out-Null
-aws apigateway put-method-response --rest-api-id $apiId --resource-id $analyzeId --http-method POST --status-code 200 --response-parameters 'method.response.header.Access-Control-Allow-Origin=false' --region $Region 2>$null | Out-Null
-Write-Host "OK CORS enabled for /analyze" -ForegroundColor Green
+# Create /api endpoints
+Write-Host "[4/6] Setting up /api/* endpoints..." -ForegroundColor Yellow
+$apiResourceId = Ensure-Resource -ApiId $apiId -ParentId $rootId -PathPart "api" -Region $Region
 
-# --- Create /api resource ---
-Write-Host "[3b/6] Creating /api resource..." -ForegroundColor Yellow
-$apiResourceId = aws apigateway create-resource --rest-api-id $apiId --parent-id $rootId --path-part api --region $Region --query 'id' --output text 2>$null
-if (-not $apiResourceId) {
-    $apiResourceId = aws apigateway get-resources --rest-api-id $apiId --region $Region --query "items[?path=='/api'].id" --output text
-    Write-Host "OK Resource already exists: $apiResourceId" -ForegroundColor Green
-} else {
-    Write-Host "OK Resource created: $apiResourceId" -ForegroundColor Green
-}
+# /api/health
+$healthId = Ensure-Resource -ApiId $apiId -ParentId $apiResourceId -PathPart "health" -Region $Region
+Ensure-Method -ApiId $apiId -ResourceId $healthId -HttpMethod "GET" -Region $Region
+Ensure-Integration -ApiId $apiId -ResourceId $healthId -HttpMethod "GET" -LambdaUri $lambdaUri -Region $Region
+Enable-CORS -ApiId $apiId -ResourceId $healthId -AllowedMethods "GET,OPTIONS" -Region $Region
 
-# --- Create /api/regions resource ---
-Write-Host "[3c/6] Creating /api/regions resource..." -ForegroundColor Yellow
-$regionsId = aws apigateway create-resource --rest-api-id $apiId --parent-id $apiResourceId --path-part regions --region $Region --query 'id' --output text 2>$null
-if (-not $regionsId) {
-    $regionsId = aws apigateway get-resources --rest-api-id $apiId --region $Region --query "items[?path=='/api/regions'].id" --output text
-    Write-Host "OK Resource already exists: $regionsId" -ForegroundColor Green
-} else {
-    Write-Host "OK Resource created: $regionsId" -ForegroundColor Green
-}
+# /api/regions
+$regionsId = Ensure-Resource -ApiId $apiId -ParentId $apiResourceId -PathPart "regions" -Region $Region
+Ensure-Method -ApiId $apiId -ResourceId $regionsId -HttpMethod "GET" -Region $Region
+Ensure-Integration -ApiId $apiId -ResourceId $regionsId -HttpMethod "GET" -LambdaUri $lambdaUri -Region $Region
+Enable-CORS -ApiId $apiId -ResourceId $regionsId -AllowedMethods "GET,OPTIONS" -Region $Region
 
-# --- Add GET method to /api/regions ---
-Write-Host "[4b/6] Creating GET method for /api/regions..." -ForegroundColor Yellow
-aws apigateway put-method --rest-api-id $apiId --resource-id $regionsId --http-method GET --authorization-type NONE --region $Region 2>$null | Out-Null
-aws apigateway put-integration --rest-api-id $apiId --resource-id $regionsId --http-method GET --type AWS_PROXY --integration-http-method POST --uri $lambdaUri --region $Region 2>$null | Out-Null
-Write-Host "OK GET method configured" -ForegroundColor Green
+# /api/rewind
+$rewindId = Ensure-Resource -ApiId $apiId -ParentId $apiResourceId -PathPart "rewind" -Region $Region
+Ensure-Method -ApiId $apiId -ResourceId $rewindId -HttpMethod "POST" -Region $Region
+Ensure-Integration -ApiId $apiId -ResourceId $rewindId -HttpMethod "POST" -LambdaUri $lambdaUri -Region $Region
+Enable-CORS -ApiId $apiId -ResourceId $rewindId -AllowedMethods "POST,OPTIONS" -Region $Region
 
-# --- Add Lambda permission for /api/regions ---
+# /api/rewind/{sessionId}
+$sessionIdResource = Ensure-Resource -ApiId $apiId -ParentId $rewindId -PathPart "{sessionId}" -Region $Region
+Ensure-Method -ApiId $apiId -ResourceId $sessionIdResource -HttpMethod "GET" -Region $Region -RequestParameters "method.request.path.sessionId=true"
+Ensure-Integration -ApiId $apiId -ResourceId $sessionIdResource -HttpMethod "GET" -LambdaUri $lambdaUri -Region $Region
+Enable-CORS -ApiId $apiId -ResourceId $sessionIdResource -AllowedMethods "GET,OPTIONS" -Region $Region -RequestParameters "method.request.path.sessionId=true"
+
+# /api/rewind/{sessionId}/slide/{slideNumber}
+$slideId = Ensure-Resource -ApiId $apiId -ParentId $sessionIdResource -PathPart "slide" -Region $Region
+$slideNumberId = Ensure-Resource -ApiId $apiId -ParentId $slideId -PathPart "{slideNumber}" -Region $Region
+Ensure-Method -ApiId $apiId -ResourceId $slideNumberId -HttpMethod "GET" -Region $Region -RequestParameters "method.request.path.sessionId=true,method.request.path.slideNumber=true"
+Ensure-Integration -ApiId $apiId -ResourceId $slideNumberId -HttpMethod "GET" -LambdaUri $lambdaUri -Region $Region
+Enable-CORS -ApiId $apiId -ResourceId $slideNumberId -AllowedMethods "GET,OPTIONS" -Region $Region -RequestParameters "method.request.path.sessionId=true,method.request.path.slideNumber=true"
+
+# Add Lambda permissions for all endpoints
+Write-Host "`n[6/6] Adding Lambda permissions for all endpoints..." -ForegroundColor Yellow
+
+# Permission for /analyze
+$sourceArnAnalyze = "arn:aws:execute-api:${Region}:${accountId}:${apiId}/*/POST/analyze"
+aws lambda add-permission --function-name RiftRewindOrchestrator --statement-id apigateway-access-analyze-$(Get-Random) --action lambda:InvokeFunction --principal apigateway.amazonaws.com --source-arn $sourceArnAnalyze --region $Region 2>$null | Out-Null
+
+# Permission for /api/health
+$sourceArnHealth = "arn:aws:execute-api:${Region}:${accountId}:${apiId}/*/GET/api/health"
+aws lambda add-permission --function-name RiftRewindOrchestrator --statement-id apigateway-access-health-$(Get-Random) --action lambda:InvokeFunction --principal apigateway.amazonaws.com --source-arn $sourceArnHealth --region $Region 2>$null | Out-Null
+
+# Permission for /api/regions
 $sourceArnRegions = "arn:aws:execute-api:${Region}:${accountId}:${apiId}/*/GET/api/regions"
-aws lambda add-permission --function-name RiftRewindOrchestrator --statement-id apigateway-access-$(Get-Random) --action lambda:InvokeFunction --principal apigateway.amazonaws.com --source-arn $sourceArnRegions --region $Region 2>$null | Out-Null
+aws lambda add-permission --function-name RiftRewindOrchestrator --statement-id apigateway-access-regions-$(Get-Random) --action lambda:InvokeFunction --principal apigateway.amazonaws.com --source-arn $sourceArnRegions --region $Region 2>$null | Out-Null
 
-# --- Enable CORS for /api/regions ---
-Write-Host "[6b/6] Enabling CORS for /api/regions..." -ForegroundColor Yellow
-aws apigateway put-method --rest-api-id $apiId --resource-id $regionsId --http-method OPTIONS --authorization-type NONE --region $Region 2>$null | Out-Null
-aws apigateway put-integration --rest-api-id $apiId --resource-id $regionsId --http-method OPTIONS --type MOCK --request-templates '{"application/json":"{\"statusCode\":200}"}' --region $Region 2>$null | Out-Null
-aws apigateway put-method-response --rest-api-id $apiId --resource-id $regionsId --http-method OPTIONS --status-code 200 --response-parameters 'method.response.header.Access-Control-Allow-Headers=false,method.response.header.Access-Control-Allow-Methods=false,method.response.header.Access-Control-Allow-Origin=false' --region $Region 2>$null | Out-Null
-$corsHeadersRegions = @{
-    'method.response.header.Access-Control-Allow-Headers' = "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
-    'method.response.header.Access-Control-Allow-Methods' = "'GET,OPTIONS'"
-    'method.response.header.Access-Control-Allow-Origin' = "'*'"
-}
-$corsHeadersRegionsJson = $corsHeadersRegions | ConvertTo-Json -Compress
-aws apigateway put-integration-response --rest-api-id $apiId --resource-id $regionsId --http-method OPTIONS --status-code 200 --response-parameters $corsHeadersRegionsJson --region $Region 2>$null | Out-Null
-aws apigateway put-method-response --rest-api-id $apiId --resource-id $regionsId --http-method GET --status-code 200 --response-parameters 'method.response.header.Access-Control-Allow-Origin=false' --region $Region 2>$null | Out-Null
-Write-Host "OK CORS enabled for /api/regions" -ForegroundColor Green
+# Permission for /api/rewind
+$sourceArnRewind = "arn:aws:execute-api:${Region}:${accountId}:${apiId}/*/POST/api/rewind"
+aws lambda add-permission --function-name RiftRewindOrchestrator --statement-id apigateway-access-rewind-$(Get-Random) --action lambda:InvokeFunction --principal apigateway.amazonaws.com --source-arn $sourceArnRewind --region $Region 2>$null | Out-Null
 
-# --- Create /api/health resource ---
-Write-Host "[3d/6] Creating /api/health resource..." -ForegroundColor Yellow
-$healthId = aws apigateway create-resource --rest-api-id $apiId --parent-id $apiResourceId --path-part health --region $Region --query 'id' --output text 2>$null
-if (-not $healthId) {
-    $healthId = aws apigateway get-resources --rest-api-id $apiId --region $Region --query "items[?path=='/api/health'].id" --output text
-    Write-Host "OK Resource already exists: $healthId" -ForegroundColor Green
-} else {
-    Write-Host "OK Resource created: $healthId" -ForegroundColor Green
-}
+# Permission for /api/rewind/{sessionId}
+$sourceArnSession = "arn:aws:execute-api:${Region}:${accountId}:${apiId}/*/GET/api/rewind/*"
+aws lambda add-permission --function-name RiftRewindOrchestrator --statement-id apigateway-access-session-$(Get-Random) --action lambda:InvokeFunction --principal apigateway.amazonaws.com --source-arn $sourceArnSession --region $Region 2>$null | Out-Null
 
-# --- Add GET method to /api/health ---
-Write-Host "[4c/6] Creating GET method for /api/health..." -ForegroundColor Yellow
-aws apigateway put-method --rest-api-id $apiId --resource-id $healthId --http-method GET --authorization-type NONE --region $Region 2>$null | Out-Null
-aws apigateway put-integration --rest-api-id $apiId --resource-id $healthId --http-method GET --type AWS_PROXY --integration-http-method POST --uri $lambdaUri --region $Region 2>$null | Out-Null
-Write-Host "OK GET method configured" -ForegroundColor Green
+# Permission for /api/rewind/{sessionId}/slide/{slideNumber}
+$sourceArnSlide = "arn:aws:execute-api:${Region}:${accountId}:${apiId}/*/GET/api/rewind/*/slide/*"
+aws lambda add-permission --function-name RiftRewindOrchestrator --statement-id apigateway-access-slide-$(Get-Random) --action lambda:InvokeFunction --principal apigateway.amazonaws.com --source-arn $sourceArnSlide --region $Region 2>$null | Out-Null
 
-# --- Enable CORS for /api/health ---
-Write-Host "[6c/6] Enabling CORS for /api/health..." -ForegroundColor Yellow
-aws apigateway put-method --rest-api-id $apiId --resource-id $healthId --http-method OPTIONS --authorization-type NONE --region $Region 2>$null | Out-Null
-aws apigateway put-integration --rest-api-id $apiId --resource-id $healthId --http-method OPTIONS --type MOCK --request-templates '{"application/json":"{\"statusCode\":200}"}' --region $Region 2>$null | Out-Null
-aws apigateway put-method-response --rest-api-id $apiId --resource-id $healthId --http-method OPTIONS --status-code 200 --response-parameters 'method.response.header.Access-Control-Allow-Headers=false,method.response.header.Access-Control-Allow-Methods=false,method.response.header.Access-Control-Allow-Origin=false' --region $Region 2>$null | Out-Null
-$corsHeadersHealth = @{
-    'method.response.header.Access-Control-Allow-Headers' = "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
-    'method.response.header.Access-Control-Allow-Methods' = "'GET,OPTIONS'"
-    'method.response.header.Access-Control-Allow-Origin' = "'*'"
-}
-$corsHeadersHealthJson = $corsHeadersHealth | ConvertTo-Json -Compress
-aws apigateway put-integration-response --rest-api-id $apiId --resource-id $healthId --http-method OPTIONS --status-code 200 --response-parameters $corsHeadersHealthJson --region $Region 2>$null | Out-Null
-aws apigateway put-method-response --rest-api-id $apiId --resource-id $healthId --http-method GET --status-code 200 --response-parameters 'method.response.header.Access-Control-Allow-Origin=false' --region $Region 2>$null | Out-Null
-Write-Host "OK CORS enabled for /api/health" -ForegroundColor Green
-
-# --- Create /api/rewind resource ---
-Write-Host "[3e/6] Creating /api/rewind resource..." -ForegroundColor Yellow
-$rewindId = aws apigateway create-resource --rest-api-id $apiId --parent-id $apiResourceId --path-part rewind --region $Region --query 'id' --output text 2>$null
-if (-not $rewindId) {
-    $rewindId = aws apigateway get-resources --rest-api-id $apiId --region $Region --query "items[?path=='/api/rewind'].id" --output text
-    Write-Host "OK Resource already exists: $rewindId" -ForegroundColor Green
-} else {
-    Write-Host "OK Resource created: $rewindId" -ForegroundColor Green
-}
-
-# --- Add POST method to /api/rewind ---
-Write-Host "[4d/6] Creating POST method for /api/rewind..." -ForegroundColor Yellow
-aws apigateway put-method --rest-api-id $apiId --resource-id $rewindId --http-method POST --authorization-type NONE --region $Region 2>$null | Out-Null
-aws apigateway put-integration --rest-api-id $apiId --resource-id $rewindId --http-method POST --type AWS_PROXY --integration-http-method POST --uri $lambdaUri --region $Region 2>$null | Out-Null
-Write-Host "OK POST method configured" -ForegroundColor Green
-
-# --- Enable CORS for /api/rewind ---
-Write-Host "[6d/6] Enabling CORS for /api/rewind..." -ForegroundColor Yellow
-aws apigateway put-method --rest-api-id $apiId --resource-id $rewindId --http-method OPTIONS --authorization-type NONE --region $Region 2>$null | Out-Null
-aws apigateway put-integration --rest-api-id $apiId --resource-id $rewindId --http-method OPTIONS --type MOCK --request-templates '{"application/json":"{\"statusCode\":200}"}' --region $Region 2>$null | Out-Null
-aws apigateway put-method-response --rest-api-id $apiId --resource-id $rewindId --http-method OPTIONS --status-code 200 --response-parameters 'method.response.header.Access-Control-Allow-Headers=false,method.response.header.Access-Control-Allow-Methods=false,method.response.header.Access-Control-Allow-Origin=false' --region $Region 2>$null | Out-Null
-$corsHeadersRewind = @{
-    'method.response.header.Access-Control-Allow-Headers' = "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
-    'method.response.header.Access-Control-Allow-Methods' = "'POST,OPTIONS'"
-    'method.response.header.Access-Control-Allow-Origin' = "'*'"
-}
-$corsHeadersRewindJson = $corsHeadersRewind | ConvertTo-Json -Compress
-aws apigateway put-integration-response --rest-api-id $apiId --resource-id $rewindId --http-method OPTIONS --status-code 200 --response-parameters $corsHeadersRewindJson --region $Region 2>$null | Out-Null
-aws apigateway put-method-response --rest-api-id $apiId --resource-id $rewindId --http-method POST --status-code 200 --response-parameters 'method.response.header.Access-Control-Allow-Origin=false' --region $Region 2>$null | Out-Null
-Write-Host "OK CORS enabled for /api/rewind" -ForegroundColor Green
-
-# --- Create {sessionId} resource under /api/rewind ---
-Write-Host "[3f/6] Creating {sessionId} resource..." -ForegroundColor Yellow
-$sessionId = aws apigateway create-resource --rest-api-id $apiId --parent-id $rewindId --path-part "{sessionId}" --region $Region --query 'id' --output text 2>$null
-if (-not $sessionId) {
-    $sessionId = aws apigateway get-resources --rest-api-id $apiId --region $Region --query "items[?path=='/api/rewind/{sessionId}'].id" --output text
-    Write-Host "OK Resource already exists: $sessionId" -ForegroundColor Green
-} else {
-    Write-Host "OK Resource created: $sessionId" -ForegroundColor Green
-}
-
-# --- Add GET method to /api/rewind/{sessionId} ---
-Write-Host "[4e/6] Creating GET method for /api/rewind/{sessionId}..." -ForegroundColor Yellow
-aws apigateway put-method --rest-api-id $apiId --resource-id $sessionId --http-method GET --authorization-type NONE --region $Region --request-parameters "method.request.path.sessionId=true" 2>$null | Out-Null
-aws apigateway put-integration --rest-api-id $apiId --resource-id $sessionId --http-method GET --type AWS_PROXY --integration-http-method POST --uri $lambdaUri --region $Region 2>$null | Out-Null
-Write-Host "OK GET method configured" -ForegroundColor Green
-
-# --- Enable CORS for /api/rewind/{sessionId} ---
-Write-Host "[6e/6] Enabling CORS for /api/rewind/{sessionId}..." -ForegroundColor Yellow
-aws apigateway put-method --rest-api-id $apiId --resource-id $sessionId --http-method OPTIONS --authorization-type NONE --region $Region --request-parameters "method.request.path.sessionId=true" 2>$null | Out-Null
-aws apigateway put-integration --rest-api-id $apiId --resource-id $sessionId --http-method OPTIONS --type MOCK --request-templates '{"application/json":"{\"statusCode\":200}"}' --region $Region 2>$null | Out-Null
-aws apigateway put-method-response --rest-api-id $apiId --resource-id $sessionId --http-method OPTIONS --status-code 200 --response-parameters 'method.response.header.Access-Control-Allow-Headers=false,method.response.header.Access-Control-Allow-Methods=false,method.response.header.Access-Control-Allow-Origin=false' --region $Region 2>$null | Out-Null
-$corsHeadersSession = @{
-    'method.response.header.Access-Control-Allow-Headers' = "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
-    'method.response.header.Access-Control-Allow-Methods' = "'GET,OPTIONS'"
-    'method.response.header.Access-Control-Allow-Origin' = "'*'"
-}
-$corsHeadersSessionJson = $corsHeadersSession | ConvertTo-Json -Compress
-aws apigateway put-integration-response --rest-api-id $apiId --resource-id $sessionId --http-method OPTIONS --status-code 200 --response-parameters $corsHeadersSessionJson --region $Region 2>$null | Out-Null
-aws apigateway put-method-response --rest-api-id $apiId --resource-id $sessionId --http-method GET --status-code 200 --response-parameters 'method.response.header.Access-Control-Allow-Origin=false' --region $Region 2>$null | Out-Null
-Write-Host "OK CORS enabled for /api/rewind/{sessionId}" -ForegroundColor Green
-
-# --- Create slide resource under /api/rewind/{sessionId} ---
-Write-Host "[3g/6] Creating slide resource..." -ForegroundColor Yellow
-$slideId = aws apigateway create-resource --rest-api-id $apiId --parent-id $sessionId --path-part slide --region $Region --query 'id' --output text 2>$null
-if (-not $slideId) {
-    $slideId = aws apigateway get-resources --rest-api-id $apiId --region $Region --query "items[?path=='/api/rewind/{sessionId}/slide'].id" --output text
-    Write-Host "OK Resource already exists: $slideId" -ForegroundColor Green
-} else {
-    Write-Host "OK Resource created: $slideId" -ForegroundColor Green
-}
-
-# --- Create {slideNumber} resource under slide ---
-Write-Host "[3h/6] Creating {slideNumber} resource..." -ForegroundColor Yellow
-$slideNumberId = aws apigateway create-resource --rest-api-id $apiId --parent-id $slideId --path-part "{slideNumber}" --region $Region --query 'id' --output text 2>$null
-if (-not $slideNumberId) {
-    $slideNumberId = aws apigateway get-resources --rest-api-id $apiId --region $Region --query "items[?path=='/api/rewind/{sessionId}/slide/{slideNumber}'].id" --output text
-    Write-Host "OK Resource already exists: $slideNumberId" -ForegroundColor Green
-} else {
-    Write-Host "OK Resource created: $slideNumberId" -ForegroundColor Green
-}
-
-# --- Add GET method to /api/rewind/{sessionId}/slide/{slideNumber} ---
-Write-Host "[4f/6] Creating GET method for /api/rewind/{sessionId}/slide/{slideNumber}..." -ForegroundColor Yellow
-aws apigateway put-method --rest-api-id $apiId --resource-id $slideNumberId --http-method GET --authorization-type NONE --region $Region --request-parameters "method.request.path.sessionId=true,method.request.path.slideNumber=true" 2>$null | Out-Null
-aws apigateway put-integration --rest-api-id $apiId --resource-id $slideNumberId --http-method GET --type AWS_PROXY --integration-http-method POST --uri $lambdaUri --region $Region 2>$null | Out-Null
-Write-Host "OK GET method configured" -ForegroundColor Green
-
-# --- Enable CORS for /api/rewind/{sessionId}/slide/{slideNumber} ---
-Write-Host "[6f/6] Enabling CORS for /api/rewind/{sessionId}/slide/{slideNumber}..." -ForegroundColor Yellow
-aws apigateway put-method --rest-api-id $apiId --resource-id $slideNumberId --http-method OPTIONS --authorization-type NONE --region $Region --request-parameters "method.request.path.sessionId=true,method.request.path.slideNumber=true" 2>$null | Out-Null
-aws apigateway put-integration --rest-api-id $apiId --resource-id $slideNumberId --http-method OPTIONS --type MOCK --request-templates '{"application/json":"{\"statusCode\":200}"}' --region $Region 2>$null | Out-Null
-aws apigateway put-method-response --rest-api-id $apiId --resource-id $slideNumberId --http-method OPTIONS --status-code 200 --response-parameters 'method.response.header.Access-Control-Allow-Headers=false,method.response.header.Access-Control-Allow-Methods=false,method.response.header.Access-Control-Allow-Origin=false' --region $Region 2>$null | Out-Null
-$corsHeadersSlide = @{
-    'method.response.header.Access-Control-Allow-Headers' = "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
-    'method.response.header.Access-Control-Allow-Methods' = "'GET,OPTIONS'"
-    'method.response.header.Access-Control-Allow-Origin' = "'*'"
-}
-$corsHeadersSlideJson = $corsHeadersSlide | ConvertTo-Json -Compress
-aws apigateway put-integration-response --rest-api-id $apiId --resource-id $slideNumberId --http-method OPTIONS --status-code 200 --response-parameters $corsHeadersSlideJson --region $Region 2>$null | Out-Null
-aws apigateway put-method-response --rest-api-id $apiId --resource-id $slideNumberId --http-method GET --status-code 200 --response-parameters 'method.response.header.Access-Control-Allow-Origin=false' --region $Region 2>$null | Out-Null
-Write-Host "OK CORS enabled for /api/rewind/{sessionId}/slide/{slideNumber}" -ForegroundColor Green
+Write-Host "OK Lambda permissions added for all endpoints" -ForegroundColor Green
 
 # Deploy API
 Write-Host "`nDeploying API to 'prod' stage..." -ForegroundColor Yellow

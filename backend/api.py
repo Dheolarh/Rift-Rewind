@@ -87,6 +87,26 @@ class RiftRewindAPI:
                 'error': f'Failed to fetch regions: {str(e)}'
             })
     
+    def health_check(self) -> Dict[str, Any]:
+        """
+        GET /api/health
+        Health check endpoint
+        
+        Returns:
+            Health status and configuration info
+        """
+        try:
+            return self.create_response(200, {
+                'status': 'healthy',
+                'testMode': self.test_mode,
+                'maxMatches': self.max_matches_analyze,
+                'cacheEnabled': True,
+                'cacheExpiryDays': self.cache_manager.cache_expiry_days
+            })
+        except Exception as e:
+            logger.error(f"Error in health check: {e}")
+            return self.create_response(500, {'error': 'Health check failed'})
+    
     def _update_session_status(self, session_id: str, status: str, message: str = '', player_info: dict = None, fetcher_data: dict = None):
         """Update session processing status in S3"""
         import datetime
