@@ -61,4 +61,5 @@ ENV/
 .venv2/
 .ENV2/
 
-.md
+lambda_packages/
+.ps1
