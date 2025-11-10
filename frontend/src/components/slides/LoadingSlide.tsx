@@ -80,8 +80,10 @@ export function LoadingSlide({
   useEffect(() => {
     if (hasError) return;
     
-    const messages = loadingMessageSets[currentPhase].map(msg => 
-      msg.replace('{playerName}', playerName.split('#')[0])
+    // Defensive: ensure we have a messages array for the current phase
+    const phaseMessages = loadingMessageSets[currentPhase as keyof typeof loadingMessageSets] ?? [];
+    const messages = phaseMessages.map((msg) =>
+      msg.replace("{playerName}", playerName.split("#")[0]),
     );
     
     // For analyzing and caching phases, shuffle messages for variety

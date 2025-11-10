@@ -65,7 +65,7 @@ export function ChampionPoolSlide({
   uniqueChampions,
   totalGames,
   diversityScore,
-  championList,
+  championList = [],
   aiHumor = "Analyzing your champion mastery...",
   showHumor = false
 }: ChampionPoolSlideProps) {

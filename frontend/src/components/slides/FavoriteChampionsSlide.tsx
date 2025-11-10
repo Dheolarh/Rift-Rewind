@@ -20,7 +20,7 @@ interface FavoriteChampionsSlideProps {
 }
 
 export function FavoriteChampionsSlide({
-  champions,
+  champions = [],
 }: FavoriteChampionsSlideProps) {
   // Show top 5 champions
   const topFive = champions.slice(0, 5);
