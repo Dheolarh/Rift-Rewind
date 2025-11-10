@@ -18,9 +18,9 @@ logger.setLevel(logging.INFO)
 load_dotenv()
 
 # Import backend services
-from lambdas.league_data import LeagueDataFetcher
-from lambdas.humor_context import HumorGenerator
-from lambdas.insights import InsightsGenerator
+from league_data import LeagueDataFetcher
+from humor_context import HumorGenerator
+from insights import InsightsGenerator
 from services.analytics import RiftRewindAnalytics
 from services.aws_clients import upload_to_s3, download_from_s3
 from services.constants import REGIONS

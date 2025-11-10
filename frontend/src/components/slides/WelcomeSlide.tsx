@@ -4,7 +4,7 @@ import { ImageWithFallback } from "../source/ImageWithFallback";
 import logoImage from "../../assets/logo.webp";
 import welcomeBg from "../../assets/WelcomeBg.webp";
 import { useState, useEffect } from "react";
-import api, { Region } from "../../services/api";
+import api, { Region, FALLBACK_REGIONS } from "../../services/api";
 
 interface WelcomeSlideProps {
   summonerName: string;
@@ -33,7 +33,43 @@ export function WelcomeSlide({
     const fetchRegions = async () => {
       try {
         const response = await api.getRegions();
-        setRegions(response.regions);
+        // Debug/log to help diagnose unexpected API shapes
+        // (keep this lightweight; can remove later)
+        // eslint-disable-next-line no-console
+        console.debug("getRegions response:", response);
+
+        // Robust extraction: accept multiple shapes
+        const extractRegions = (resp: any) => {
+          if (!resp) return [];
+          // If the API returned the array directly
+          if (Array.isArray(resp)) return resp;
+
+          // Common wrapper: { regions: [...] }
+          if (Array.isArray(resp.regions)) return resp.regions;
+
+          // Sometimes APIs return an object map: { regions: { key: { label, value }, ... } }
+          if (resp.regions && typeof resp.regions === 'object') {
+            const vals = Object.values(resp.regions);
+            if (Array.isArray(vals) && vals.length && typeof vals[0] === 'object') return vals;
+          }
+
+          // Other wrappers: { data: { regions: [...] } }
+          if (resp.data) return extractRegions(resp.data);
+
+          // Fallback empty
+          return [];
+        };
+
+        const fetchedRegions = extractRegions(response);
+
+        if (!fetchedRegions || fetchedRegions.length === 0) {
+          // If nothing useful returned, fall back to canonical fallback regions defined in services/api
+          // eslint-disable-next-line no-console
+          console.warn('No regions returned from API, using fallback regions');
+          setRegions(FALLBACK_REGIONS as any);
+        } else {
+          setRegions(fetchedRegions as any);
+        }
       } catch (error) {
         console.error('Failed to fetch regions:', error);
         // Fallback to empty array if API fails

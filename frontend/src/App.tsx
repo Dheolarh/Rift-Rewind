@@ -120,9 +120,24 @@ export default function App() {
         tagLine: summonerTag,
         region: region
       });
+      // Debug the response to ensure sessionId is present
+      // eslint-disable-next-line no-console
+      console.debug('startRewind response:', response);
+
+      if (!response || !response.sessionId) {
+        // If backend didn't return a sessionId, stop and show an error instead of calling follow-up APIs
+        const msg = 'Server did not return a sessionId. Please try again.';
+        // eslint-disable-next-line no-console
+        console.error(msg, response);
+        setLoadingError(msg);
+        setShowErrorModal(true);
+        setIsLoading(false);
+        setLoadingStatus('searching');
+        return;
+      }
       
       // Player found! API returned successfully
-      setSessionId(response.sessionId);
+  setSessionId(response.sessionId);
       if (response.player) {
         setPlayerInfo(response.player);
       }
@@ -134,8 +149,7 @@ export default function App() {
       setLoadingStatus('analyzing')
       const session = await api.waitForComplete(
         response.sessionId,
-        (status: string) => {
-          }
+        () => {}
       );
 
       // Store analytics
@@ -153,8 +167,7 @@ export default function App() {
       setPlayerInfo(resolvedPlayer);
       
       setLoadingStatus('caching'); 
-      await preloadAllImages(session.analytics, (loaded, total) => {
-        });
+      await preloadAllImages(session.analytics, () => {});
       setIsAnalysisComplete(true);
       
     } catch (error) {

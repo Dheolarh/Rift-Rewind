@@ -64,7 +64,7 @@ export interface HealthCheck {
 }
 
 // Fallback regions in case API is unavailable
-const FALLBACK_REGIONS: Region[] = [
+export const FALLBACK_REGIONS: Region[] = [
   { label: "North America (NA)", value: "na1", flag: "", regional: "americas" },
   { label: "Europe West (EUW)", value: "euw1", flag: "", regional: "europe" },
   { label: "Europe Nordic & East (EUNE)", value: "eun1", flag: "", regional: "europe" },
