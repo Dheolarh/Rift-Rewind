@@ -63,6 +63,26 @@ export interface HealthCheck {
   maxMatches: number;
 }
 
+// Fallback regions in case API is unavailable
+const FALLBACK_REGIONS: Region[] = [
+  { label: "North America (NA)", value: "na1", flag: "", regional: "americas" },
+  { label: "Europe West (EUW)", value: "euw1", flag: "", regional: "europe" },
+  { label: "Europe Nordic & East (EUNE)", value: "eun1", flag: "", regional: "europe" },
+  { label: "Korea (KR)", value: "kr", flag: "", regional: "asia" },
+  { label: "Brazil (BR)", value: "br1", flag: "", regional: "americas" },
+  { label: "Japan (JP)", value: "jp1", flag: "", regional: "asia" },
+  { label: "Latin America North (LAN)", value: "la1", flag: "", regional: "americas" },
+  { label: "Latin America South (LAS)", value: "la2", flag: "", regional: "americas" },
+  { label: "Oceania (OCE)", value: "oc1", flag: "", regional: "americas" },
+  { label: "Turkey (TR)", value: "tr1", flag: "", regional: "europe" },
+  { label: "Russia (RU)", value: "ru", flag: "", regional: "europe" },
+  { label: "Philippines (PH)", value: "ph2", flag: "", regional: "sea" },
+  { label: "Singapore (SG)", value: "sg2", flag: "", regional: "sea" },
+  { label: "Thailand (TH)", value: "th2", flag: "", regional: "sea" },
+  { label: "Taiwan (TW)", value: "tw2", flag: "", regional: "asia" },
+  { label: "Vietnam (VN)", value: "vn2", flag: "", regional: "sea" },
+];
+
 // API Error class
 export class APIError extends Error {
   constructor(
@@ -139,7 +159,12 @@ class RiftRewindAPIService {
    * Get available regions
    */
   async getRegions(): Promise<{ regions: Region[] }> {
-    return this.request<{ regions: Region[] }>('/api/regions');
+    try {
+      return await this.request<{ regions: Region[] }>('/api/regions');
+    } catch (error) {
+      console.warn('Failed to fetch regions from API, using fallback:', error);
+      return { regions: FALLBACK_REGIONS };
+    }
   }
 
   /**

@@ -13,6 +13,65 @@ from services.session_manager import SessionManager
 from services.analytics import RiftRewindAnalytics
 
 
+# Import API wrapper for handler functions
+from api import RiftRewindAPI
+
+# Initialize API instance
+api = RiftRewindAPI()
+
+
+def handle_get_regions() -> Dict[str, Any]:
+    """Handle GET /api/regions"""
+    return api.get_regions()
+
+
+def handle_health_check() -> Dict[str, Any]:
+    """Handle GET /api/health"""
+    return api.health_check()
+
+
+def handle_start_rewind(request_data: Dict[str, Any]) -> Dict[str, Any]:
+    """Handle POST /api/rewind"""
+    game_name = request_data.get('gameName', '')
+    tag_line = request_data.get('tagLine', '')
+    region = request_data.get('region', '')
+    force_refresh = request_data.get('forceRefresh', False)
+
+    return api.start_rewind(game_name, tag_line, region, force_refresh)
+
+
+def handle_get_session(session_id: str, request_data: Dict[str, Any]) -> Dict[str, Any]:
+    """Handle GET /api/rewind/{sessionId}"""
+    game_name = request_data.get('gameName')
+    tag_line = request_data.get('tagLine')
+    region = request_data.get('region')
+
+    return api.get_session(session_id, game_name, tag_line, region)
+
+
+def handle_get_slide(session_id: str, slide_number: int) -> Dict[str, Any]:
+    """Handle GET /api/rewind/{sessionId}/slide/{slideNumber}"""
+    return api.get_slide(session_id, slide_number)
+
+
+def handle_check_cache(request_data: Dict[str, Any]) -> Dict[str, Any]:
+    """Handle POST /api/cache/check"""
+    game_name = request_data.get('gameName', '')
+    tag_line = request_data.get('tagLine', '')
+    region = request_data.get('region', '')
+
+    return api.check_cache(game_name, tag_line, region)
+
+
+def handle_invalidate_cache(request_data: Dict[str, Any]) -> Dict[str, Any]:
+    """Handle POST /api/cache/invalidate"""
+    game_name = request_data.get('gameName', '')
+    tag_line = request_data.get('tagLine', '')
+    region = request_data.get('region', '')
+
+    return api.invalidate_cache(game_name, tag_line, region)
+
+
 class ProgressiveOrchestrator:
     
     def __init__(self):
@@ -248,26 +307,89 @@ class ProgressiveOrchestrator:
 
 
 def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
+    """
+    AWS Lambda handler for API Gateway events.
+    Routes requests based on HTTP method and path.
+    """
     try:
-        game_name = event.get('gameName')
-        tag_line = event.get('tagLine')
-        region = event.get('region')
-        
-        if not all([game_name, tag_line, region]):
+        # Extract API Gateway event details
+        http_method = event.get('httpMethod', '')
+        path = event.get('path', '')
+        path_parameters = event.get('pathParameters', {}) or {}
+        query_parameters = event.get('queryStringParameters', {}) or {}
+
+        # Parse request body for POST requests
+        body = event.get('body', '{}')
+        if body:
+            try:
+                request_data = json.loads(body)
+            except json.JSONDecodeError:
+                request_data = {}
+        else:
+            request_data = {}
+
+        logger.info(f"Request: {http_method} {path}")
+
+        # Route based on path and method
+        if path == '/api/regions' and http_method == 'GET':
+            return handle_get_regions()
+
+        elif path == '/api/health' and http_method == 'GET':
+            return handle_health_check()
+
+        elif path == '/api/rewind' and http_method == 'POST':
+            return handle_start_rewind(request_data)
+
+        elif path.startswith('/api/rewind/') and http_method == 'GET':
+            # Handle /api/rewind/{sessionId} and /api/rewind/{sessionId}/slide/{slideNumber}
+            path_parts = path.strip('/').split('/')
+            if len(path_parts) == 3 and path_parts[2] == 'slide':
+                # /api/rewind/{sessionId}/slide/{slideNumber}
+                session_id = path_parameters.get('sessionId')
+                slide_number = path_parameters.get('slideNumber')
+                if session_id and slide_number:
+                    return handle_get_slide(session_id, int(slide_number))
+            elif len(path_parts) == 2:
+                # /api/rewind/{sessionId}
+                session_id = path_parameters.get('sessionId')
+                if session_id:
+                    return handle_get_session(session_id, request_data)
+
+        elif path == '/api/cache/check' and http_method == 'POST':
+            return handle_check_cache(request_data)
+
+        elif path == '/api/cache/invalidate' and http_method == 'POST':
+            return handle_invalidate_cache(request_data)
+
+        # Handle OPTIONS requests for CORS
+        elif http_method == 'OPTIONS':
             return {
-                'statusCode': 400,
-                'body': json.dumps({'error': 'Missing required parameters'})
+                'statusCode': 200,
+                'headers': {
+                    'Access-Control-Allow-Origin': '*',
+                    'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token',
+                    'Access-Control-Allow-Methods': 'GET,POST,OPTIONS'
+                },
+                'body': ''
             }
-        
-        orchestrator = ProgressiveOrchestrator()
-        result = orchestrator.orchestrate(game_name, tag_line, region)
-        
+
+        # Unknown endpoint
         return {
-            'statusCode': 200,
-            'body': json.dumps(result)
+            'statusCode': 404,
+            'headers': {
+                'Access-Control-Allow-Origin': '*',
+                'Content-Type': 'application/json'
+            },
+            'body': json.dumps({'error': f'Endpoint not found: {http_method} {path}'})
         }
+
     except Exception as e:
+        logger.error(f"Lambda handler error: {str(e)}", exc_info=True)
         return {
             'statusCode': 500,
+            'headers': {
+                'Access-Control-Allow-Origin': '*',
+                'Content-Type': 'application/json'
+            },
             'body': json.dumps({'error': f'Internal server error: {str(e)}'})
         }
