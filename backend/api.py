@@ -67,7 +67,7 @@ class RiftRewindAPI:
         return {
             'statusCode': status_code,
             'headers': default_headers,
-            'body': body
+            'body': json.dumps(body)
         }
     
     def get_regions(self) -> Dict[str, Any]:
