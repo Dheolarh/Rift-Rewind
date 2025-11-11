@@ -314,7 +314,7 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     try:
         # Extract API Gateway event details
         http_method = event.get('httpMethod', '')
-        path = event.get('path', '')
+        path = event.get('path', '').rstrip('/') 
         path_parameters = event.get('pathParameters', {}) or {}
         query_parameters = event.get('queryStringParameters', {}) or {}
 
@@ -330,41 +330,50 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
 
         logger.info(f"Request: {http_method} {path}")
 
-        # Route based on path and method
-        if path == '/api/regions' and http_method == 'GET':
+        # --- CORRECTED ROUTING ---
+
+        if path.endswith('/api/regions') and http_method == 'GET':
             return handle_get_regions()
 
-        elif path == '/api/health' and http_method == 'GET':
+        elif path.endswith('/api/health') and http_method == 'GET':
             return handle_health_check()
 
-        elif path == '/api/rewind' and http_method == 'POST':
+        elif path.endswith('/api/rewind') and http_method == 'POST':
             return handle_start_rewind(request_data)
 
-        elif path.startswith('/api/rewind/') and http_method == 'GET':
-            # Handle /api/rewind/{sessionId} and /api/rewind/{sessionId}/slide/{slideNumber}
-            path_parts = path.strip('/').split('/')
-            if len(path_parts) == 3 and path_parts[2] == 'slide':
-                # /api/rewind/{sessionId}/slide/{slideNumber}
-                session_id = path_parameters.get('sessionId')
-                slide_number = path_parameters.get('slideNumber')
-                if session_id and slide_number:
-                    return handle_get_slide(session_id, int(slide_number))
-            elif len(path_parts) == 2:
-                # /api/rewind/{sessionId}
-                session_id = path_parameters.get('sessionId')
-                if session_id:
-                    return handle_get_session(session_id, request_data)
-
-        elif path == '/api/cache/check' and http_method == 'POST':
+        elif path.endswith('/api/cache/check') and http_method == 'POST':
             return handle_check_cache(request_data)
 
-        elif path == '/api/cache/invalidate' and http_method == 'POST':
+        elif path.endswith('/api/cache/invalidate') and http_method == 'POST':
             return handle_invalidate_cache(request_data)
 
-        # Handle OPTIONS requests for CORS
+        # Handle routes with path parameters
+        elif '/api/rewind/' in path and http_method == 'GET':
+            path_parts = path.split('/')
+            
+            # Find 'rewind' and expect sessionID after it
+            try:
+                rewind_index = path_parts.index('rewind')
+                
+                # Check for /api/rewind/{sessionId}/slide/{slideNumber}
+                if len(path_parts) > rewind_index + 3 and path_parts[rewind_index + 2] == 'slide':
+                    session_id = path_parts[rewind_index + 1]
+                    slide_number = path_parts[rewind_index + 3]
+                    return handle_get_slide(session_id, int(slide_number))
+                
+                # Check for /api/rewind/{sessionId}
+                elif len(path_parts) > rewind_index + 1:
+                    session_id = path_parts[rewind_index + 1]
+                    # Pass query parameters (which are in request_data for some reason in your original handler)
+                    return handle_get_session(session_id, query_parameters)
+            
+            except (ValueError, IndexError):
+                 pass # Fall through to 404
+
+
         elif http_method == 'OPTIONS':
             return {
-                'statusCode': 200,
+                'statusCode': 204,
                 'headers': {
                     'Access-Control-Allow-Origin': '*',
                     'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token',
@@ -374,6 +383,7 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             }
 
         # Unknown endpoint
+        logger.warning(f"Endpoint not found: {http_method} {path}")
         return {
             'statusCode': 404,
             'headers': {
