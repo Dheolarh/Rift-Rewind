@@ -26,7 +26,8 @@ from services.analytics import RiftRewindAnalytics
 from lambdas.humor_context import HumorGenerator
 from lambdas.insights import InsightsGenerator
 from services.session_cache import SessionCacheManager
-from services.aws_clients import download_from_s3
+from services.aws_clients import download_from_s3, upload_to_s3
+from lambdas.league_data import LeagueDataFetcher
 from services.riot_api_client import RiotAPIClient
 
 logger = logging.getLogger(__name__)
@@ -72,6 +73,44 @@ def lambda_handler(event: Dict[str, Any], context: Any):
             raise RuntimeError(f'Raw data not found in S3 at {raw_key}')
 
         raw_data = json.loads(raw_str)
+
+        # Ensure we have full match data. Orchestrator uploads only initial fetcher data
+        # (account/summoner/ranked). If `matches` is missing or empty, fetch them now
+        # using the same LeagueDataFetcher flow used in the orchestrator local worker.
+        if not raw_data.get('matches'):
+            logger.info(' No matches in raw_data - fetching match history and details now')
+            try:
+                fetcher = LeagueDataFetcher()
+                # Rehydrate fetcher state from raw_data
+                fetcher.data = raw_data
+                puuid = raw_data.get('account', {}).get('puuid')
+                if not puuid:
+                    raise RuntimeError('PUUID missing from raw_data; cannot fetch matches')
+
+                match_ids = fetcher.fetch_match_history(puuid, region)
+                total_matches = len(match_ids)
+
+                if total_matches == 0:
+                    logger.warning(f' No ranked matches found for PUUID {puuid} (region={region})')
+                    # Continue with analytics - it will compute zeros - but persist updated raw_data
+                # Fetch full match details (no sampling) to ensure complete analytics
+                matches = fetcher.fetch_match_details_batch(match_ids, region, use_sampling=False)
+
+                # Update raw_data with fetched matches and metadata
+                raw_data['matches'] = matches
+                raw_data['allMatchIds'] = match_ids
+                raw_data['metadata'] = raw_data.get('metadata', {})
+                raw_data['metadata'].update({'totalMatches': len(matches), 'fetchedAt': raw_data.get('metadata', {}).get('fetchedAt')})
+
+                # Re-upload enriched raw_data so other tools can access it
+                try:
+                    upload_to_s3(raw_key, raw_data)
+                    logger.info(' Enriched raw_data uploaded back to S3')
+                except Exception as e:
+                    logger.warning(f' Failed to re-upload enriched raw_data: {e}')
+
+            except Exception as e:
+                logger.exception(f' Failed while fetching matches in processor: {e}')
 
         # Build analytics
         analytics_engine = RiftRewindAnalytics(raw_data)
@@ -142,10 +181,40 @@ def lambda_handler(event: Dict[str, Any], context: Any):
 
         # Save to cache
         cache_manager = SessionCacheManager(cache_expiry_days=7)
+        # Derive match counts: prefer explicit analytics fields, fall back to raw_data contents
+        try:
+            match_count = analytics.get('matchCount') if isinstance(analytics, dict) else None
+        except Exception:
+            match_count = None
+
+        try:
+            total_matches = analytics.get('totalMatches') if isinstance(analytics, dict) else None
+        except Exception:
+            total_matches = None
+
+        # Fallbacks: look in raw_data for common keys
+        if not match_count:
+            if isinstance(raw_data, dict) and raw_data.get('matches') is not None:
+                match_count = len(raw_data.get('matches') or [])
+            elif isinstance(raw_data, dict) and raw_data.get('allMatchIds') is not None:
+                match_count = len(raw_data.get('allMatchIds') or [])
+            else:
+                match_count = 0
+
+        if not total_matches:
+            # total_matches may be stored in raw_data.metadata.totalMatches or sampling metadata
+            total_matches = 0
+            if isinstance(raw_data, dict):
+                meta = raw_data.get('metadata') or {}
+                if isinstance(meta, dict) and meta.get('totalMatches') is not None:
+                    total_matches = meta.get('totalMatches')
+                elif raw_data.get('allMatchIds') is not None:
+                    total_matches = len(raw_data.get('allMatchIds') or [])
+
         cache_manager.save_session_to_cache(
             game_name, tag_line, region,
             session_id, analytics, humor_data, player_info,
-            analytics.get('matchCount', 0), analytics.get('totalMatches', 0)
+            int(match_count), int(total_matches)
         )
 
         _update_session_status(session_id, 'complete', 'Your rewind is ready!', player_info)

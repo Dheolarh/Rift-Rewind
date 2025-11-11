@@ -4,6 +4,7 @@
  */
 
 import { getChampionSplashUrl, getChampionIconUrl, getLatestVersion } from './championImages';
+import rankingBg from '../assets/ranking.webp';
 
 /**
  * Preload a single image
@@ -121,7 +122,7 @@ export async function extractImageUrls(sessionData: any): Promise<string[]> {
 
   // Background images from slides
   const backgroundImages = [
-    '/ranking.webp', // Social comparison background
+    rankingBg, // Social comparison background (bundled asset)
     // Add other static background images if any
   ];
   
