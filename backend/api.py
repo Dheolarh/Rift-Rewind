@@ -375,12 +375,36 @@ class RiftRewindAPI:
             
             # Start background processing
             import threading
-            process_thread = threading.Thread(
-                target=self._process_rewind_async,
-                args=(session_id, game_name, tag_line, region, fetcher.data),
-                daemon=True
-            )
-            process_thread.start()
+            # Instead of starting a local background thread (which won't run reliably on AWS Lambda),
+            # upload the raw fetcher data to S3 and invoke a processor Lambda asynchronously.
+            try:
+                # Save raw data to S3 so the processor can pick it up (avoid large payloads in invoke)
+                raw_key = f"sessions/{session_id}/raw_data.json"
+                upload_to_s3(raw_key, fetcher.data)
+
+                # Invoke processor Lambda asynchronously
+                import boto3
+                lambda_client = boto3.client('lambda')
+                processor_name = os.getenv('PROCESSOR_LAMBDA_NAME', 'rift-rewind-processor')
+
+                payload = {
+                    'session_id': session_id,
+                    'raw_data_s3_key': raw_key,
+                    'game_name': game_name,
+                    'tag_line': tag_line,
+                    'region': region,
+                }
+
+                lambda_client.invoke(
+                    FunctionName=processor_name,
+                    InvocationType='Event',  # asynchronous
+                    Payload=json.dumps(payload).encode('utf-8')
+                )
+                logger.info(f" Started async processor Lambda '{processor_name}' for session {session_id}")
+            except Exception as e:
+                logger.error(f"Failed to invoke processor Lambda: {e}")
+                import traceback
+                traceback.print_exc()
             logger.info(f" Started background processing for session {session_id}")
             
             # Return immediately with 'found' status
