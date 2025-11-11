@@ -301,18 +301,37 @@ class SessionCacheManager:
             
             s3_client = get_s3_client()
             
-            # List all cache metadata files
-            response = s3_client.list_objects_v2(
-                Bucket=S3_BUCKET_NAME,
-                Prefix='cache/users/',
-                Delimiter='/'
-            )
-            
-            if 'CommonPrefixes' not in response:
-                return None
-            
-            # Search through each user's cache
-            for prefix in response['CommonPrefixes']:
+            # Try S3 listing; if it fails (e.g., bucket missing), fall back to local cache
+            try:
+                response = s3_client.list_objects_v2(
+                    Bucket=S3_BUCKET_NAME,
+                    Prefix='cache/users/',
+                    Delimiter='/'
+                )
+            except Exception as e:
+                logger.debug(f"S3 listing failed, falling back to local cache: {e}")
+                response = None
+
+            if response and 'CommonPrefixes' in response:
+                prefixes = response['CommonPrefixes']
+            else:
+                prefixes = []
+
+            # If no S3 prefixes, also check local .local_s3 folder for cache entries
+            if not prefixes:
+                try:
+                    from pathlib import Path
+                    local_root = Path(__file__).resolve().parents[1] / '.local_s3' / 'cache' / 'users'
+                    prefixes = []
+                    if local_root.exists():
+                        for p in local_root.iterdir():
+                            if p.is_dir():
+                                prefixes.append({'Prefix': f"cache/users/{p.name}/"})
+                except Exception as e:
+                    logger.debug(f"Local cache scan failed: {e}")
+
+            # Search through each user's cache (either S3 or local-derived prefixes)
+            for prefix in prefixes:
                 user_prefix = prefix['Prefix']
                 metadata_key = f"{user_prefix}metadata.json"
                 
@@ -333,7 +352,7 @@ class SessionCacheManager:
                     # Skip this user if there's an error
                     logger.debug(f"Error checking cache at {user_prefix}: {e}")
                     continue
-            
+
             logger.warning(f"Session {session_id} not found in any cache")
             return None
         

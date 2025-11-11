@@ -156,7 +156,7 @@ class InsightsGenerator:
 
 **PERSONALITY TITLE RULES:**
 - Base it on their TOP CHAMPION and playstyle patterns, NOT vision score
-- Examples: "The {adjective} {champion/role} {playstyle}"
+- Examples: "The {{adjective}} {{champion/role}} {{playstyle}}"
   - "The Fearless Darius Diver"
   - "The Calculated Mage Sniper"
   - "The Overeager Assassin"
@@ -451,7 +451,8 @@ Respond ONLY with valid JSON - no other text."""
                 'status': 'success'
             }
         except Exception as e:
-            logger.error(f" Critical error in insights generation: {e}")
+            # Log full stack trace for debugging (helps identify NameError / template issues)
+            logger.exception("Critical error in insights generation")
             # Last resort fallback
             fallback_insights = {
                 "strengths": ["Active ranked participation", "Commitment to competitive play"],

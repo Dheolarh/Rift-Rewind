@@ -18,12 +18,12 @@ logger.setLevel(logging.INFO)
 load_dotenv()
 
 # Import backend services
-from league_data import LeagueDataFetcher
-from humor_context import HumorGenerator
-from insights import InsightsGenerator
+from lambdas.league_data import LeagueDataFetcher
+from lambdas.humor_context import HumorGenerator
+from lambdas.insights import InsightsGenerator
 from services.analytics import RiftRewindAnalytics
 from services.aws_clients import upload_to_s3, download_from_s3
-from services.constants import REGIONS
+from services.constants import REGIONS, VALID_PLATFORMS
 from services.session_cache import SessionCacheManager
 
 
@@ -291,6 +291,35 @@ class RiftRewindAPI:
                 return self.create_response(400, {
                     'error': 'Missing required fields: gameName, tagLine, region'
                 })
+
+            # Defensive normalization of region values coming from varied clients
+            # Accept common malformed values like 'TR.riotgamesapi', 'TR', or uppercased codes
+            def _normalize_region(val: str) -> str:
+                if not val:
+                    return val
+                v = val.strip()
+                # Already a known platform
+                if v in VALID_PLATFORMS:
+                    return v
+                low = v.lower()
+                if low in VALID_PLATFORMS:
+                    return low
+                # If the value looks like 'tr.riotgamesapi' -> take first segment 'tr'
+                if '.' in low:
+                    first = low.split('.')[0]
+                    if first in VALID_PLATFORMS:
+                        return first
+                    # handle short country codes like 'tr' -> 'tr1'
+                    if len(first) <= 3 and (first + '1') in VALID_PLATFORMS:
+                        return first + '1'
+                # Try prefix/suffix matching against known platforms
+                for p in VALID_PLATFORMS:
+                    if low.startswith(p) or p.startswith(low):
+                        return p
+                # Fallback to original
+                return v
+
+            region = _normalize_region(region)
             
             # Check cache first (unless force refresh)
             if not force_refresh:
@@ -442,8 +471,16 @@ class RiftRewindAPI:
                         'player': cached_session.get('player', {})
                     })
                 
-                return self.create_response(404, {
-                    'error': 'Session not found'
+                # Instead of returning 404 when analytics aren't uploaded yet (or
+                # cache lookup fails due to S3 issues), return a processing
+                # status so clients can continue polling. This avoids treating
+                # "session not ready" as an account-not-found error on the
+                # frontend.
+                return self.create_response(200, {
+                    'sessionId': session_id,
+                    'status': 'searching',
+                    'message': 'Session created and processing; analytics not available yet',
+                    'fromCache': False
                 })
             
             analytics = json.loads(analytics_str)

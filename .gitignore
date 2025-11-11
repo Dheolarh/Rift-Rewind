@@ -62,4 +62,7 @@ ENV/
 .ENV2/
 
 lambda_packages/
-.ps1
+*.ps1
+*.md
+*.zip
+.local_s3

@@ -4,6 +4,8 @@ AWS client initialization utilities
 
 import boto3
 import json
+import os
+from pathlib import Path
 from typing import Optional, Union, Dict, Any
 from .constants import AWS_DEFAULT_REGION, S3_BUCKET_NAME
 
@@ -86,7 +88,20 @@ def upload_to_s3(key: str, data: Union[str, Dict[str, Any]], content_type: str =
         )
         return True
     except Exception as e:
-        return False
+        # Fallback for local development: store in .local_s3 folder when S3 is unavailable
+        try:
+            local_root = Path(__file__).resolve().parents[1] / '.local_s3'
+            local_path = local_root / key
+            local_path.parent.mkdir(parents=True, exist_ok=True)
+            if isinstance(data, bytes):
+                body = data
+            else:
+                body = data.encode('utf-8') if isinstance(data, str) else json.dumps(data, indent=2).encode('utf-8')
+            with open(local_path, 'wb') as f:
+                f.write(body)
+            return True
+        except Exception:
+            return False
 
 
 def download_from_s3(key: str) -> Optional[str]:
@@ -104,7 +119,16 @@ def download_from_s3(key: str) -> Optional[str]:
         response = s3_client.get_object(Bucket=S3_BUCKET_NAME, Key=key)
         return response['Body'].read().decode('utf-8')
     except Exception as e:
-        return None
+        # Fallback: read from local .local_s3 folder
+        try:
+            local_root = Path(__file__).resolve().parents[1] / '.local_s3'
+            local_path = local_root / key
+            if not local_path.exists():
+                return None
+            with open(local_path, 'rb') as f:
+                return f.read().decode('utf-8')
+        except Exception:
+            return None
 
 
 def check_s3_object_exists(key: str) -> bool:
@@ -122,4 +146,10 @@ def check_s3_object_exists(key: str) -> bool:
         s3_client.head_object(Bucket=S3_BUCKET_NAME, Key=key)
         return True
     except:
-        return False
+        # Fallback: check local .local_s3
+        try:
+            local_root = Path(__file__).resolve().parents[1] / '.local_s3'
+            local_path = local_root / key
+            return local_path.exists()
+        except Exception:
+            return False

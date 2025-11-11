@@ -520,8 +520,41 @@ NO EMOJIS. NO EM DASHES (—). Use commas instead and hyphens (-) if necessary. 
             'humorText': humor_text,
             'generatedAt': json.dumps({"timestamp": "now"}) 
         }
-        
+
+        # For slides that display a short AI-generated headline (strength, weakness, or player title),
+        # also persist that headline into the humor JSON so the frontend can fetch a single source.
+        try:
+            if slide_number in (10, 11, 15):
+                try:
+                    analytics = self.download_analytics(session_id)
+                    slide10 = analytics.get('slide10_11_analysis', {})
+
+                    if slide_number == 10:
+                        strengths = slide10.get('strengths', [])
+                        if strengths:
+                            data['headline'] = strengths[0]
+                            data['headlineType'] = 'strength'
+
+                    if slide_number == 11:
+                        weaknesses = slide10.get('weaknesses', [])
+                        if weaknesses:
+                            data['headline'] = weaknesses[0]
+                            data['headlineType'] = 'weakness'
+
+                    if slide_number == 15:
+                        personality = slide10.get('personality_title') or slide10.get('play_style')
+                        if personality:
+                            data['headline'] = personality
+                            data['headlineType'] = 'personality_title'
+                except Exception:
+                    logger.exception(f"store_humor: failed to attach headline for session {session_id}, slide {slide_number}")
+
+        except Exception:
+            # Don't fail humor storage for headline issues
+            logger.exception("store_humor: unexpected error while attaching headline")
+
         upload_to_s3(s3_key, data)
+        logger.info(f"Stored humor for session {session_id} slide {slide_number} (headline present: {'headline' in data})")
     
     def generate(self, session_id: str, slide_number: int) -> Dict[str, Any]:
         """
@@ -537,7 +570,61 @@ NO EMOJIS. NO EM DASHES (—). Use commas instead and hyphens (-) if necessary. 
         
         # Step 1: Download analytics
         analytics = self.download_analytics(session_id)
-        
+
+        # Ensure strengths/weaknesses and personality_title exist for slides that depend on insights
+        # If they are missing or flagged as needing AI processing, call the Insights generator and update analytics
+        try:
+            if slide_number in (10, 11, 15):
+                slide10 = analytics.get('slide10_11_analysis', {})
+                needs_ai = slide10.get('needsAIProcessing', True) or not slide10.get('strengths') or not slide10.get('weaknesses') or not slide10.get('personality_title')
+
+                if needs_ai:
+                    logger.info(f"HumorGenerator: triggering InsightsGenerator for session {session_id} before generating slide {slide_number}")
+                    try:
+                        # Attempt to import InsightsGenerator with several fallbacks.
+                        try:
+                            from insights import InsightsGenerator  # preferred
+                        except Exception:
+                            try:
+                                from .insights import InsightsGenerator  # relative import
+                            except Exception:
+                                # As a last resort, load the module by file path (same directory)
+                                import importlib.util
+                                insights_path = os.path.join(os.path.dirname(__file__), 'insights.py')
+                                spec = importlib.util.spec_from_file_location('insights_local', insights_path)
+                                insights_mod = importlib.util.module_from_spec(spec)
+                                spec.loader.exec_module(insights_mod)  # type: ignore
+                                InsightsGenerator = getattr(insights_mod, 'InsightsGenerator')
+
+                        insights_gen = InsightsGenerator()
+                        insights_result = insights_gen.generate(session_id)
+                        insights = insights_result.get('insights', {}) if insights_result else {}
+
+                        # Validate and apply insights into analytics (safe merge)
+                        strengths = insights.get('strengths') or slide10.get('strengths') or ["Consistent ranked participation"]
+                        weaknesses = insights.get('weaknesses') or slide10.get('weaknesses') or ["Keep playing to unlock deeper insights"]
+                        coaching = insights.get('coaching_tips') or slide10.get('coaching_tips') or []
+                        play_style = insights.get('play_style') or slide10.get('play_style') or ''
+                        personality = insights.get('personality_title') or slide10.get('personality_title') or 'The Rising Competitor'
+
+                        # Update analytics structure
+                        analytics.setdefault('slide10_11_analysis', {})
+                        analytics['slide10_11_analysis']['strengths'] = strengths
+                        analytics['slide10_11_analysis']['weaknesses'] = weaknesses
+                        analytics['slide10_11_analysis']['coaching_tips'] = coaching
+                        analytics['slide10_11_analysis']['play_style'] = play_style
+                        analytics['slide10_11_analysis']['personality_title'] = personality
+                        analytics['slide10_11_analysis']['needsAIProcessing'] = False
+
+                        s3_key = f"sessions/{session_id}/analytics.json"
+                        upload_to_s3(s3_key, analytics)
+                        logger.info(f"HumorGenerator: updated analytics with insights for session {session_id}")
+
+                    except Exception as e:
+                        logger.exception(f"HumorGenerator: failed to generate or apply insights for session {session_id}: {e}")
+        except Exception:
+            logger.exception("HumorGenerator: unexpected error while ensuring insights; continuing to humor generation")
+
         # Step 2: Create prompt
         prompt = self.create_prompt(slide_number, analytics)
         

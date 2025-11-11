@@ -189,7 +189,7 @@ export function BestMatchSlide({
                 transition={{ delay: 1.2, duration: 0.6 }}
                 className="text-center"
               >
-                <div className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl bg-gradient-to-r from-[#FFD700] via-[#C8AA6E] to-[#0AC8B9] bg-clip-text text-transparent tabular-nums mb-2" style={{ fontFamily: 'Georgia, serif' }}>
+                <div className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl bg-gradient-to-r from-[#FFD700] via-[#C8AA6E] to-[#0AC8B9] bg-clip-text text-transparent tabular-nums mb-2" style={{ fontFamily: 'Georgia, serif', paddingBottom: '0.1rem' }}>
                   {kda.toFixed(1)}
                 </div>
                 <div className="text-sm sm:text-base lg:text-lg xl:text-xl text-[#A09B8C] uppercase tracking-[0.3em]">KDA</div>
