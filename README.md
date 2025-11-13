@@ -1,4 +1,4 @@
-# Rift Rewind 🎮
+# Rift Rewind
 
 Rift Rewind creates a playful, AI-driven "year in review" experience for League of Legends players. Give it a Riot ID and it builds a short, shareable recap featuring highlights from your ranked season, light-hearted commentary, and concise coaching insights — all presented as a set of visual slides.
 
@@ -14,7 +14,7 @@ Who this is for
 Want to run or extend it?
 For deployment steps, architecture details, and developer instructions, see the docs in the `docs/` folder (for example `docs/DEPLOYMENT.md` and `docs/AWS_ARCHITECTURE.md`).
 
-## ⚙️ Requirements
+## Requirements
 
 - Python 3.10+ (for backend lambdas and the development Flask server)
 - Node.js 18+ / npm or yarn (for the frontend Vite app)
@@ -22,7 +22,7 @@ For deployment steps, architecture details, and developer instructions, see the 
 
 Backend Python dependencies are listed in `backend/requirements.txt`.
 
-## 🚀 Quick start (development)
+## Quick start (development)
 
 These steps get you running locally for development and testing.
 
@@ -52,7 +52,7 @@ These steps get you running locally for development and testing.
 
 	 - Use the frontend to start a session. The local Flask server will emulate the API used in production. Note that certain features (calling Bedrock or invoking the processor Lambda) require AWS credentials and deployed Lambdas — see `docs/DEPLOYMENT.md` for details and a local dev fallback option (`RUN_LOCAL_PROCESSOR`).
 
-## 📦 Building & preparing for deployment
+## Building & preparing for deployment
 
 - Frontend: build the production bundle and deploy to Amplify (or S3+CloudFront)
 
@@ -62,14 +62,14 @@ These steps get you running locally for development and testing.
 
 - Backend Lambdas: the lambdas live under `backend/lambdas/`. Each handler should be packaged with its dependencies (for example using a deployment virtualenv, pip install -r requirements.txt -t ./package, copy lambda files, zip). See `docs/DEPLOYMENT.md` for an example PowerShell packaging script and IAM role recommendations.
 
-## 🔒 Environment variables & secrets
+## Environment variables & secrets
 
 Sensitive values (AWS credentials, Bedrock model id, S3 bucket names) must be set as environment variables in your Lambda configurations or in a `.env` when running locally. See `docs/DEPLOYMENT.md` for a recommended list (S3_BUCKET_NAME, PROCESSOR_LAMBDA_NAME, BEDROCK_MODEL_ID, AWS_DEFAULT_REGION, RUN_LOCAL_PROCESSOR).
 
-## 📚 Where to go next
+## Where to go next
 
 - For full deployment steps, packaging scripts, IAM permissions and Bedrock usage, read `docs/DEPLOYMENT.md`.
 - For architecture and flow diagrams, read `docs/AWS_ARCHITECTURE.md`.
 
-## 📄 License
+## License
 MIT
