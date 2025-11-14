@@ -1,7 +1,7 @@
 import { motion, useMotionValue, useTransform, animate } from "motion/react";
 import { useEffect } from "react";
 import { ImageWithFallback } from "../source/ImageWithFallback";
-import zileanTime from "../../assets/ekko.webp";
+import EkkoBG from "../../assets/ekko.webp";
 
 interface TimeSpentSlideProps {
   hoursPlayed: number;
@@ -29,13 +29,13 @@ export function TimeSpentSlide({
   minutesPlayed,
   aiHumor = "That's approximately 47 binge-worthy Netflix series... but who's counting? 📺"
 }: TimeSpentSlideProps) {
-  const days = Math.floor(hoursPlayed / 24) + 1;
+  const days = Math.floor(hoursPlayed / 24);
 
   return (
     <div className="relative size-full overflow-hidden bg-[#010A13] flex items-center justify-center">
       <div className="absolute inset-0">
         <ImageWithFallback
-          src={zileanTime}
+          src={EkkoBG}
           alt="Background"
           className="size-full object-cover opacity-10"
         />
@@ -109,7 +109,7 @@ export function TimeSpentSlide({
             hours on the Rift
           </p>
           <p className="text-base sm:text-lg md:text-xl lg:text-2xl xl:text-3xl text-[#A09B8C]">
-            {minutesPlayed} minutes played? That's about <span className="text-[#0AC8B9]">{days} days</span> of pure League
+            {minutesPlayed} minutes played? That's <span className="text-[#0AC8B9]">{days} days</span> spent in the rift
           </p>
         </motion.div>
 
