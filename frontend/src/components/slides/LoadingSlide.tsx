@@ -2,7 +2,6 @@ import { motion, AnimatePresence } from "motion/react";
 import { useState, useEffect, useRef } from "react";
 import { Music } from "lucide-react";
 import LoadBG from "../../assets/LoadBG.webm";
-import "./LoadingSlide.css";
 
 interface LoadingSlideProps {
   playerName?: string;
@@ -178,23 +177,7 @@ export function LoadingSlide({
         </motion.button>
       )}
       
-      {/* Ripple Loader - hide when error or complete */}
-      {!hasError && !isComplete && (
-        <div className="ripple-container">
-          <div className="hole">
-            <i />
-            <i />
-            <i />
-            <i />
-            <i />
-            <i />
-            <i />
-            <i />
-            <i />
-            <i />
-          </div>
-        </div>
-      )}
+      {/* Ripple loader removed */}
 
       {/* Content */}
       <div className="relative z-10 size-full flex flex-col items-center justify-center px-4 sm:px-6 gap-8">
