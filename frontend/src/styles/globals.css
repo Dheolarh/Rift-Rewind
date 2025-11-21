@@ -137,9 +137,6 @@
   }
 }
 
-/**
- * Base typography. This is not applied to elements which have an ancestor with a Tailwind text class.
- */
 @layer base {
   :where(:not(:has([class*=" text-"]), :not(:has([class^="text-"])))) {
     h1 {
@@ -212,17 +209,16 @@ html {
   font-size: var(--font-size);
 }
 
-/* Hide scrollbars globally */
+
 .scrollbar-hide {
-  scrollbar-width: none; /* Firefox */
-  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; 
+  -ms-overflow-style: none;
 }
 
 .scrollbar-hide::-webkit-scrollbar {
-  display: none; /* Chrome, Safari, Opera */
+  display: none; 
 }
 
-/* Hide any injected elements without class names that might create layout issues */
 body > div:not(#root):empty,
 body > div:not(#root):not([class]):not([id]) {
   display: none !important;
@@ -233,7 +229,6 @@ body > div:not(#root):not([class]):not([id]) {
   visibility: hidden !important;
 }
 
-/* Additional protection against extension-injected elements */
 body > div[style*="height: 0"],
 body > div[style*="width: 0"] {
   display: none !important;
@@ -242,33 +237,26 @@ body > div[style*="width: 0"] {
   pointer-events: none !important;
 }
 
-/*
-  Responsive visual scaling
-  - Small screens: no scaling (1)
-  - Mid/large screens (>= 1024px): 90% visual scale
-  - Very large screens (>= 1600px): 75% visual scale
-
-  This uses transform scaling on `#root` and compensates width/height so
-  the scaled content fills the viewport. If you prefer crisper text,
-  consider switching to `html { font-size: ... }` scaling instead.
-*/
 :root {
   --app-scale: 1;
 }
 
-/* Mid / large screens: slightly reduced (90%) */
-@media (min-width: 1024px) {
-  :root { --app-scale: 0.9; }
+@media (min-width: 768px) {
+  :root { --app-scale: 0.8; }
 }
 
-/* Very large screens: more reduced (75%) */
-@media (min-width: 1600px) {
+@media (min-width: 1024px) {
   :root { --app-scale: 0.75; }
 }
 
 #root {
+
   transform: scale(var(--app-scale));
   transform-origin: 0 0;
   width: calc(100% / var(--app-scale));
   height: calc(100% / var(--app-scale));
+}
+  
+@media (max-width: 765px) {
+  :root { --app-scale: 0.8; }
 }
