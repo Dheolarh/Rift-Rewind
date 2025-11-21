@@ -241,3 +241,24 @@ body > div[style*="width: 0"] {
   visibility: hidden !important;
   pointer-events: none !important;
 }
+
+/*
+  Force visual scale to 75% so the site appears like a 75% browser zoom.
+  This scales the rendered app while compensating width/height so it fills
+  the viewport and avoids clipping. If you later prefer to remove this,
+  set --app-scale to 1 or remove these rules.
+  Note: transform-based scaling can slightly blur text on some displays.
+*/
+:root {
+  --app-scale: 0.75;
+}
+
+#root {
+  /* Scale the entire app */
+  transform: scale(var(--app-scale));
+  transform-origin: 0 0;
+
+  /* Compensate so scaled content fills the viewport */
+  width: calc(100% / var(--app-scale));
+  height: calc(100% / var(--app-scale));
+}
