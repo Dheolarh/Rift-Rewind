@@ -3,7 +3,6 @@
   import { createRoot } from "react-dom/client";
   import App from "./App.tsx";
   import "./index.css";
-  // Load project global overrides (including app-scale) after Tailwind
   import "./styles/globals.css";
 
   // Remove any injected divs that might cause layout issues

@@ -34,9 +34,9 @@ export function FinalRecapSlide({
   onRestart,
 }: FinalRecapSlideProps) {
   const [showShareCard, setShowShareCard] = useState(false);
-  
+
   // Get summoner icon URL
-  const summonerIconUrl = profileIconId 
+  const summonerIconUrl = profileIconId
     ? `https://ddragon.leagueoflegends.com/cdn/14.23.1/img/profileicon/${profileIconId}.png`
     : null;
 
@@ -46,7 +46,7 @@ export function FinalRecapSlide({
 
   return (
     <>
-      <ShareCard 
+      <ShareCard
         isOpen={showShareCard}
         onClose={() => setShowShareCard(false)}
         summonerName={summonerName}
@@ -64,24 +64,31 @@ export function FinalRecapSlide({
           playerLevel: highlightStats.playerLevel,
         }}
       />
-      
-      <div className="relative w-full h-full overflow-hidden bg-[#010A13] flex items-center justify-center">
+
+      <div className="min-h-screen w-full p-4 sm:p-20 flex flex-col items-center bg-[#010A13] overflow-y-auto overflow-x-hidden">
+
         {/* Background Image - Same as Welcome Slide */}
         <div className="absolute inset-0 bg-gradient-to-br from-[#010A13] via-[#0A1428] to-[#010A13]" />
-        
-        <ImageWithFallback 
+
+        <ImageWithFallback
           src={welcomeBg}
           alt="Background"
           className="absolute inset-0 size-full object-cover opacity-20"
         />
-        
+
         {/* Glowing orbs */}
         <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-[#C8AA6E] rounded-full blur-[120px] opacity-20 animate-pulse" />
         <div className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-[#0AC8B9] rounded-full blur-[120px] opacity-20 animate-pulse" style={{ animationDelay: '1s' }} />
 
         {/* Content - Centered and Simplified */}
-        <div className="relative z-10 flex flex-col items-center justify-center px-4 sm:px-6 gap-4 sm:gap-5">
-          
+        <div
+        className="relative z-10 w-full max-w-4xl flex flex-col items-center px-4 sm:px-6 gap-4 sm:gap-5"
+        style={{
+          width: "90vw",
+          paddingTop: "10%",
+        }}
+        >
+
           {/* Logo */}
           <motion.div
             initial={{ opacity: 0, y: -20 }}
@@ -89,13 +96,13 @@ export function FinalRecapSlide({
             transition={{ duration: 0.6 }}
             className="mb-2"
           >
-            <ImageWithFallback 
+            <ImageWithFallback
               src={logoImage}
               alt="Rift Rewind Logo"
               className="w-48 sm:w-56 md:w-64 mx-auto"
             />
           </motion.div>
-          
+
           {/* Summoner Icon */}
           {summonerIconUrl && (
             <motion.div
@@ -104,7 +111,7 @@ export function FinalRecapSlide({
               transition={{ duration: 0.6, delay: 0.1 }}
               className="w-20 h-20 sm:w-24 sm:h-24 rounded-full border-4 border-[#C8AA6E] overflow-hidden bg-[#0A1428] shadow-lg shadow-[#C8AA6E]/30"
             >
-              <ImageWithFallback 
+              <ImageWithFallback
                 src={summonerIconUrl}
                 alt="Summoner Icon"
                 className="w-full h-full object-cover"
@@ -129,15 +136,20 @@ export function FinalRecapSlide({
 
           {/* Stats Grid - Expanded with more boxes */}
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-            className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3 w-full max-w-4xl"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+          className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3 w-full max-w-4xl overflow-y-auto"
+          style={{
+            maxHeight: "50vh",
+          WebkitOverflowScrolling: "touch",
+          }}
           >
+
             {/* Hours Played */}
             <div className="bg-[#0A1428]/60 backdrop-blur-sm border border-[#0AC8B9]/30 p-3 sm:p-4 text-center rounded-sm">
               <div className="text-2xl sm:text-3xl text-[#0AC8B9] mb-1 tabular-nums" style={{ fontFamily: 'Georgia, serif' }}>
-                {highlightStats.hoursPlayed}
+                {Math.trunc(highlightStats.hoursPlayed)}
               </div>
               <div className="text-xs text-[#A09B8C] uppercase tracking-wider">Hours</div>
             </div>
@@ -212,7 +224,7 @@ export function FinalRecapSlide({
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.7 }}
-            className="flex flex-col sm:flex-row gap-3 items-center justify-center mt-2"
+            className="flex flex-row sm:flex-row gap-3 items-center justify-center mt-2"
           >
             <motion.button
               onClick={handleShare}
