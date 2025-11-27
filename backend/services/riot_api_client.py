@@ -574,15 +574,15 @@ class RiotAPIClient:
     @classmethod
     def get_profile_icon_url(cls, profile_icon_id: int) -> str:
         """
-        Build Data Dragon profile icon URL from profile icon ID.
+        Build profile icon URL using Community Dragon CDN (more reliable than Data Dragon).
         
         Args:
             profile_icon_id: Profile icon ID from summoner data
             
         Returns:
-            Full URL to profile icon PNG
+            Full URL to profile icon JPG
         """
-        from .constants import DATA_DRAGON_PROFILE_ICON
-        
-        version = cls.get_data_dragon_version()
-        return DATA_DRAGON_PROFILE_ICON.format(version=version, icon_id=profile_icon_id)
+        # Use Community Dragon CDN - more reliable and doesn't require version
+        # Falls back to latest version automatically, no 403 errors
+        return f"https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/profile-icons/{profile_icon_id}.jpg"
+

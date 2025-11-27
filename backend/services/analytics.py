@@ -832,7 +832,7 @@ class RiftRewindAnalytics:
             gold = player_stats.get('goldEarned', 0)
             
             # Game duration in minutes
-            duration_seconds = match.get('gameDuration', 0)
+            duration_seconds = match.get('info', {}).get('gameDuration', 0)
             duration_minutes = duration_seconds / 60
             
             total_cs += cs

@@ -116,6 +116,20 @@ def lambda_handler(event: Dict[str, Any], context: Any):
         analytics_engine = RiftRewindAnalytics(raw_data)
         analytics = analytics_engine.calculate_all()
 
+        # This preserves profile icon and other player data after raw_data cleanup
+        from services.riot_api_client import RiotAPIClient
+        profile_icon_id = raw_data.get('summoner', {}).get('profileIconId')
+        profile_icon_url = RiotAPIClient.get_profile_icon_url(profile_icon_id) if profile_icon_id else None
+        
+        analytics['playerInfo'] = {
+            'gameName': raw_data.get('account', {}).get('gameName'),
+            'tagLine': raw_data.get('account', {}).get('tagLine'),
+            'region': region,
+            'summonerLevel': raw_data.get('summoner', {}).get('summonerLevel'),
+            'profileIconId': profile_icon_id,
+            'profileIconUrl': profile_icon_url
+        }
+
         # Upload analytics to S3
         analytics_key = f"sessions/{session_id}/analytics.json"
         upload_to_s3(analytics_key, analytics)
@@ -130,6 +144,7 @@ def lambda_handler(event: Dict[str, Any], context: Any):
                 logger.warning(f' Could not delete raw_data.json: {raw_key}')
         except Exception as e:
             logger.warning(f' Failed to delete raw_data.json: {e}')
+
 
 
         # Update status

@@ -560,20 +560,8 @@ class RiftRewindAPI:
             
             # Merge humor into analytics
             analytics.update(humor_data)
-            
-            # Download player info (created during session creation)
-            player_info = {}
-            raw_data_str = download_from_s3(f"sessions/{session_id}/raw_data.json")
-            if raw_data_str:
-                raw_data = json.loads(raw_data_str)
-                summoner = raw_data.get('summoner', {})
-                account = raw_data.get('account', {})
-                player_info = {
-                    'gameName': account.get('gameName', ''),
-                    'tagLine': account.get('tagLine', ''),
-                    'summonerLevel': summoner.get('summonerLevel', 0),
-                    'profileIconId': summoner.get('profileIconId', 0)
-                }
+            # Get player info from analytics (stored there by processor)
+            player_info = analytics.get('playerInfo', {})
             
             return self.create_response(200, {
                 'sessionId': session_id,
@@ -637,13 +625,19 @@ class RiftRewindAPI:
             slide_data = {}
             
             if slide_number == 1:
-                # Player details from raw data
-                raw_data_str = download_from_s3(f"sessions/{session_id}/raw_data.json")
-                raw_data = json.loads(raw_data_str) if raw_data_str else {}
+                # Player details from analytics (raw_data is deleted after processing)
+                player_info = analytics.get('playerInfo', {})
                 slide_data = {
-                    'account': raw_data.get('account', {}),
-                    'summoner': raw_data.get('summoner', {}),
-                    'ranked': raw_data.get('ranked', {})
+                    'account': {
+                        'gameName': player_info.get('gameName'),
+                        'tagLine': player_info.get('tagLine')
+                    },
+                    'summoner': {
+                        'summonerLevel': player_info.get('summonerLevel'),
+                        'profileIconId': player_info.get('profileIconId'),
+                        'profileIconUrl': player_info.get('profileIconUrl')
+                    },
+                    'ranked': analytics.get('slide6_rankedJourney', {})
                 }
             elif slide_number == 15:
                 # Final recap uses multiple analytics
