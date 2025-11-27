@@ -187,6 +187,25 @@ Frontend hosting (Amplify)
 
 - Push the frontend changes (Vite build) to the repository connected to Amplify. Configure build settings to run `npm install` and `npm run build`, with publish directory `dist`.
 
+## Amplify.yml configuration
+```version: 1
+frontend:
+  phases:
+    preBuild:
+      commands:
+        - echo "Starting Build"
+    build:
+      commands:
+        - cd frontend && npm ci && npm run build
+  artifacts:
+    baseDirectory: frontend/build
+    files:
+      - "**/*"
+  cache:
+    paths:
+      - node_modules/**/*
+```
+
 Troubleshooting notes
 
 - If orchestrator returns cached results with zeros for match counts: check `cache/users/{safe_name}/metadata.json` in S3 to see what was saved and check processor logs for `No matches in raw_data - fetching match history` messages.
