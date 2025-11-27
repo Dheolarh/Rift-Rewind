@@ -32,7 +32,7 @@ export default function App() {
   const [loadingStatus, setLoadingStatus] = useState<'searching' | 'found' | 'analyzing' | 'caching'>('searching');
   const [isMusicPlaying, setIsMusicPlaying] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
-  
+
   // Backend integration state
   const [_sessionId, setSessionId] = useState<string>("");  // Kept for potential future use
   const [sessionData, setSessionData] = useState<any>(null);
@@ -42,10 +42,10 @@ export default function App() {
   const [showErrorModal, setShowErrorModal] = useState(false);
 
   const [showHumorPhase, setShowHumorPhase] = useState(false);
-  
+
   // Audio ref for background music
   const audioRef = useRef<HTMLAudioElement>(null);
-  
+
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
@@ -60,13 +60,13 @@ export default function App() {
       audio.pause();
     }
   }, [isMusicPlaying]);
-  
+
   const slidesWithHumor = [4, 6, 8];
   const currentSlideHasHumor = slidesWithHumor.includes(currentSlide);
 
   useEffect(() => {
     if (!hasStarted || currentSlide === 0 || currentSlide === 1 || currentSlide === 14 || isPaused) return;
-    
+
     const timer = setTimeout(() => {
       if (currentSlide < 14) {
         if (currentSlideHasHumor && !showHumorPhase) {
@@ -85,7 +85,7 @@ export default function App() {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (!hasStarted || isLoading) return;
-      
+
       if (e.key === "ArrowRight" && currentSlide < 17) {
         setCurrentSlide(prev => prev + 1);
       } else if (e.key === "ArrowLeft" && currentSlide > 1) {
@@ -103,8 +103,8 @@ export default function App() {
     setLoadingError("");
     setIsAnalysisComplete(false);
     setLoadingStatus('searching');
-    setCurrentSlide(1); 
-    
+    setCurrentSlide(1);
+
     // Start music when beginning the rewind
     setIsMusicPlaying(true);
     if (audioRef.current) {
@@ -112,7 +112,7 @@ export default function App() {
         console.error("Error starting music:", error);
       });
     }
-    
+
     try {
       // Call backend API to start rewind
       const response = await api.startRewind({
@@ -135,21 +135,21 @@ export default function App() {
         setLoadingStatus('searching');
         return;
       }
-      
+
       // Player found! API returned successfully
-  setSessionId(response.sessionId);
+      setSessionId(response.sessionId);
       if (response.player) {
         setPlayerInfo(response.player);
       }
-      
+
       setLoadingStatus('found');
-      
+
       await new Promise(resolve => setTimeout(resolve, 1500));
-      
+
       setLoadingStatus('analyzing')
       const session = await api.waitForComplete(
         response.sessionId,
-        () => {}
+        () => { }
       );
 
       // Store analytics
@@ -165,11 +165,11 @@ export default function App() {
       };
 
       setPlayerInfo(resolvedPlayer);
-      
-      setLoadingStatus('caching'); 
-      await preloadAllImages(session.analytics, () => {});
+
+      setLoadingStatus('caching');
+      await preloadAllImages(session.analytics, () => { });
       setIsAnalysisComplete(true);
-      
+
     } catch (error) {
       console.error('Error starting rewind:', error);
       if (error instanceof APIError) {
@@ -177,14 +177,14 @@ export default function App() {
       } else {
         setLoadingError('Failed to connect to server. Please try again.');
       }
-      setShowErrorModal(true); 
+      setShowErrorModal(true);
     }
   };
 
   const handleLoadingComplete = () => {
     if (sessionData) {
       setIsLoading(false);
-      setCurrentSlide(2); 
+      setCurrentSlide(2);
     }
   };
 
@@ -199,7 +199,7 @@ export default function App() {
     setLoadingError("");
     setIsAnalysisComplete(false);
     setSessionData(null);
-    
+
     // Restart the process
     handleStart();
   };
@@ -217,7 +217,7 @@ export default function App() {
     setLoadingStatus('searching');
     setIsAnalysisComplete(false);
     setSessionData(null);
-    setIsMusicPlaying(false); 
+    setIsMusicPlaying(false);
   };
 
   const togglePause = () => {
@@ -298,13 +298,13 @@ export default function App() {
   return (
     <div className="size-full bg-[#010A13] overflow-hidden">
       {/* Background Music */}
-      <audio 
-        ref={audioRef} 
-        src={backgroundMusic} 
-        loop 
+      <audio
+        ref={audioRef}
+        src={backgroundMusic}
+        loop
         preload="auto"
       />
-      
+
       <AnimatePresence mode="wait">
         <motion.div
           key={currentSlide}
@@ -326,8 +326,8 @@ export default function App() {
             />
           )}
           {currentSlide === 1 && (
-            <LoadingSlide 
-              playerName={summonerName || "Summoner"} 
+            <LoadingSlide
+              playerName={summonerName || "Summoner"}
               onComplete={isAnalysisComplete ? handleLoadingComplete : undefined}
               hasError={!!loadingError}
               loadingStatus={loadingStatus}
@@ -346,20 +346,20 @@ export default function App() {
             />
           )}
           {currentSlide === 3 && sessionData && (
-            <FavoriteChampionsSlide 
-              champions={sessionData.slide3_favoriteChampions || []} 
+            <FavoriteChampionsSlide
+              champions={sessionData.slide3_favoriteChampions || []}
               aiHumor={sessionData.slide3_humor || "Looks like someone has a type!"}
             />
           )}
           {currentSlide === 4 && sessionData && sessionData.slide4_bestMatch && (
-            <BestMatchSlide 
+            <BestMatchSlide
               {...sessionData.slide4_bestMatch}
               aiHumor={sessionData.slide4_humor || "This match was so epic, even the enemy team was probably cheering for you! 🎭"}
               showHumor={showHumorPhase}
             />
           )}
           {currentSlide === 5 && sessionData && sessionData.slide5_kda && (
-            <KDAOverviewSlide 
+            <KDAOverviewSlide
               averageKDA={sessionData.slide5_kda.kdaRatio}
               totalKills={sessionData.slide5_kda.totalKills}
               totalDeaths={sessionData.slide5_kda.totalDeaths}
@@ -368,46 +368,46 @@ export default function App() {
             />
           )}
           {currentSlide === 6 && sessionData && sessionData.slide6_rankedJourney && (
-            <RankedJourneySlide 
+            <RankedJourneySlide
               {...sessionData.slide6_rankedJourney}
               aiHumor={sessionData.slide6_humor || "You climbed more ranks than a chess grandmaster... but with way more rage quits! ♟️😤"}
               showHumor={showHumorPhase}
             />
           )}
           {currentSlide === 7 && sessionData && sessionData.slide7_visionScore && (
-            <VisionSlide 
+            <VisionSlide
               {...sessionData.slide7_visionScore}
               aiHumor={sessionData.slide7_humor || "You've placed more wards than a hospital has patients! 🏥"}
             />
           )}
           {currentSlide === 8 && sessionData && sessionData.slide8_championPool && (
-            <ChampionPoolSlide 
+            <ChampionPoolSlide
               {...sessionData.slide8_championPool}
               aiHumor={sessionData.slide8_humor || "Talk about champion diversity! You're basically a one-person champion ocean. 🌊"}
               showHumor={showHumorPhase}
             />
           )}
           {currentSlide === 9 && sessionData && sessionData.slide9_duoPartner && (
-            <DuoPartnerSlide 
+            <DuoPartnerSlide
               {...sessionData.slide9_duoPartner}
               playerName={displayName}
               aiHumor={sessionData.slide9_humor || "You two are like peanut butter and jelly... if jelly could flash-ult and secure pentas! 🥜✨"}
             />
           )}
           {currentSlide === 10 && (
-            <StrengthsSlide 
-              strengths={sessionData.slide10_11_analysis?.strengths || []} 
+            <StrengthsSlide
+              strengths={sessionData.slide10_11_analysis?.strengths || []}
               aiAnalysis={sessionData.slide10_humor || "Analyzing your gameplay strengths..."}
             />
           )}
           {currentSlide === 11 && (
-            <WeaknessesSlide 
-              weaknesses={sessionData.slide10_11_analysis?.weaknesses || []} 
+            <WeaknessesSlide
+              weaknesses={sessionData.slide10_11_analysis?.weaknesses || []}
               aiAnalysis={sessionData.slide11_humor || "Analyzing areas for improvement..."}
             />
           )}
           {currentSlide === 12 && (
-            <SocialComparisonSlide 
+            <SocialComparisonSlide
               yourRank={sessionData.slide14_percentile?.yourRank || 0}
               rankPercentile={sessionData.slide14_percentile?.rankPercentile || 50}
               leaderboard={sessionData.slide14_percentile?.leaderboard || []}
@@ -440,7 +440,7 @@ export default function App() {
                 uniqueChampions: sessionData.slide8_championPool?.uniqueChampions || 0,
                 playerLevel: playerInfo?.summonerLevel || 0,
               }}
-              profileIconId={playerInfo?.profileIconId}
+              profileIconUrl={sessionData.playerInfo?.profileIconUrl || playerInfo?.profileIconUrl}
               onRestart={handleRestart}
             />
           )}
