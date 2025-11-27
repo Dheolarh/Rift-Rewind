@@ -8,7 +8,195 @@ from typing import Dict, Any, List, Optional
 from collections import Counter, defaultdict
 from datetime import datetime, timedelta
 
+
 logger = logging.getLogger(__name__)
+
+CHAMPION_CLASSES = {
+    'Assassin': [
+        {'name': 'Akali', 'secondary': []},
+        {'name': 'Akshan', 'secondary': ['Marksman']},
+        {'name': 'Diana', 'secondary': ['Fighter']},
+        {'name': 'Ekko', 'secondary': ['Fighter']},
+        {'name': 'Evelynn', 'secondary': ['Mage']},
+        {'name': 'Fizz', 'secondary': ['Fighter']},
+        {'name': 'Kassadin', 'secondary': ['Mage']},
+        {'name': 'Katarina', 'secondary': ['Mage']},
+        {'name': 'KhaZix', 'secondary': []},
+        {'name': 'LeBlanc', 'secondary': ['Mage']},
+        {'name': 'MasterYi', 'secondary': ['Fighter']},
+        {'name': 'Naafiri', 'secondary': []},
+        {'name': 'Nidalee', 'secondary': ['Mage']},
+        {'name': 'Nocturne', 'secondary': ['Fighter']},
+        {'name': 'Pyke', 'secondary': ['Support']},
+        {'name': 'Qiyana', 'secondary': ['Fighter']},
+        {'name': 'Rengar', 'secondary': ['Fighter']},
+        {'name': 'Shaco', 'secondary': []},
+        {'name': 'Talon', 'secondary': []},
+        {'name': 'Viego', 'secondary': ['Fighter']},
+        {'name': 'Yone', 'secondary': ['Fighter']},
+        {'name': 'Zed', 'secondary': []}
+    ],
+    'Fighter': [
+        {'name': 'Aatrox', 'secondary': ['Tank']},
+        {'name': 'Ambessa', 'secondary': ['Assassin']},
+        {'name': 'BelVeth', 'secondary': []},
+        {'name': 'Briar', 'secondary': ['Assassin']},
+        {'name': 'Camille', 'secondary': ['Tank']},
+        {'name': 'Darius', 'secondary': ['Tank']},
+        {'name': 'DrMundo', 'secondary': ['Tank']},
+        {'name': 'Fiora', 'secondary': ['Assassin']},
+        {'name': 'Gangplank', 'secondary': []},
+        {'name': 'Garen', 'secondary': ['Tank']},
+        {'name': 'Gnar', 'secondary': ['Tank']},
+        {'name': 'Gragas', 'secondary': ['Mage']},
+        {'name': 'Gwen', 'secondary': ['Assassin']},
+        {'name': 'Hecarim', 'secondary': ['Tank']},
+        {'name': 'Illaoi', 'secondary': ['Tank']},
+        {'name': 'Irelia', 'secondary': ['Assassin']},
+        {'name': 'Jax', 'secondary': ['Assassin']},
+        {'name': 'Jayce', 'secondary': ['Marksman']},
+        {'name': 'Kayle', 'secondary': ['Support']},
+        {'name': 'Kayn', 'secondary': ['Assassin']},
+        {'name': 'Kled', 'secondary': ['Tank']},
+        {'name': 'LeeSin', 'secondary': ['Assassin']},
+        {'name': 'Lillia', 'secondary': ['Mage']},
+        {'name': 'Mordekaiser', 'secondary': ['Mage']},
+        {'name': 'Nasus', 'secondary': ['Tank']},
+        {'name': 'Nilah', 'secondary': ['Assassin']},
+        {'name': 'Olaf', 'secondary': ['Tank']},
+        {'name': 'Pantheon', 'secondary': ['Assassin']},
+        {'name': 'RekSai', 'secondary': ['Tank']},
+        {'name': 'Renekton', 'secondary': ['Tank']},
+        {'name': 'Riven', 'secondary': ['Assassin']},
+        {'name': 'Rumble', 'secondary': ['Mage']},
+        {'name': 'Sett', 'secondary': ['Tank']},
+        {'name': 'Shyvana', 'secondary': ['Tank']},
+        {'name': 'Skarner', 'secondary': ['Tank']},
+        {'name': 'Trundle', 'secondary': ['Tank']},
+        {'name': 'Tryndamere', 'secondary': ['Assassin']},
+        {'name': 'Udyr', 'secondary': ['Tank']},
+        {'name': 'Urgot', 'secondary': ['Tank']},
+        {'name': 'Vi', 'secondary': ['Assassin']},
+        {'name': 'Volibear', 'secondary': ['Tank']},
+        {'name': 'Warwick', 'secondary': ['Tank']},
+        {'name': 'Wukong', 'secondary': ['Tank']},
+        {'name': 'XinZhao', 'secondary': ['Assassin']},
+        {'name': 'Yasuo', 'secondary': ['Assassin']},
+        {'name': 'Yorick', 'secondary': ['Tank']}
+    ],
+    'Mage': [
+        {'name': 'Ahri', 'secondary': ['Assassin']},
+        {'name': 'Anivia', 'secondary': ['Support']},
+        {'name': 'Annie', 'secondary': ['Support']},
+        {'name': 'AurelionSol', 'secondary': []},
+        {'name': 'Aurora', 'secondary': ['Assassin']},
+        {'name': 'Azir', 'secondary': ['Marksman']},
+        {'name': 'Brand', 'secondary': []},
+        {'name': 'Cassiopeia', 'secondary': []},
+        {'name': 'Elise', 'secondary': ['Fighter']},
+        {'name': 'Fiddlesticks', 'secondary': ['Support']},
+        {'name': 'Heimerdinger', 'secondary': ['Support']},
+        {'name': 'Hwei', 'secondary': []},
+        {'name': 'Karthus', 'secondary': []},
+        {'name': 'Kennan', 'secondary': ['Marksman']},
+        {'name': 'KogMaw', 'secondary': ['Marksman']},
+        {'name': 'LeBlanc', 'secondary': ['Assassin']},
+        {'name': 'Lissandra', 'secondary': []},
+        {'name': 'Lux', 'secondary': ['Support']},
+        {'name': 'Malzahar', 'secondary': ['Assassin']},
+        {'name': 'Mel', 'secondary': []},
+        {'name': 'Morgana', 'secondary': ['Support']},
+        {'name': 'Neeko', 'secondary': ['Support']},
+        {'name': 'Orianna', 'secondary': ['Support']},
+        {'name': 'Ryze', 'secondary': ['Fighter']},
+        {'name': 'Seraphine', 'secondary': ['Support']},
+        {'name': 'Swain', 'secondary': ['Fighter']},
+        {'name': 'Sylas', 'secondary': ['Assassin']},
+        {'name': 'Syndra', 'secondary': []},
+        {'name': 'Taliyah', 'secondary': ['Support']},
+        {'name': 'TwistedFate', 'secondary': []},
+        {'name': 'Veigar', 'secondary': []},
+        {'name': 'VelKoz', 'secondary': ['Support']},
+        {'name': 'Vex', 'secondary': []},
+        {'name': 'Viktor', 'secondary': []},
+        {'name': 'Vladimir', 'secondary': ['Tank']},
+        {'name': 'Xerath', 'secondary': ['Support']},
+        {'name': 'Ziggs', 'secondary': []},
+        {'name': 'Zoe', 'secondary': ['Support']},
+        {'name': 'Zyra', 'secondary': ['Support']}
+    ],
+    'Marksman': [
+        {'name': 'Aphelios', 'secondary': []},
+        {'name': 'Ashe', 'secondary': ['Support']},
+        {'name': 'Caitlyn', 'secondary': []},
+        {'name': 'Corki', 'secondary': []},
+        {'name': 'Draven', 'secondary': []},
+        {'name': 'Ezreal', 'secondary': ['Mage']},
+        {'name': 'Graves', 'secondary': []},
+        {'name': 'Jhin', 'secondary': ['Mage']},
+        {'name': 'Jinx', 'secondary': []},
+        {'name': 'KaiSa', 'secondary': ['Assassin']},
+        {'name': 'Kalista', 'secondary': []},
+        {'name': 'Kindred', 'secondary': []},
+        {'name': 'Lucian', 'secondary': []},
+        {'name': 'MissFortune', 'secondary': []},
+        {'name': 'Quinn', 'secondary': ['Assassin']},
+        {'name': 'Samira', 'secondary': []},
+        {'name': 'Senna', 'secondary': ['Support']},
+        {'name': 'Sivir', 'secondary': []},
+        {'name': 'Smolder', 'secondary': []},
+        {'name': 'Teemo', 'secondary': ['Assassin']},
+        {'name': 'Tristana', 'secondary': ['Assassin']},
+        {'name': 'Twitch', 'secondary': ['Assassin']},
+        {'name': 'Varus', 'secondary': ['Mage']},
+        {'name': 'Vayne', 'secondary': ['Assassin']},
+        {'name': 'Xayah', 'secondary': []},
+        {'name': 'Zeri', 'secondary': []}
+    ],
+    'Support': [
+        {'name': 'Bard', 'secondary': ['Mage']},
+        {'name': 'Braum', 'secondary': ['Tank']},
+        {'name': 'Ivern', 'secondary': ['Mage']},
+        {'name': 'Janna', 'secondary': ['Mage']},
+        {'name': 'Karma', 'secondary': ['Mage']},
+        {'name': 'Lulu', 'secondary': ['Mage']},
+        {'name': 'Milio', 'secondary': ['Mage']},
+        {'name': 'Nami', 'secondary': ['Mage']},
+        {'name': 'Rakan', 'secondary': []},
+        {'name': 'Renata', 'secondary': ['Mage']},
+        {'name': 'Sona', 'secondary': ['Mage']},
+        {'name': 'Soraka', 'secondary': ['Mage']},
+        {'name': 'TahmKench', 'secondary': ['Tank']},
+        {'name': 'Taric', 'secondary': ['Fighter']},
+        {'name': 'Thresh', 'secondary': ['Fighter']},
+        {'name': 'Yuumi', 'secondary': ['Mage']},
+        {'name': 'Zilean', 'secondary': ['Mage']}
+    ],
+    'Tank': [
+        {'name': 'Alistar', 'secondary': ['Support']},
+        {'name': 'Amumu', 'secondary': ['Mage']},
+        {'name': 'Blitzcrank', 'secondary': ['Fighter']},
+        {'name': 'ChoGath', 'secondary': ['Mage']},
+        {'name': 'Galio', 'secondary': ['Mage']},
+        {'name': 'JarvanIV', 'secondary': ['Fighter']},
+        {'name': 'KSante', 'secondary': ['Fighter']},
+        {'name': 'Leona', 'secondary': ['Support']},
+        {'name': 'Malphite', 'secondary': ['Fighter']},
+        {'name': 'Maokai', 'secondary': ['Mage']},
+        {'name': 'Nautilus', 'secondary': ['Fighter']},
+        {'name': 'Nunu', 'secondary': ['Fighter']},
+        {'name': 'Ornn', 'secondary': ['Fighter']},
+        {'name': 'Poppy', 'secondary': ['Fighter']},
+        {'name': 'Rammus', 'secondary': ['Fighter']},
+        {'name': 'Rell', 'secondary': ['Support']},
+        {'name': 'Sejuani', 'secondary': ['Fighter']},
+        {'name': 'Shen', 'secondary': ['Fighter']},
+        {'name': 'Singed', 'secondary': ['Fighter']},
+        {'name': 'Sion', 'secondary': ['Fighter']},
+        {'name': 'Zac', 'secondary': ['Fighter']}
+    ]
+}
+
 
 
 class RiftRewindAnalytics:
@@ -386,7 +574,283 @@ class RiftRewindAnalytics:
             'playerProfileIconUrl': player_profile_icon_url
         }
     
-    # Slide 10-11: Strengths & Weaknesses (prepared for AI analysis)
+    # Slide 10-11: Strengths & Weaknesses (Advanced Pattern Analysis)
+    def analyze_champion_patterns(self) -> Dict[str, Any]:
+        """
+        Analyze champion performance patterns (Best, Worst, Feeder).
+        """
+        champ_stats = defaultdict(lambda: {'games': 0, 'wins': 0, 'deaths': 0})
+        
+        for match in self.matches:
+            stats = self._get_participant_stats(match)
+            if not stats: continue
+            
+            name = stats.get('championName', 'Unknown')
+            champ_stats[name]['games'] += 1
+            champ_stats[name]['deaths'] += stats.get('deaths', 0)
+            if stats.get('win'):
+                champ_stats[name]['wins'] += 1
+        
+        # Filter for champs with min 3 games for meaningful patterns
+        significant_champs = {k: v for k, v in champ_stats.items() if v['games'] >= 3}
+        if not significant_champs:
+            significant_champs = champ_stats # Fallback
+            
+        # Calculate rates
+        patterns = []
+        for name, data in significant_champs.items():
+            wr = (data['wins'] / data['games']) * 100
+            avg_deaths = data['deaths'] / data['games']
+            patterns.append({
+                'name': name,
+                'winRate': wr,
+                'avgDeaths': avg_deaths,
+                'games': data['games']
+            })
+            
+        # Sorts
+        best_wr = sorted(patterns, key=lambda x: x['winRate'], reverse=True)
+        worst_wr = sorted(patterns, key=lambda x: x['winRate'])
+        most_deaths = sorted(patterns, key=lambda x: x['avgDeaths'], reverse=True)
+        
+        return {
+            'highestWinRate': best_wr[0] if best_wr else None,
+            'lowestWinRate': worst_wr[0] if worst_wr else None,
+            'highestDeathAvg': most_deaths[0] if most_deaths else None
+        }
+
+    def analyze_class_performance(self) -> Dict[str, Any]:
+        """
+        Analyze performance by champion class (Mage, Fighter, etc).
+        """
+        class_stats = defaultdict(lambda: {'games': 0, 'wins': 0})
+        
+        # Reverse lookup map
+        champ_to_class = {}
+        for cls, champs in CHAMPION_CLASSES.items():
+            for c in champs:
+                champ_to_class[c['name']] = cls
+        
+        for match in self.matches:
+            stats = self._get_participant_stats(match)
+            if not stats: continue
+            
+            name = stats.get('championName')
+            # Default to Fighter if unknown, or check secondary logic later
+            primary_class = champ_to_class.get(name, 'Unknown')
+            
+            if primary_class != 'Unknown':
+                class_stats[primary_class]['games'] += 1
+                if stats.get('win'):
+                    class_stats[primary_class]['wins'] += 1
+        
+        results = []
+        for cls, data in class_stats.items():
+            if data['games'] > 0:
+                results.append({
+                    'class': cls,
+                    'games': data['games'],
+                    'winRate': round((data['wins'] / data['games']) * 100, 1)
+                })
+        
+        results.sort(key=lambda x: x['winRate'], reverse=True)
+        return {
+            'bestClass': results[0] if results else None,
+            'worstClass': results[-1] if results else None,
+            'allClasses': results
+        }
+
+    def calculate_playstyle_metrics(self) -> Dict[str, Any]:
+        """
+        Calculate advanced playstyle metrics (KP, Dmg Share, etc).
+        """
+        total_kp = 0
+        total_dmg_share = 0
+        total_gold_share = 0
+        games = 0
+        
+        wins_stats = {'kp': 0, 'dmg': 0, 'deaths': 0, 'count': 0}
+        loss_stats = {'kp': 0, 'dmg': 0, 'deaths': 0, 'count': 0}
+        
+        for match in self.matches:
+            stats = self._get_participant_stats(match)
+            if not stats: continue
+            
+            # Team totals
+            team_id = stats.get('teamId')
+            team_kills = 0
+            team_dmg = 0
+            team_gold = 0
+            
+            for p in match.get('info', {}).get('participants', []):
+                if p.get('teamId') == team_id:
+                    team_kills += p.get('kills', 0)
+                    team_dmg += p.get('totalDamageDealtToChampions', 0)
+                    team_gold += p.get('goldEarned', 0)
+            
+            # Player stats
+            kills = stats.get('kills', 0)
+            assists = stats.get('assists', 0)
+            deaths = stats.get('deaths', 0)
+            dmg = stats.get('totalDamageDealtToChampions', 0)
+            gold = stats.get('goldEarned', 0)
+            won = stats.get('win', False)
+            
+            # Metrics
+            kp = ((kills + assists) / team_kills) if team_kills > 0 else 0
+            dmg_share = (dmg / team_dmg) if team_dmg > 0 else 0
+            gold_share = (gold / team_gold) if team_gold > 0 else 0
+            
+            total_kp += kp
+            total_dmg_share += dmg_share
+            total_gold_share += gold_share
+            games += 1
+            
+            # Win/Loss Splits
+            target = wins_stats if won else loss_stats
+            target['kp'] += kp
+            target['dmg'] += dmg_share
+            target['deaths'] += deaths
+            target['count'] += 1
+            
+        def get_avg(source, key):
+            return round((source[key] / source['count']) * 100, 1) if source['count'] > 0 else 0
+            
+        return {
+            'avgKP': round((total_kp / games) * 100, 1) if games > 0 else 0,
+            'avgDmgShare': round((total_dmg_share / games) * 100, 1) if games > 0 else 0,
+            'avgGoldShare': round((total_gold_share / games) * 100, 1) if games > 0 else 0,
+            'winStats': {
+                'kp': get_avg(wins_stats, 'kp'),
+                'dmgShare': get_avg(wins_stats, 'dmg'),
+                'avgDeaths': round(wins_stats['deaths'] / wins_stats['count'], 1) if wins_stats['count'] > 0 else 0
+            },
+            'lossStats': {
+                'kp': get_avg(loss_stats, 'kp'),
+                'dmgShare': get_avg(loss_stats, 'dmg'),
+                'avgDeaths': round(loss_stats['deaths'] / loss_stats['count'], 1) if loss_stats['count'] > 0 else 0
+            }
+        }
+    
+    def calculate_objective_control(self) -> Dict[str, Any]:
+        """
+        Calculate player's objective control metrics.
+        Measures participation in dragons, barons, and tower damage.
+        
+        Returns:
+            Dict with objective participation rates and damage shares
+        """
+        if not self.matches:
+            return {
+                'dragonParticipation': 0,
+                'baronParticipation': 0,
+                'towerDamageShare': 0,
+                'avgTowerDamage': 0
+            }
+        
+        total_dragons = 0
+        player_dragons = 0
+        total_barons = 0
+        player_barons = 0
+        total_tower_damage = 0
+        team_tower_damage = 0
+        
+        for match in self.matches:
+            player_stats = self._get_participant_stats(match)
+            if not player_stats:
+                continue
+            
+            # Dragon participation (using objectives from match timeline if available)
+            # Note: dragonKills is team stat, we approximate participation
+            team_dragons = player_stats.get('dragonKills', 0)
+            total_dragons += team_dragons
+            # Assume player participated if they were in the game (alive > 50% of time)
+            if player_stats.get('timePlayed', 0) > match.get('gameDuration', 0) * 0.5:
+                player_dragons += team_dragons
+            
+            # Baron participation
+            team_barons = player_stats.get('baronKills', 0)
+            total_barons += team_barons
+            if player_stats.get('timePlayed', 0) > match.get('gameDuration', 0) * 0.5:
+                player_barons += team_barons
+            
+            # Tower damage
+            player_tower_dmg = player_stats.get('damageDealtToTurrets', 0)
+            total_tower_damage += player_tower_dmg
+            
+            # Calculate team tower damage
+            team_id = player_stats.get('teamId')
+            team_total = 0
+            for participant in match.get('participants', []):
+                if participant.get('teamId') == team_id:
+                    team_total += participant.get('damageDealtToTurrets', 0)
+            team_tower_damage += team_total if team_total > 0 else 1  # Avoid division by zero
+        
+        dragon_participation = round((player_dragons / total_dragons * 100), 1) if total_dragons > 0 else 0
+        baron_participation = round((player_barons / total_barons * 100), 1) if total_barons > 0 else 0
+        tower_damage_share = round((total_tower_damage / team_tower_damage * 100), 1) if team_tower_damage > 0 else 0
+        avg_tower_damage = round(total_tower_damage / len(self.matches))
+        
+        return {
+            'dragonParticipation': dragon_participation,
+            'baronParticipation': baron_participation,
+            'towerDamageShare': tower_damage_share,
+            'avgTowerDamage': avg_tower_damage
+        }
+    
+    def calculate_cs_efficiency(self) -> Dict[str, Any]:
+        """
+        Calculate player's CS (Creep Score) efficiency metrics.
+        Measures farming efficiency, gold generation, and resource conversion.
+        
+        Returns:
+            Dict with CS/min, GPM, and efficiency ratios
+        """
+        if not self.matches:
+            return {
+                'csPerMin': 0,
+                'goldPerMin': 0,
+                'avgCS': 0,
+                'avgGold': 0
+            }
+        
+        total_cs = 0
+        total_gold = 0
+        total_minutes = 0
+        
+        for match in self.matches:
+            player_stats = self._get_participant_stats(match)
+            if not player_stats:
+                continue
+            
+            # CS = minions + neutral minions (jungle camps)
+            minions = player_stats.get('totalMinionsKilled', 0)
+            jungle = player_stats.get('neutralMinionsKilled', 0)
+            cs = minions + jungle
+            
+            # Gold earned
+            gold = player_stats.get('goldEarned', 0)
+            
+            # Game duration in minutes
+            duration_seconds = match.get('gameDuration', 0)
+            duration_minutes = duration_seconds / 60
+            
+            total_cs += cs
+            total_gold += gold
+            total_minutes += duration_minutes
+        
+        cs_per_min = round(total_cs / total_minutes, 1) if total_minutes > 0 else 0
+        gold_per_min = round(total_gold / total_minutes) if total_minutes > 0 else 0
+        avg_cs = round(total_cs / len(self.matches))
+        avg_gold = round(total_gold / len(self.matches))
+        
+        return {
+            'csPerMin': cs_per_min,
+            'goldPerMin': gold_per_min,
+            'avgCS': avg_cs,
+            'avgGold': avg_gold
+        }
+
     def detect_strengths_weaknesses(self) -> Dict[str, Any]:
         """
         Prepare comprehensive data for AI-powered strength/weakness analysis.
@@ -401,6 +865,14 @@ class RiftRewindAnalytics:
         ranked_stats = self.get_ranked_journey()
         top_champs = self.get_favorite_champions()
         
+        # New Advanced Analytics
+        patterns = self.analyze_champion_patterns()
+        classes = self.analyze_class_performance()
+        playstyle = self.calculate_playstyle_metrics()
+        duo = self.find_duo_partner()
+        objectives = self.calculate_objective_control()
+        farming = self.calculate_cs_efficiency()
+        
         # Prepare comprehensive stats for AI prompt
         ai_context = {
             # Combat stats
@@ -408,8 +880,6 @@ class RiftRewindAnalytics:
             'avgKills': kda_stats['avgKills'],
             'avgDeaths': kda_stats['avgDeaths'],
             'avgAssists': kda_stats['avgAssists'],
-            'totalKills': kda_stats['totalKills'],
-            'totalDeaths': kda_stats['totalDeaths'],
             
             # Vision stats
             'avgVisionScore': vision_stats['avgVisionScore'],
@@ -418,35 +888,28 @@ class RiftRewindAnalytics:
             
             # Game stats
             'totalGames': time_stats['totalGames'],
-            'totalHours': time_stats['totalHours'],
-            'avgGameLength': time_stats['avgGameLength'],
             'winRate': self._calculate_win_rate(),
             
             # Ranked stats
             'currentTier': ranked_stats.get('tier', 'UNRANKED'),
-            'currentDivision': ranked_stats.get('division', ''),
-            'currentLP': ranked_stats.get('lp', 0),
             
-            # Champion pool
-            'topChampions': top_champs[:3],
-            'championPoolSize': len(self.analyze_champion_pool().get('championList', [])),
-            
-            # Performance indicators for AI to analyze
-            'performanceMetrics': {
-                'kda_performance': 'excellent' if kda_stats['kdaRatio'] > 3.0 else 'poor' if kda_stats['kdaRatio'] < 1.5 else 'average',
-                'vision_performance': 'excellent' if vision_stats['avgVisionScore'] > 30 else 'poor' if vision_stats['avgVisionScore'] < 15 else 'average',
-                'death_control': 'excellent' if kda_stats['avgDeaths'] < 4 else 'poor' if kda_stats['avgDeaths'] > 7 else 'average',
-                'ward_placement': 'excellent' if vision_stats['avgWardsPlaced'] > 20 else 'poor' if vision_stats['avgWardsPlaced'] < 10 else 'average',
-                'champion_diversity': 'excellent' if len(self.analyze_champion_pool().get('championList', [])) > 15 else 'poor' if len(self.analyze_champion_pool().get('championList', [])) < 5 else 'average',
-                'death_rate_severity': 'critical' if kda_stats['avgDeaths'] > 8 else 'concerning' if kda_stats['avgDeaths'] > 6 else 'acceptable',
-                'consistency': 'inconsistent' if abs(kda_stats['kdaRatio'] - 2.0) > 1.5 else 'stable',
-            }
+            # Advanced Patterns (The "Why" Factor)
+            'championPatterns': patterns,
+            'classPerformance': classes,
+            'playstyle': playstyle,
+            'duoStats': {
+                'partner': duo.get('partnerName', 'None') if duo else 'None',
+                'gamesWithDuo': duo.get('gamesTogether', 0) if duo else 0,
+                'winRateWithDuo': duo.get('winRate', 0) if duo else 0
+            },
+            'objectiveControl': objectives,
+            'farming': farming
         }
         
         # Return placeholder + AI context
         return {
-            'strengths': [],
-            'weaknesses': [],
+            'strength': 'Consistent Player',
+            'weakness': 'Room for Growth',
             'aiContext': ai_context,
             'needsAIProcessing': True  # Flag for orchestrator to invoke insights Lambda
         }

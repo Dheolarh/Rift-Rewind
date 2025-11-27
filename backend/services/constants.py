@@ -103,18 +103,15 @@ RIOT_API_RATE_LIMIT_PER_2_MINUTES = 100  # Development key limit
 # AWS Configuration (loaded from environment variables)
 import os
 
-# Note: AWS_REGION is reserved in Lambda, use AWS_DEFAULT_REGION or detect from context
 AWS_DEFAULT_REGION = os.getenv("AWS_DEFAULT_REGION", "us-east-1")
 S3_BUCKET_NAME = os.getenv("S3_BUCKET_NAME", "rift-rewind-sessions")
 BEDROCK_MODEL_ID = os.getenv("BEDROCK_MODEL_ID", "anthropic.claude-3-sonnet-20240229-v1:0")
-SAGEMAKER_ENDPOINT_NAME = os.getenv("SAGEMAKER_ENDPOINT_NAME", "rift-rewind-insights")  # Optional
 
 # Session configuration
 SESSION_EXPIRY_HOURS = 24
 MAX_MATCHES_TO_FETCH = 100
 
 # 2025 Year in Review - Track matches from January 1, 2025
-# Using a fixed date ensures consistent data for year-in-review
 SEASON_14_START_TIMESTAMP = 1735689600  # January 1, 2025, 00:00:00 UTC
 
 # Rank percentiles (approximate global distribution)

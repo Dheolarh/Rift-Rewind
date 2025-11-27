@@ -527,17 +527,36 @@ class RiftRewindAPI:
             
             # Download all humor data
             humor_data = {}
-            for slide_num in range(2, 16):  # Slides 2-15 have humor
+            for slide_num in range(2, 17):  # Slides 2-16 have humor (16 is Player Title)
                 humor_str = download_from_s3(f"sessions/{session_id}/humor/slide_{slide_num}.json")
                 if humor_str:
                     humor_json = json.loads(humor_str)
                     humor_text = humor_json.get('humorText', '')
+                    headline = humor_json.get('headline')
                     
                     # Slide 15 is the farewell message, store it differently
                     if slide_num == 15:
                         humor_data['slide15_farewell'] = humor_text
+                    elif slide_num == 16:
+                        # Slide 16 is the Player Title
+                        if 'slide10_11_analysis' not in analytics:
+                            analytics['slide10_11_analysis'] = {}
+                        # Use headline if available, otherwise humorText, with fallback
+                        title = headline or humor_text or 'The Rising Summoner'
+                        analytics['slide10_11_analysis']['personality_title'] = title
                     else:
                         humor_data[f"slide{slide_num}_humor"] = humor_text
+                    
+                    # Inject AI-generated headline into analytics if present (for Strengths/Weaknesses)
+                    if headline and slide_num in (10, 11):
+                        if slide_num == 10: # Strengths
+                            if 'slide10_11_analysis' not in analytics:
+                                analytics['slide10_11_analysis'] = {}
+                            analytics['slide10_11_analysis']['strengths'] = [headline]
+                        elif slide_num == 11: # Weaknesses
+                            if 'slide10_11_analysis' not in analytics:
+                                analytics['slide10_11_analysis'] = {}
+                            analytics['slide10_11_analysis']['weaknesses'] = [headline]
             
             # Merge humor into analytics
             analytics.update(humor_data)
@@ -645,6 +664,14 @@ class RiftRewindAPI:
                 if humor_str:
                     humor_data = json.loads(humor_str)
                     humor_text = humor_data.get('humorText')
+                    headline = humor_data.get('headline')
+                    
+                    # Inject AI-generated headline into slide data if present
+                    if headline:
+                        if slide_number == 10: # Strengths
+                            slide_data['strengths'] = [headline]
+                        elif slide_number == 11: # Weaknesses
+                            slide_data['weaknesses'] = [headline]
             
             return self.create_response(200, {
                 'sessionId': session_id,

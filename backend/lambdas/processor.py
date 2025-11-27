@@ -120,6 +120,17 @@ def lambda_handler(event: Dict[str, Any], context: Any):
         analytics_key = f"sessions/{session_id}/analytics.json"
         upload_to_s3(analytics_key, analytics)
         logger.info(' Analytics uploaded to S3')
+        
+        # Clean up raw_data.json to optimize storage (saves ~8-10 MB per session)
+        try:
+            from services.aws_clients import delete_from_s3
+            if delete_from_s3(raw_key):
+                logger.info(f' Deleted raw_data.json to optimize storage (saved ~8-10 MB)')
+            else:
+                logger.warning(f' Could not delete raw_data.json: {raw_key}')
+        except Exception as e:
+            logger.warning(f' Failed to delete raw_data.json: {e}')
+
 
         # Update status
         _update_session_status(session_id, 'generating', 'Generating personalized insights...')

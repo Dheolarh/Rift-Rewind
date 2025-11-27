@@ -10,7 +10,7 @@ Summary of the Lambda functions to create
 
 - Function name: rewind.processor
 	- Handler: `lambdas.processor.lambda_handler`
-	- Purpose: download `raw_data.json`, fetch matches if needed, run analytics, call Bedrock to generate humor/insights, upload `analytics.json` and per-slide humor to S3, write cache and status updates.
+	- Purpose: fetch matches if needed, run analytics, call Bedrock to generate humor/insights, upload `analytics.json` and per-slide humor to S3, write cache and status updates.
 
 Note: The handler module paths above (lambdas.orchestrator / lambdas.processor) should match how you package the `backend` code into the Lambda zip. If you package using the `backend/` root as the module root, the `lambdas` package should be available in the zip and the handlers will resolve correctly.
 

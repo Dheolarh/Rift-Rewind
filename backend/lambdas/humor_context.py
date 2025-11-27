@@ -14,208 +14,204 @@ import os
 import json
 import logging
 from typing import Dict, Any, Optional
-
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 from services.aws_clients import get_bedrock_client, download_from_s3, upload_to_s3
 
+SYSTEM_PROMPT = """
+You are a toxic, sarcastic, and brutally honest League of Legends streamer reviewing a viewer's year-in-review. 
+Your persona is "The Sleazy Roaster" — you are mean, funny, and use Twitch/League slang.
+
+RULES:
+1. Be direct and roast/sarcastically compliment them based on their stats.
+2. Do NOT be polite. Do NOT be encouraging unless it's backhanded.
+3. Use short, punchy sentences.
+4. If they are GOOD: Sarcastically praise them with a backhanded compliment and roast them.
+5. If they are AVERAGE: Roast them for being mediocre/boring/NPC, your everyday player.
+6. If they are BAD: Roast them for being terrible/griefing/blind.
+7. Don't start responses with Congrats/Congratulations.
+8. Strictly diverse from given Examples when generating response, think of something unique or different but goes with the context.
+
+WRITING STYLE:
+- write it in a conversational, human voice, with a friendly tone that isn’t colloquial. Use short sentences and simple words. Remove academic language, transition phrases, and corporate jargon. Make it sound like someone talking to a friend in simple terms. Keep the key points but strip away any unnecessary words.
+- NO EMOJIS. NO EM DASHES (—) or EM SPACES (\u2003). NO HYPHENS (-), NO NEW LINES.
+"""
+
 SLIDE_PROMPTS = {
 
-    2: """Create a short, funny one-liner about how much time this player spent on League. 
-Compare their total hours to any real-world activity (watching a show, working a job, running a marathon, etc.).
-It should sound playful and slightly concerned — like the game can’t believe their dedication.
+    2: """
+CONTEXT: The player's total time spent on League this season.
 
-Stats: {totalGames} games, {totalHours} hours, {avgGameLength} min/game
+STATS: {totalGames} games, {totalHours} hours, {avgGameLength} min/game
 
-TONE GUIDE:
-- 500+ hours → Legendary obsession
-- 100–500 hours → Balanced addiction
-- <100 hours → Barely played
+LOGIC (Select ONE based on stats):
+- **HIGH (300+ hours):** They have no life. Roast them for crazy addiction.
+- **AVERAGE (100-299 hours):** They are stuck in the middle. Roast them for being a "casual" or tell them to run away while they can.
+- **LOW (<100 hours):** They barely played. Roast them for being a "casual" or tell them to run away while they can.
 
+TASK: Write a 1 sentence roast based on the logic above with a maximum of 15 words.
 Examples:
-"That’s enough time to master piano, but you chose tilt instead."
-"You’ve clocked in like League pays salary."
-"You played just enough to remember how painful it is."
+Good (High Hours): "That's like the entire season of Game of Thrones. Imagine if you put that time into a job, or a relationship, or literally anything else. You're not a pro, you're just unemployed."
+Average: "You played 150 hours I hope that's not a terrible ROI. You're wasting your life for +14 LP."
+Poor (Low Hours): "You barely played. Honestly? Good. Save yourself. Uninstall now before you end up like the degenerates in this chat."
+Note that examples are just guidelines, not rules.
+""",
 
-Keep under 20 words, use humor + exaggeration:""",
-    
+    3: None,
 
-    4: """Write a short, dramatic reaction to this player's best match — as if the system is shocked, proud, or disappointed.
-Focus on emotion, not stats.
+    4: """
+CONTEXT: The player's best match of the season.
 
-Stats: {kills}/{deaths}/{assists} on {championName}, {gameDuration} min, Result: {win}
+STATS: {win}, {kills}/{deaths}/{assists} on {championName} ({gameDuration} min)
 
-PERFORMANCE GUIDE:
-- 20+ kills → Overpowered energy
-- 10–19 kills → Strong but human
-- 5–9 kills → Mid-tier flex
-- <5 kills → Comic relief
+LOGIC (Select ONE based on stats):
+- **HIGH (Victory + High KDA):** Give them sarcastic backhanded compliment, roast them for believing they are pro.
+- **AVERAGE:** It was a fluke. Roast them for having only one good game all year.
+- **LOW (Defeat or Poor KDA):** They got carried. Roast them for being a "glorified minion" or "backpack".
 
-Examples:
-"That match was pure chaos — beautiful chaos."
-"You peaked there, admit it."
-"Painful to watch, but at least memorable."
+TASK: Write a 1 sentence roast based on the logic above with a maximum of 15 words.
+""",
 
-Under 15 words, cinematic or mocking tone:""",
-    
+    5: """
+CONTEXT: The player's Total kills.
 
-    5: """Write a short reaction to the player's season KDA. 
-Be direct — compliment or mock their skill level without listing numbers.
+STATS: {totalKills} total kills
 
-Stats: {totalKills}
+LOGIC (Select ONE based on stats):
+- **HIGH (>1500 kills):** They basically cleared the rift. Roast them for being a pain in the ass to their opponents, try to give your opponents a break.
+- **AVERAGE (200-1500 kills):** That's an average player. Let them know they are just like everyone average player.
+- **LOW (<200 kills):** They are feeding. Roast them for even playing when they will just keep dying then ragequit.
 
-TONE GUIDE:
-- 1000+ → Overlord energy
-- 500–999 → Solid
-- 100–499 → Mid
-- <100 → Disaster
+TASK: Write a 1 sentence roast based on the logic above with a maximum of 15 words.
+""",
 
-Examples:
-"All hail the dark summoner."
-"Well that's good I'll say, you prefer a diplomatic solution"
-"You’re a horror to watch."
-"After all this time, still a noob."
+    6: """
+CONTEXT: The player's ranked performance.
 
-Under 15 words, confident and punchy:""",
-    
+STATS: {currentRank}, {winRate}% Win Rate, {totalGames} games
 
-    6: """Describe their rank in a funny, personal way — like the system knows them too well.
-Avoid stats, just attitude.
+LOGIC (Select ONE based on stats):
+- **HIGH (Challenger):** They are a "Challenger". Sarcastically compliment them for the hardwork and sweat put in.
+- **ALMOST A CHALLENGER(Diamond++):** They are a "high ranked player but not challenger". Tell them they are close but not close enough in a sarcastic tone.
+- **AVERAGE (Gold/Plat):** They are "hardstuck". Roast them for playing hundreds of games to stay in the same average rank.
+- **LOW (Iron/Bronze/Silver):** They are bad. Roast them for having "no hands" or playing with their monitor off.
 
-Stats: {currentRank}, {leaguePoints}, {winRate}%, {totalGames}
+TASK: Write a 1 sentence roast based on the logic above with a maximum of 15 words.
+""",
 
-TONE GUIDE:
-- Diamond+ → Quiet admiration
-- Gold–Plat → Endless grind
-- Silver–Bronze → Tragic comedy
-- Unranked → Confused soul
+    7: """
+CONTEXT: The player's vision score and warding habits.
 
-Examples:
-"You breathe ranked air. Respect."
-"Gold again? Eternal purgatory."
-"Bronze is a lifestyle, not a rank."
-"Still unranked? That’s a talent."
+STATS: {avgVisionScore} vision score, {avgWardsPlaced} wards/game, {avgControlWardsPurchased} control wards
 
-Under 15 words, witty and personal:""",
-    
+LOGIC (Select ONE based on stats):
+- **HIGH (45+ score):** They are paranoid. Roast them for being scared of the dark or having zero mechanics so they just ward.
+- **AVERAGE (20-44 score):** They ward the same bush every game. Roast their lack of map awareness.
+- **LOW (<20 score):** They are blind. Roast them for saving gold on control wards like a cheapskate.
 
-    7: """Make a funny comment about how well this player uses vision — like judging their eyesight.
-Use jokes about seeing, blindness, or map awareness.
+TASK: Write a 1 sentence roast based on the logic above with a maximum of 15 words.
+""",
 
-Stats: {avgVisionScore}, {avgWardsPlaced}, {avgControlWardsPurchased}
+    8: """
+CONTEXT: The player's champion pool diversity.
 
-TONE GUIDE:
-- 45+ → Eagle vision
-- 30–44 → Average awareness
-- 20–29 → Fog dweller
-- <20 → Blind adventurer
+STATS: {uniqueChampions} unique champs, {totalGames} total games, {diversityScore} diversity score
 
-Examples:
-"You see everything. Creepy."
-"You ward for decoration."
-"Did you uninstall your eyes?"
-"You play like you’ve never seen a minimap."
+LOGIC (Select ONE based on stats):
+- **HIGH (One-trick / Low Diversity):** They are a one-champion spammer. Roast them for being unable to play anything else, fear of loss?.
+- **AVERAGE:** They are a "meta slave". Roast them for just copying what pros play.
+- **LOW (High Diversity):** They have an identity crisis. Roast them for playing 50 champs and mastering none.
 
-Under 15 words, pun-based humor preferred:""",
-    
+TASK: Write a 1 sentence roast based on the logic above with a maximum of 15 words.
+""",
 
-    8: """Write a quick, funny line about their champion pool — like you’re judging their identity crisis or loyalty.
+    9: """
+CONTEXT: The player's performance with their duo partner.
 
-Stats: {uniqueChampions}, {totalGames}
+STATS: Duo with {partnerName}, {gamesTogether} games, {winRate}% Win Rate
 
-TONE GUIDE:
-- 1–10 → One-trick devotion
-- 11–25 → Consistent but obsessed
-- 26–50 → Lost identity
-- 50+ → Chaos incarnate
+LOGIC (Select ONE based on stats):
+- **HIGH (>70% WR):** They are boosted. Roast them for being a menace to other players.
+- **AVERAGE (50-70% WR):** They are like every average duo trying to be the cool duo. Roast them for not finding the perfect chemistry, they should keep on trying.
+- **LOW (<50% WR):** They are a bad combination but still play together. Roast them for being an NPC duo.
 
-Examples:
-"Restraining order from that champ pending."
-"One nerf away from existential dread."
-"You’re loyal, maybe too loyal."
-"You probably spend more time picking champs than playing."
+TASK: Write a 1 sentence roast based on the logic above with a maximum of 15 words.
+""",
 
-Under 15 words, short and character-driven:""",
-    
+    10: None,
+    11: None,
 
-    9: """Write a short, funny line about this player and their duo partner — like you’re narrating a chaotic relationship.
+    "10_HEADLINE": """
+CONTEXT: Analyze the player's stats to find their biggest STRENGTH.
+STATS: {stats_summary}
 
-Stats: {partnerName}, {gamesTogether}, {winRate}%
+TASK: Identify player's stenghts and write a clear sentence identifying it.
+OUTPUT: Just the sentence. Max 10 words.
+""",
 
-Examples:
-"You and {partnerName}? A romantic disaster."
-"Let's not argue about who carried whom."
-"Together, you two redefine throwing."
-"Dynamic duo? More like dynamic disaster."
+    "10_BODY": """
+CONTEXT: The player's strength is "{headline}".
+STATS: {stats_summary}
 
-Under 15 words, playful duo energy:""",
-    
+TASK: Write 1-2 sentences of coaching advice on prospective utilization of this strength.
+Make it sound sarcastic but genuine.
+""",
 
-    10: """You are a professional coach giving a short, specific praise for their best strength.
+    "11_HEADLINE": """
+CONTEXT: Analyze the player's stats to find their biggest WEAKNESS.
+STATS: {stats_summary}
 
-Top Strength: {strengths}
+TASK: Identify player's weakness and write a clear sentence identifying it.
 
-Examples:
-"Excellent map control — you move like you own the Rift."
-"Perfect positioning — chaos fears you."
-"Teamfights are your stage. Keep performing."
+OUTPUT: Just the title. Max 10 words.
+""",
 
-Under 25 words, professional and encouraging:""",
-    
+    "11_BODY": """
+CONTEXT: The player's weakness is "{headline}".
+STATS: {stats_summary}
 
-    11: """You are a professional coach giving quick, actionable advice for their biggest weakness.
+TASK: Write 1-2 sentences of coaching advice based on this weakness.
+Tell them how to fix it but be strict about it and also give them a little movtivation.
+""",
 
-Weakness: {weaknesses}
+    12: None,
 
-Your task: Write ONLY the coaching advice - do NOT repeat the weakness, do NOT say "Analysis complete" or similar phrases.
+    14: """
+CONTEXT: The player's global percentile rank.
 
-Examples of GOOD responses:
-"Stay back, don't overextend. Let your team initiate, you follow up with damage."
-"Start warding every 2 minutes. Vision wins games, not just kills."
-"Focus on farming early game. You need gold before you can carry."
+STATS: {currentRank}, Top {percentile}% of players
 
-Examples of BAD responses:
-"Analysis complete. Weakness: Positioning. Stay back and..." 
-"Top weakness identified: Vision score. You should..." 
+LOGIC (Select ONE based on stats):
+- **HIGH (Top 10%):** They are the "King of Nerds". Roast them for being proud of a number nobody cares about.
+- **AVERAGE:** They are an average player. Sarcastically roast/praise them for their contributing to the leaderboard.
+- **LOW (Bottom 20%):** They are the content. Roast them for being the players that streamers laugh at.
 
-Under 25 words, clear and constructive coaching advice ONLY:""",
-    
+TASK: Write a 1 sentence roast based on the logic above with a maximum of 15 words.
+""",
 
-    12: """Write a short, darkly funny line about their overall season progress — like an anime arc gone wrong.
+    15: """
+CONTEXT: The final farewell and season wrap-up also it's christmas season.
 
-Stats: {totalGames}, {kdaRatio}
+STATS: {totalGames} games, {totalHours} hours, {currentRank}, {topChampion}
 
-Examples:
-"{totalGames} games later, still no enlightenment."
-"Your journey was 90% filler episodes."
-"Growth? Just trauma with stats."
+LOGIC (Select ONE based on stats):
+- **GOOD Season:** Tell them to "get a life" now that the season is over but we miss them so they should come back quickly and a happy holidays.
+- **AVERAGE Season:** Tell them that was a good season, quite enjoyable and you'll see them next year for another season of mediocrity and happy holidays.
+- **BAD Season:** Beg them to uninstall for the sake of the community or if they don't feel tortured they can come for a redemption arc but still you enjoyed the season with them and happy holidays.
 
-Under 15 words, existential humor tone:""",
-    
+TASK: Write a 2-3 sentence closing write-up minimum of 30 words and maximum of 40 words.
+""",
 
-    14: """Write a short, mock-serious comment about their global percentile, as if it’s from a documentary narrator.
+    16: """
+CONTEXT: Analyze the player's stats to find a fitting title.
+STATS: {stats_summary}
 
-Stats: {currentRank}, {percentile}%
+TASK: Generate a creative, funny, 2,3,or 4-word title for this player based on League of Legends lore or their playstyle.
+Examples: "The Rift Lord", "Lord of the Rift", "Feeder of Legends", "The Rift Seeker", "The Guide to freedom, "KDA Saver" These examples just serve as guide I'm not asking you to use them.
 
-Examples:
-"Among the chosen few."
-"You came, You saw, You conquered."
-"A toast to humanity’s middle child."
-
-Under 15 words, dramatic or deadpan tone:""",
-    
-
-    15: """Write a short farewell for their ranked season wrap-up. 
-It should sound warm, proud, and a little nostalgic — like the system saying goodbye to a friend after reviewing their ranked journey.
-
-Stats: {totalGames} ranked games, {totalHours} hours, {currentRank} rank, {topChampion}, {kdaRatio} KDA, {winRate}% win rate
-
-Examples:
-"What a ranked season.\n{totalGames} games, countless moments on the Rift.\n{topChampion} carried your story.\nSee you next season, summoner."
-
-Mention that these were RANKED matches specifically (not normals or ARAM).
-3-5 sentences max, under 100 words:"""
+OUTPUT: Just the title. Max 4 words.
+"""
 }
 
 class HumorGenerator:
@@ -251,13 +247,14 @@ class HumorGenerator:
         
         return analytics
     
-    def create_prompt(self, slide_number: int, analytics: Dict[str, Any]) -> Optional[str]:
+    def create_prompt(self, slide_number: Any, analytics: Dict[str, Any], headline: str = None) -> Optional[str]:
         """
         Create slide-specific prompt for Bedrock.
         
         Args:
-            slide_number: Slide number (1-15)
+            slide_number: Slide number (int) or Key (str) like "10_HEADLINE"
             analytics: Analytics data
+            headline: Optional headline for body generation
         
         Returns:
             Formatted prompt string or None if no humor needed
@@ -271,7 +268,64 @@ class HumorGenerator:
         template_data = {}
         
         try:
-            if slide_number == 2:  # Time Spent
+            # Special handling for Strengths/Weaknesses (Headline & Body) AND Player Title (Slide 16)
+            if str(slide_number).startswith("10_") or str(slide_number).startswith("11_") or slide_number == 16:
+                # Gather full stats summary
+                ranked = analytics.get('slide6_rankedJourney', {})
+                kda = analytics.get('slide5_kda', {})
+                vision = analytics.get('slide7_visionScore', {})
+                pool = analytics.get('slide8_championPool', {})
+                
+                # Advanced Analytics (from slide10_11_analysis aiContext)
+                adv_analysis = analytics.get('slide10_11_analysis', {}).get('aiContext', {})
+                patterns = adv_analysis.get('championPatterns', {})
+                classes = adv_analysis.get('classPerformance', {})
+                playstyle = adv_analysis.get('playstyle', {})
+                duo = adv_analysis.get('duoStats', {})
+                
+                stats_summary = (
+                    f"Rank: {ranked.get('currentRank', 'Unranked')} ({ranked.get('winRate', 0)}% WR). "
+                    f"KDA: {round(kda.get('kdaRatio') or 0, 2)}. "
+                    f"Vision: {round(vision.get('avgVisionScore') or 0, 1)}. "
+                    f"Playstyle: {playstyle.get('avgKP', 0)}% KP, {playstyle.get('avgDmgShare', 0)}% Dmg Share. "
+                )
+                
+                # Add Pattern Insights
+                if patterns.get('highestWinRate') is not None:
+                    stats_summary += f"Best Champ: {patterns['highestWinRate']['name']} ({round(patterns['highestWinRate']['winRate'])}% WR). "
+                if patterns.get('highestDeathAvg') is not None:
+                    stats_summary += f"Feeder Champ: {patterns['highestDeathAvg']['name']} ({round(patterns['highestDeathAvg']['avgDeaths'], 1)} deaths/game). "
+                
+                # Add Class Insights
+                if classes.get('bestClass') is not None:
+                    stats_summary += f"Best Class: {classes['bestClass']['class']} ({classes['bestClass']['winRate']}% WR). "
+                
+                # Add Win/Loss Correlations
+                win_stats = playstyle.get('winStats', {})
+                loss_stats = playstyle.get('lossStats', {})
+                if win_stats and loss_stats:
+                    stats_summary += f"In Wins: {win_stats.get('kp')}% KP, {win_stats.get('dmgShare')}% Dmg. "
+                    stats_summary += f"In Losses: {loss_stats.get('kp')}% KP, {loss_stats.get('dmgShare')}% Dmg. "
+                
+                # Add Duo Context
+                if duo.get('partner') != 'None':
+                    stats_summary += f"Duo: {duo.get('partner')} ({duo.get('winRateWithDuo')}% WR). "
+                
+                # Add Objective Control Metrics
+                objectives = adv_analysis.get('objectiveControl', {})
+                if objectives:
+                    stats_summary += f"Objectives: {objectives.get('dragonParticipation', 0)}% Dragons, {objectives.get('towerDamageShare', 0)}% Tower Dmg. "
+                
+                # Add Farming Metrics
+                farming = adv_analysis.get('farming', {})
+                if farming:
+                    stats_summary += f"Farming: {farming.get('csPerMin', 0)} CS/min, {farming.get('goldPerMin', 0)} GPM. "
+                
+                template_data = {
+                    'stats_summary': stats_summary,
+                    'headline': headline or "Unknown"
+                }
+            elif slide_number == 2:  # Time Spent
                 data = analytics.get('slide2_timeSpent', {})
                 total_minutes = data.get('totalMinutes')
                 if total_minutes is None:
@@ -355,18 +409,6 @@ class HumorGenerator:
                         'winRate': 0
                     }
             
-            elif slide_number == 10:  # Strengths
-                analysis = analytics.get('slide10_11_analysis', {})
-                strengths = analysis.get('strengths', [])
-                strengths_text = ', '.join(strengths) if strengths else 'Good game sense'
-                template_data = {'strengths': strengths_text}
-            
-            elif slide_number == 11:  # Weaknesses
-                analysis = analytics.get('slide10_11_analysis', {})
-                weaknesses = analysis.get('weaknesses', [])
-                weaknesses_text = ', '.join(weaknesses) if weaknesses else 'Room for improvement everywhere'
-                template_data = {'weaknesses': weaknesses_text}
-            
             elif slide_number == 12:  # Progress
                 time_data = analytics.get('slide2_timeSpent', {})
                 kda = analytics.get('slide5_kda', {})
@@ -440,27 +482,9 @@ class HumorGenerator:
         """
         
         # Meta Llama 3.1 chat template
-        system_prompt = """You are a CONTEXT-AWARE League of Legends roaster analyzing player performance.
-
-GOOD players: Sarcastic respect, backhanded compliments, "sarcastic" jokes
-AVERAGE players: Light roasts, modest mockery, "you're trying" energy  
-BAD players: Brutal destruction, savage roasts, "why do you even play" vibes
-
-Read the stats. Match your tone to their skill level. Be funny, not generic.
-
-WRITING STYLE:
-Write in a conversational, human voice with a friendly tone that isn't colloquial. 
-Use short sentences and simple words. 
-Remove academic language, transition phrases, and corporate jargon. 
-Make it sound like someone talking to a friend in simple terms. 
-Keep the key points but strip away any unnecessary words.
-
-NO EMOJIS. NO EM DASHES (—). Use commas instead and hyphens (-) if necessary. Max 30 words."""
-        
-        # Llama chat template format
         llama_prompt = f"""<|begin_of_text|><|start_header_id|>system<|end_header_id|>
 
-{system_prompt}<|eot_id|><|start_header_id|>user<|end_header_id|>
+{SYSTEM_PROMPT}<|eot_id|><|start_header_id|>user<|end_header_id|>
 
 {prompt}<|eot_id|><|start_header_id|>assistant<|end_header_id|>
 
@@ -503,7 +527,7 @@ NO EMOJIS. NO EM DASHES (—). Use commas instead and hyphens (-) if necessary. 
         logger.info(f" Generated humor: {humor_text}")
         return humor_text
     
-    def store_humor(self, session_id: str, slide_number: int, humor_text: str):
+    def store_humor(self, session_id: str, slide_number: int, humor_text: str, headline: str = None):
         """
         Store humor in S3.
         
@@ -511,6 +535,7 @@ NO EMOJIS. NO EM DASHES (—). Use commas instead and hyphens (-) if necessary. 
             session_id: Session ID
             slide_number: Slide number
             humor_text: Generated humor text
+            headline: Optional generated headline (for slides 10/11)
         """
         s3_key = f"sessions/{session_id}/humor/slide_{slide_number}.json"
         
@@ -521,40 +546,21 @@ NO EMOJIS. NO EM DASHES (—). Use commas instead and hyphens (-) if necessary. 
             'generatedAt': json.dumps({"timestamp": "now"}) 
         }
 
-        # For slides that display a short AI-generated headline (strength, weakness, or player title),
-        # also persist that headline into the humor JSON so the frontend can fetch a single source.
-        try:
-            if slide_number in (10, 11, 15):
-                try:
-                    analytics = self.download_analytics(session_id)
-                    slide10 = analytics.get('slide10_11_analysis', {})
-
-                    if slide_number == 10:
-                        strengths = slide10.get('strengths', [])
-                        if strengths:
-                            data['headline'] = strengths[0]
-                            data['headlineType'] = 'strength'
-
-                    if slide_number == 11:
-                        weaknesses = slide10.get('weaknesses', [])
-                        if weaknesses:
-                            data['headline'] = weaknesses[0]
-                            data['headlineType'] = 'weakness'
-
-                    if slide_number == 15:
-                        personality = slide10.get('personality_title') or slide10.get('play_style')
-                        if personality:
-                            data['headline'] = personality
-                            data['headlineType'] = 'personality_title'
-                except Exception:
-                    logger.exception(f"store_humor: failed to attach headline for session {session_id}, slide {slide_number}")
-
-        except Exception:
-            # Don't fail humor storage for headline issues
-            logger.exception("store_humor: unexpected error while attaching headline")
+        # If headline is provided (AI generated), use it.
+        if headline:
+            data['headline'] = headline
+            if slide_number == 10:
+                data['headlineType'] = 'strength'
+            elif slide_number == 11:
+                data['headlineType'] = 'weakness'
+        
+        # Special handling for Slide 16 (Player Title)
+        if slide_number == 16:
+            data['headline'] = humor_text
+            data['headlineType'] = 'personality_title'
 
         upload_to_s3(s3_key, data)
-        logger.info(f"Stored humor for session {session_id} slide {slide_number} (headline present: {'headline' in data})")
+        logger.info(f"Stored humor for session {session_id} slide {slide_number} (headline: {headline})")
     
     def generate(self, session_id: str, slide_number: int) -> Dict[str, Any]:
         """
@@ -571,61 +577,28 @@ NO EMOJIS. NO EM DASHES (—). Use commas instead and hyphens (-) if necessary. 
         # Step 1: Download analytics
         analytics = self.download_analytics(session_id)
 
-        # Ensure strengths/weaknesses and personality_title exist for slides that depend on insights
-        # If they are missing or flagged as needing AI processing, call the Insights generator and update analytics
-        try:
-            if slide_number in (10, 11, 15):
-                slide10 = analytics.get('slide10_11_analysis', {})
-                needs_ai = slide10.get('needsAIProcessing', True) or not slide10.get('strengths') or not slide10.get('weaknesses') or not slide10.get('personality_title')
+        # Step 2: Special Two-Step Generation for Slides 10 & 11
+        if slide_number in (10, 11):
+            # 2a. Generate Headline
+            headline_prompt = self.create_prompt(f"{slide_number}_HEADLINE", analytics)
+            headline = self.call_bedrock(headline_prompt) if headline_prompt else "Generic Player"
+            
+            # 2b. Generate Body using Headline
+            body_prompt = self.create_prompt(f"{slide_number}_BODY", analytics, headline=headline)
+            humor_text = self.call_bedrock(body_prompt) if body_prompt else "Keep playing."
+            
+            # 2c. Store both
+            self.store_humor(session_id, slide_number, humor_text, headline=headline)
+            
+            return {
+                'sessionId': session_id,
+                'slideNumber': slide_number,
+                'humorText': humor_text,
+                'headline': headline,
+                'status': 'success'
+            }
 
-                if needs_ai:
-                    logger.info(f"HumorGenerator: triggering InsightsGenerator for session {session_id} before generating slide {slide_number}")
-                    try:
-                        # Attempt to import InsightsGenerator with several fallbacks.
-                        try:
-                            from insights import InsightsGenerator  # preferred
-                        except Exception:
-                            try:
-                                from .insights import InsightsGenerator  # relative import
-                            except Exception:
-                                # As a last resort, load the module by file path (same directory)
-                                import importlib.util
-                                insights_path = os.path.join(os.path.dirname(__file__), 'insights.py')
-                                spec = importlib.util.spec_from_file_location('insights_local', insights_path)
-                                insights_mod = importlib.util.module_from_spec(spec)
-                                spec.loader.exec_module(insights_mod)  # type: ignore
-                                InsightsGenerator = getattr(insights_mod, 'InsightsGenerator')
-
-                        insights_gen = InsightsGenerator()
-                        insights_result = insights_gen.generate(session_id)
-                        insights = insights_result.get('insights', {}) if insights_result else {}
-
-                        # Validate and apply insights into analytics (safe merge)
-                        strengths = insights.get('strengths') or slide10.get('strengths') or ["Consistent ranked participation"]
-                        weaknesses = insights.get('weaknesses') or slide10.get('weaknesses') or ["Keep playing to unlock deeper insights"]
-                        coaching = insights.get('coaching_tips') or slide10.get('coaching_tips') or []
-                        play_style = insights.get('play_style') or slide10.get('play_style') or ''
-                        personality = insights.get('personality_title') or slide10.get('personality_title') or 'The Rising Competitor'
-
-                        # Update analytics structure
-                        analytics.setdefault('slide10_11_analysis', {})
-                        analytics['slide10_11_analysis']['strengths'] = strengths
-                        analytics['slide10_11_analysis']['weaknesses'] = weaknesses
-                        analytics['slide10_11_analysis']['coaching_tips'] = coaching
-                        analytics['slide10_11_analysis']['play_style'] = play_style
-                        analytics['slide10_11_analysis']['personality_title'] = personality
-                        analytics['slide10_11_analysis']['needsAIProcessing'] = False
-
-                        s3_key = f"sessions/{session_id}/analytics.json"
-                        upload_to_s3(s3_key, analytics)
-                        logger.info(f"HumorGenerator: updated analytics with insights for session {session_id}")
-
-                    except Exception as e:
-                        logger.exception(f"HumorGenerator: failed to generate or apply insights for session {session_id}: {e}")
-        except Exception:
-            logger.exception("HumorGenerator: unexpected error while ensuring insights; continuing to humor generation")
-
-        # Step 2: Create prompt
+        # Step 3: Standard Generation for other slides
         prompt = self.create_prompt(slide_number, analytics)
         
         if not prompt:
@@ -636,12 +609,11 @@ NO EMOJIS. NO EM DASHES (—). Use commas instead and hyphens (-) if necessary. 
                 'status': 'no_humor_needed'
             }
         
-        # Step 3: Generate humor
+        # Step 4: Generate humor
         humor_text = self.call_bedrock(prompt)
         
-        # Step 4: Store result
+        # Step 5: Store result
         self.store_humor(session_id, slide_number, humor_text)
-        
         
         return {
             'sessionId': session_id,
@@ -861,52 +833,31 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 'body': json.dumps({
                     'mode': 'regenerate',
                     'slides': results,
-                    'message': 'All slides regenerated with complete data'
+                    'message': 'Full regeneration complete'
                 })
             }
         
-        else:  # mode == 'single' (original behavior)
-            # Validate slide number for single mode
-            if not slide_number:
-                return {
-                    'statusCode': 400,
-                    'body': json.dumps({
-                        'error': 'Missing slideNumber for single mode'
-                    })
-                }
-            
-            if not (1 <= slide_number <= 15):
-                return {
-                    'statusCode': 400,
-                    'body': json.dumps({
-                        'error': 'slideNumber must be between 1 and 15'
-                    })
-                }
-            
-            # Generate humor for single slide
-            result = generator.generate(session_id, slide_number)
-            
+        # Default: Single slide generation
+        if not slide_number:
             return {
-                'statusCode': 200,
-                'body': json.dumps(result)
+                'statusCode': 400,
+                'body': json.dumps({
+                    'error': 'Missing required parameter: slideNumber'
+                })
             }
-    
+            
+        result = generator.generate(session_id, slide_number)
+        
+        return {
+            'statusCode': 200,
+            'body': json.dumps(result)
+        }
+        
     except Exception as e:
+        logger.error(f"Error in lambda_handler: {str(e)}")
         return {
             'statusCode': 500,
             'body': json.dumps({
-                'error': f'Internal server error: {str(e)}'
+                'error': str(e)
             })
         }
-
-
-# For local testing
-if __name__ == "__main__":
-    # Test humor generation for slide 3 (Champions)
-    test_event = {
-        'sessionId': 'test-session-123',
-        'slideNumber': 3
-    }
-    
-    result = lambda_handler(test_event, None)
-    print(f"\nResult: {json.dumps(json.loads(result['body']), indent=2)}")

@@ -13,8 +13,6 @@ from .constants import AWS_DEFAULT_REGION, S3_BUCKET_NAME
 # Singleton clients
 _s3_client = None
 _bedrock_client = None
-_sagemaker_client = None
-
 
 def get_s3_client():
     """
@@ -43,22 +41,6 @@ def get_bedrock_client():
             region_name=AWS_DEFAULT_REGION
         )
     return _bedrock_client
-
-
-def get_sagemaker_client():
-    """
-    Get or create SageMaker Runtime client (singleton pattern).
-    
-    Returns:
-        boto3 SageMaker Runtime client
-    """
-    global _sagemaker_client
-    if _sagemaker_client is None:
-        _sagemaker_client = boto3.client(
-            service_name='sagemaker-runtime',
-            region_name=AWS_DEFAULT_REGION
-        )
-    return _sagemaker_client
 
 
 def upload_to_s3(key: str, data: Union[str, Dict[str, Any]], content_type: str = 'application/json') -> bool:
@@ -153,3 +135,29 @@ def check_s3_object_exists(key: str) -> bool:
             return local_path.exists()
         except Exception:
             return False
+
+
+def delete_from_s3(key: str) -> bool:
+    """
+    Delete an object from S3 bucket.
+    
+    Args:
+        key: S3 object key (path)
+        
+    Returns:
+        True if successful, False otherwise
+    """
+    try:
+        s3_client = get_s3_client()
+        s3_client.delete_object(Bucket=S3_BUCKET_NAME, Key=key)
+        return True
+    except Exception as e:
+        try:
+            local_root = Path(__file__).resolve().parents[1] / '.local_s3'
+            local_path = local_root / key
+            if local_path.exists():
+                local_path.unlink()
+            return True
+        except Exception:
+            return False
+
