@@ -18,7 +18,7 @@ For deployment steps, architecture details, and developer instructions, see the 
 
 - Python 3.10+ (for backend lambdas and the development Flask server)
 - Node.js 18+ / npm or yarn (for the frontend Vite app)
-- AWS account (optional) CLI configured to deploy Lambdas, S3, API Gateway, and Amplify
+- AWS account to deploy Lambdas, S3, API Gateway, and Amplify
 
 Backend Python dependencies are listed in `backend/requirements.txt`.
 
