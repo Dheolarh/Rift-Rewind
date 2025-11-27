@@ -21,7 +21,7 @@ interface FinalRecapSlideProps {
     uniqueChampions: number;
     playerLevel: number;
   };
-  profileIconId?: number;
+  profileIconUrl?: string;  // Changed from profileIconId to profileIconUrl
   onRestart: () => void;
 }
 
@@ -30,15 +30,10 @@ export function FinalRecapSlide({
   playerTitle,
   year,
   highlightStats,
-  profileIconId,
+  profileIconUrl,  // Changed from profileIconId
   onRestart,
 }: FinalRecapSlideProps) {
   const [showShareCard, setShowShareCard] = useState(false);
-
-  // Get summoner icon URL
-  const summonerIconUrl = profileIconId
-    ? `https://ddragon.leagueoflegends.com/cdn/14.23.1/img/profileicon/${profileIconId}.png`
-    : null;
 
   const handleShare = () => {
     setShowShareCard(true);
@@ -82,11 +77,11 @@ export function FinalRecapSlide({
 
         {/* Content - Centered and Simplified */}
         <div
-        className="relative z-10 w-full max-w-4xl flex flex-col items-center px-4 sm:px-6 gap-4 sm:gap-5"
-        style={{
-          width: "90vw",
-          paddingTop: "10%",
-        }}
+          className="relative z-10 w-full max-w-4xl flex flex-col items-center px-4 sm:px-6 gap-4 sm:gap-5"
+          style={{
+            width: "90vw",
+            paddingTop: "10%",
+          }}
         >
 
           {/* Logo */}
@@ -104,7 +99,7 @@ export function FinalRecapSlide({
           </motion.div>
 
           {/* Summoner Icon */}
-          {summonerIconUrl && (
+          {profileIconUrl && (
             <motion.div
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -112,7 +107,7 @@ export function FinalRecapSlide({
               className="w-20 h-20 sm:w-24 sm:h-24 rounded-full border-4 border-[#C8AA6E] overflow-hidden bg-[#0A1428] shadow-lg shadow-[#C8AA6E]/30"
             >
               <ImageWithFallback
-                src={summonerIconUrl}
+                src={profileIconUrl}
                 alt="Summoner Icon"
                 className="w-full h-full object-cover"
               />
@@ -136,14 +131,14 @@ export function FinalRecapSlide({
 
           {/* Stats Grid - Expanded with more boxes */}
           <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-          className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3 w-full max-w-4xl overflow-y-auto"
-          style={{
-            maxHeight: "50vh",
-          WebkitOverflowScrolling: "touch",
-          }}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3 w-full max-w-4xl overflow-y-auto"
+            style={{
+              maxHeight: "50vh",
+              WebkitOverflowScrolling: "touch",
+            }}
           >
 
             {/* Hours Played */}
@@ -213,8 +208,8 @@ export function FinalRecapSlide({
             {/* Player Level */}
             <div className="bg-[#0A1428]/60 backdrop-blur-sm border border-[#C8AA6E]/30 p-3 sm:p-4 text-center rounded-sm">
               <div className="text-2xl sm:text-3xl text-[#C8AA6E] mb-1 tabular-nums" style={{ fontFamily: 'Georgia, serif' }}>
-                  {highlightStats.playerLevel || '—'}
-                </div>
+                {highlightStats.playerLevel || '—'}
+              </div>
               <div className="text-xs text-[#A09B8C] uppercase tracking-wider">Level</div>
             </div>
           </motion.div>
