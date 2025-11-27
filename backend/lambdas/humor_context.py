@@ -54,7 +54,7 @@ LOGIC (Select ONE based on stats):
 - **AVERAGE (100-299 hours):** They are stuck in the middle. Roast them for being a "casual" or tell them to run away while they can.
 - **LOW (<100 hours):** They barely played. Roast them for being a "casual" or tell them to run away while they can.
 
-TASK: Write a 1 sentence roast based on the logic above with a maximum of 15 words,.
+TASK: Write a 1 sentence roast based on the logic above with a maximum of 15 words.
 Examples:
 Good (High Hours): "That's like the entire season of Game of Thrones. Imagine if you put that time into a job, or a relationship, or literally anything else. You're not a pro, you're just unemployed."
 Average: "You played 150 hours I hope that's not a terrible ROI. You're wasting your life for +14 LP."
@@ -101,7 +101,7 @@ LOGIC (Select ONE based on stats):
 - **AVERAGE (Gold/Plat):** They are "hardstuck". Roast them for playing hundreds of games to stay in the same average rank.
 - **LOW (Iron/Bronze/Silver):** They are bad. Roast them for having "no hands" or playing with their monitor off.
 
-TASK: Write a 1 sentence roast based on the logic above with a maximum of 15 words.
+TASK: Write a 1 sentence roast based on the logic above with a maximum of 15 words, Don't start sentence with "Wow {totalGames} games to reach {currentRank}." try to be diverse about your roasts or remark.
 """,
 
     7: """
@@ -191,7 +191,7 @@ LOGIC (Select ONE based on stats):
 - **AVERAGE:** They are an average player. Sarcastically roast/praise them for their contributing to the leaderboard.
 - **LOW (Bottom 20%):** They are the content. Roast them for being the players that streamers laugh at.
 
-TASK: Write a 1 sentence roast based on the logic above with a maximum of 15 words.
+TASK: Write a 1 sentence roast based on the logic above with a maximum of 15 words, No Emojis.
 """,
 
     15: """
