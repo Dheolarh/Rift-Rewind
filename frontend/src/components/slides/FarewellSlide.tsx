@@ -1,5 +1,5 @@
 import { motion } from "motion/react";
-import { useEffect, useState, useMemo } from "react";
+import { useMemo } from "react";
 import { ImageWithFallback } from "../source/ImageWithFallback";
 import farewellBg from "../../assets/farewell.webp";
 
@@ -14,7 +14,6 @@ interface FarewellSlideProps {
 
 export function FarewellSlide({
   summonerName = "Summoner",
-  season = "2025",
   gamesPlayed = 0,
   hoursPlayed = 0,
   favoriteChampion = "your favorite champion",
