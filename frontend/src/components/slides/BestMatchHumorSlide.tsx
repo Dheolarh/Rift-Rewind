@@ -32,7 +32,7 @@ export function BestMatchHumorSlide({
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ delay: 0.3, duration: 0.8 }}
-        className="relative z-10 max-w-3xl w-full px-6"
+        className="relative z-10 max-w-xl w-full px-6"
       >
         <p className="text-lg sm:text-xl md:text-2xl text-[#C8AA6E] text-center leading-relaxed font-bold">
           {aiHumor}

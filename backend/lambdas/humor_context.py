@@ -583,24 +583,43 @@ class HumorGenerator:
 
         # Step 2: Special Two-Step Generation for Slides 10 & 11
         if slide_number in (10, 11):
-            # 2a. Generate Headline
-            headline_prompt = self.create_prompt(f"{slide_number}_HEADLINE", analytics)
-            headline = self.call_bedrock(headline_prompt) if headline_prompt else "Generic Player"
-            
-            # 2b. Generate Body using Headline
-            body_prompt = self.create_prompt(f"{slide_number}_BODY", analytics, headline=headline)
-            humor_text = self.call_bedrock(body_prompt) if body_prompt else "Keep playing."
-            
-            # 2c. Store both
-            self.store_humor(session_id, slide_number, humor_text, headline=headline)
-            
-            return {
-                'sessionId': session_id,
-                'slideNumber': slide_number,
-                'humorText': humor_text,
-                'headline': headline,
-                'status': 'success'
-            }
+            try:
+                # 2a. Generate Headline
+                headline_prompt = self.create_prompt(f"{slide_number}_HEADLINE", analytics)
+                headline = self.call_bedrock(headline_prompt) if headline_prompt else "Generic Player"
+                
+                # 2b. Generate Body using Headline
+                try:
+                    body_prompt = self.create_prompt(f"{slide_number}_BODY", analytics, headline=headline)
+                    humor_text = self.call_bedrock(body_prompt) if body_prompt else "Keep playing to unlock deeper insights."
+                except Exception as body_error:
+                    logger.error(f"Body generation failed for slide {slide_number}: {body_error}")
+                    # Use fallback text if body generation fails
+                    humor_text = "Keep playing to unlock deeper insights."
+                
+                # 2c. Store both (even if body failed, we store the fallback)
+                self.store_humor(session_id, slide_number, humor_text, headline=headline)
+                
+                return {
+                    'sessionId': session_id,
+                    'slideNumber': slide_number,
+                    'humorText': humor_text,
+                    'headline': headline,
+                    'status': 'success'
+                }
+            except Exception as e:
+                logger.error(f"Two-step generation failed for slide {slide_number}: {e}")
+                # Store minimal fallback if everything fails
+                fallback_headline = "Areas to Improve" if slide_number == 11 else "Your Strengths"
+                fallback_body = "Keep playing to unlock deeper insights."
+                self.store_humor(session_id, slide_number, fallback_body, headline=fallback_headline)
+                return {
+                    'sessionId': session_id,
+                    'slideNumber': slide_number,
+                    'humorText': fallback_body,
+                    'headline': fallback_headline,
+                    'status': 'fallback'
+                }
 
         # Step 3: Standard Generation for other slides
         prompt = self.create_prompt(slide_number, analytics)

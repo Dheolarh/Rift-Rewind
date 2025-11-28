@@ -20,29 +20,9 @@ export function FarewellSlide({
   favoriteChampion = "your favorite champion",
   aiFarewell
 }: FarewellSlideProps) {
-  const [visibleLines, setVisibleLines] = useState(0);
-
   const farewellText = aiFarewell || `Well, what a season.\n\n${gamesPlayed} games, ${hoursPlayed} hours, and countless memories with ${favoriteChampion}.\n\nYou sure did quite a lot out there, ${summonerName}.\n\nThrough the wins and the losses,\nThe clutch plays and the questionable recalls,\nYou showed up and gave it your all.\n\nEvery game was another chapter in your legend.\n\nSee you on the Rift, Champion.`;
 
   const farewellLines = farewellText.split('\n');
-
-  useEffect(() => {
-    // Reset animation when text changes
-    setVisibleLines(0);
-    
-    // Animate lines appearing one by one
-    const timer = setInterval(() => {
-      setVisibleLines(prev => {
-        if (prev >= farewellLines.length) {
-          clearInterval(timer);
-          return prev;
-        }
-        return prev + 1;
-      });
-  }, 900); // Each line appears every 900ms (slower fade-in for more dramatic pacing)
-
-    return () => clearInterval(timer);
-  }, [farewellText, farewellLines.length]);
 
   return (
     <div className="relative size-full overflow-hidden bg-gradient-to-br from-[#2d0a4e] via-[#010A13] to-[#0a1929]">
@@ -72,35 +52,29 @@ export function FarewellSlide({
 
       {/* Content */}
       <div className="relative z-10 size-full flex flex-col items-center justify-center px-6 sm:px-8 md:px-12">
-        <div className="max-w-3xl w-full">
+        <motion.div
+          className="max-w-3xl w-full"
+          initial={{ opacity: 0, filter: "blur(10px)" }}
+          animate={{ opacity: 1, filter: "blur(0px)" }}
+          transition={{ duration: 1.5, ease: "easeOut" }}
+        >
           {farewellLines.map((line, index) => {
-            const isVisible = index < visibleLines;
             const isEmptyLine = line.trim() === "";
             const isLastLine = index === farewellLines.length - 1;
-            
+
             // Highlight summoner name if present in the line
             const hasSummonerName = line.includes(summonerName);
-            
+
             return (
-              <motion.div
+              <div
                 key={index}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{
-                  opacity: isVisible ? 1 : 0,
-                  y: isVisible ? 0 : 10
-                }}
-                transition={{
-                  duration: 1.0,
-                  ease: "easeOut"
-                }}
                 className="text-center"
                 style={{ minHeight: isEmptyLine ? '1.5rem' : 'auto' }}
               >
                 {!isEmptyLine && (
                   <p
-                    className={`text-lg sm:text-xl md:text-2xl lg:text-3xl leading-relaxed italic tracking-wide ${
-                      isLastLine ? 'text-[#C8AA6E] font-semibold' : 'text-[#C8AA6E]/90'
-                    }`}
+                    className={`text-lg sm:text-xl md:text-2xl lg:text-3xl leading-relaxed italic tracking-wide ${isLastLine ? 'text-[#C8AA6E] font-semibold' : 'text-[#C8AA6E]/90'
+                      }`}
                     style={{ fontFamily: 'Georgia, serif' }}
                   >
                     {hasSummonerName ? (
@@ -121,10 +95,10 @@ export function FarewellSlide({
                     )}
                   </p>
                 )}
-              </motion.div>
+              </div>
             );
           })}
-        </div>
+        </motion.div>
       </div>
 
       {/* Subtle particles effect */}

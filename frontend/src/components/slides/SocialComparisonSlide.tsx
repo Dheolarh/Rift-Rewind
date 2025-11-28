@@ -43,7 +43,7 @@ export function SocialComparisonSlide({
   const topPercentage = 100 - rankPercentile;
 
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, y: 50 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -50 }}
@@ -98,14 +98,14 @@ export function SocialComparisonSlide({
           transition={{ delay: 0.5, duration: 0.8, type: "spring" }}
         >
           <div className="flex items-baseline justify-center">
-            <span 
-              className="leading-none bg-gradient-to-br from-[#FFD700] via-[#C8AA6E] to-[#8B7548] bg-clip-text text-transparent tabular-nums" 
+            <span
+              className="leading-none bg-gradient-to-br from-[#FFD700] via-[#C8AA6E] to-[#8B7548] bg-clip-text text-transparent tabular-nums"
               style={{ fontFamily: 'Georgia, serif', fontSize: 'clamp(7rem, 15vw, 12rem)', paddingBottom: '8px' }}
             >
               <Counter value={topPercentage} />
             </span>
-            <span 
-              className="text-[#C8AA6E] ml-2" 
+            <span
+              className="text-[#C8AA6E] ml-2"
               style={{ fontFamily: 'Georgia, serif', fontSize: 'clamp(4rem, 8vw, 7rem)' }}
             >
               %
@@ -164,11 +164,10 @@ export function SocialComparisonSlide({
 
                       {/* Win Rate */}
                       <div className="flex-shrink-0 text-right">
-                        <div className={`text-lg sm:text-xl lg:text-3xl tabular-nums ${
-                          userEntry.winRate >= 60 ? 'text-[#0AC8B9]' :
-                          userEntry.winRate >= 55 ? 'text-[#C8AA6E]' :
-                          'text-white'
-                        }`}>
+                        <div className={`text-lg sm:text-xl lg:text-3xl tabular-nums ${userEntry.winRate >= 60 ? 'text-[#0AC8B9]' :
+                            userEntry.winRate >= 55 ? 'text-[#C8AA6E]' :
+                              'text-white'
+                          }`}>
                           {userEntry.winRate}%
                         </div>
                         <div className="text-sm sm:text-base lg:text-lg text-[#A09B8C]">Win Rate</div>
@@ -186,7 +185,7 @@ export function SocialComparisonSlide({
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 1, duration: 0.6 }}
-          className="text-center max-w-md px-4"
+          className="text-center max-w-xl px-4"
         >
           <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-[#E8E6E3]/80 italic leading-relaxed">
             {aiHumor}
